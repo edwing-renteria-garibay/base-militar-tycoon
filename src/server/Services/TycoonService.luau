@@ -58,19 +58,46 @@ local function isAvailable(profile: DataService.Profile, item): boolean
 	return not profile.owned[item.id] and (item.requires == nil or profile.owned[item.requires] == true)
 end
 
+-- Si el jugador está parado donde va a salir la construcción, lo mueve enfrente de ella
+-- (si no, las piezas lo empujan y lo tiran)
+local function moveOutOfTheWay(player: Player, model: Model)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not character or not root then
+		return
+	end
+	local box, size = model:GetBoundingBox()
+	local here = box:PointToObjectSpace(root.Position)
+	local margin = 2
+	if math.abs(here.X) < size.X / 2 + margin and math.abs(here.Z) < size.Z / 2 + margin then
+		local front = box * CFrame.new(here.X, 0, -size.Z / 2 - 5)
+		local spot = Vector3.new(front.Position.X, root.Position.Y, front.Position.Z)
+		character:PivotTo(CFrame.lookAt(spot, Vector3.new(box.Position.X, spot.Y, box.Position.Z)))
+	end
+end
+
 -- Pone una construcción en el terreno. Con animate, las piezas bajan del cielo y aparecen
-local function build(state: State, item, animate: boolean)
+local function build(state: State, item, animate: boolean, player: Player?)
 	local model = Builder.Build(item.kind, placeOf(state.plot, item.at, item.rot))
 	model.Name = item.id
 	if animate then
+		if player then
+			moveOutOfTheWay(player, model)
+		end
 		for _, piece in model:GetDescendants() do
 			if piece:IsA("BasePart") then
 				local target = piece.CFrame
 				local transparency = piece.Transparency
+				local collides = piece.CanCollide
 				piece.CFrame = target + Vector3.new(0, 6, 0)
 				piece.Transparency = 1
+				piece.CanCollide = false -- mientras baja no empuja a nadie
 				local info = TweenInfo.new(BUILD_TIME, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-				TweenService:Create(piece, info, { CFrame = target, Transparency = transparency }):Play()
+				local tween = TweenService:Create(piece, info, { CFrame = target, Transparency = transparency })
+				tween.Completed:Connect(function()
+					piece.CanCollide = collides
+				end)
+				tween:Play()
 			end
 		end
 	end
@@ -100,7 +127,7 @@ local function buy(player: Player, item)
 		button.part:Destroy()
 		state.buttons[item.id] = nil
 	end
-	build(state, item, true)
+	build(state, item, true, player)
 	player:SetAttribute("Income", incomeOf(profile))
 	if Buildings.IsLastOfStage(item.id) then
 		local stage = Buildings.stages[item.stage]
