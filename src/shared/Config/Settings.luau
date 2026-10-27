@@ -5,7 +5,7 @@ local Settings = {}
 -- Modo de prueba: empiezas con mucho dinero y no se guarda nada. Apágalo antes de publicar
 Settings.Testing = {
 	enabled = false,
-	startMoney = 100000,
+	startMoney = 10000000, -- alcanza para toda la base
 }
 
 Settings.startMoney = 0 -- con lo que empieza un jugador nuevo
