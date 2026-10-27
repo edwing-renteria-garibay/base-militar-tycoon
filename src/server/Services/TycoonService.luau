@@ -81,7 +81,8 @@ local function build(state: State, item, animate: boolean, player: Player?)
 	local model = Builder.Build(item.kind, placeOf(state.plot, item.at, item.rot))
 	model.Name = item.id
 	if animate then
-		if player then
+		-- Solo si su botón estaba en el mismo lugar (el muro y el portón tienen el botón aparte)
+		if player and item.button == nil then
 			moveOutOfTheWay(player, model)
 		end
 		for _, piece in model:GetDescendants() do
