@@ -162,7 +162,7 @@ function Builder.kinds.Watchtower(m: Model, o: CFrame)
 		part(m, o, Vector3.new(8, 1.2, 0.3), at(0, 15.2, side * 4), WOOD, Enum.Material.Wood)
 		part(m, o, Vector3.new(0.3, 1.2, 8), at(side * 4, 15.2, 0), WOOD, Enum.Material.Wood)
 	end
-	part(m, o, Vector3.new(9.5, 0.4, 9.5), at(0, 19.4, 0), DARK_OLIVE, Enum.Material.CorrugatedPlate)
+	part(m, o, Vector3.new(9.5, 0.4, 9.5), at(0, 19.4, 0), DARK_OLIVE, Enum.Material.CorrugatedSteel)
 	part(m, o, Vector3.new(2, 14, 0.3), at(0, 7, -4.2), DARK_WOOD, Enum.Material.Wood)
 	local lamp = part(m, o, Vector3.new(1, 1, 1), at(0, 15.5, -3.6), WHITE, Enum.Material.Neon)
 	local spot = Instance.new("SpotLight")
@@ -194,7 +194,7 @@ end
 function Builder.kinds.Barracks(m: Model, o: CFrame)
 	part(m, o, Vector3.new(27, 0.6, 15), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(26, 9.4, 14), at(0, 5.3, 0), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(28, 1, 16), at(0, 10.5, 0), DARK_METAL, Enum.Material.CorrugatedPlate)
+	part(m, o, Vector3.new(28, 1, 16), at(0, 10.5, 0), DARK_METAL, Enum.Material.CorrugatedSteel)
 	part(m, o, Vector3.new(4, 7, 0.3), at(0, 4.1, -7.1), DARK_WOOD, Enum.Material.Wood)
 	for _, x in { -10, -5, 5, 10 } do
 		part(m, o, Vector3.new(3, 2.5, 0.2), at(x, 6, -7.05), GLASS, Enum.Material.Glass)
@@ -207,7 +207,7 @@ function Builder.kinds.Armory(m: Model, o: CFrame)
 	part(m, o, Vector3.new(15, 0.6, 13), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(14, 9, 12), at(0, 5.1, 0), DARK_OLIVE, Enum.Material.Metal)
 	part(m, o, Vector3.new(15, 0.8, 13), at(0, 10, 0), DARK_METAL, Enum.Material.Metal)
-	part(m, o, Vector3.new(8, 6, 0.3), at(0, 3.6, -6.1), METAL, Enum.Material.CorrugatedPlate)
+	part(m, o, Vector3.new(8, 6, 0.3), at(0, 3.6, -6.1), METAL, Enum.Material.CorrugatedSteel)
 	local sign = part(m, o, Vector3.new(10, 1.6, 0.2), at(0, 8, -6.15), DARK_METAL)
 	label(sign, "ARMERÍA", YELLOW)
 	part(m, o, Vector3.new(3, 3, 3), at(-5.5, 2.1, -8), OLIVE, Enum.Material.Metal)
@@ -330,7 +330,11 @@ function Builder.Build(kind: string, o: CFrame): Model
 	local m = Instance.new("Model")
 	local draw = Builder.kinds[kind]
 	if draw then
-		draw(m, o)
+		-- Si un dibujo tiene un error, se avisa en Output pero el juego sigue
+		local ok, err = pcall(draw, m, o)
+		if not ok then
+			warn("[Builder] Error al dibujar", kind, err)
+		end
 	else
 		warn("[Builder] No hay dibujo para", kind)
 		part(m, o, Vector3.new(4, 4, 4), at(0, 2, 0), RED)
