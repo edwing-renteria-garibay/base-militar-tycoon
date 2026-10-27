@@ -7,6 +7,9 @@
 --    la construcción aparece con una animación y sale el botón de la siguiente.
 --
 -- Solo el dueño del terreno puede usar sus botones.
+--
+-- Con el garaje, el letrero de su entrada saca un jeep (JeepService). Al terminar toda la base
+-- sale el botón de Renacer: la base se reinicia y desde entonces todo genera más.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +19,7 @@ local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.Builder)
 local DataService = require(script.Parent.DataService)
+local JeepService = require(script.Parent.JeepService)
 local PlotService = require(script.Parent.PlotService)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
@@ -24,14 +28,17 @@ local VAULT_AT = CFrame.new(-45, 0, -48) -- dónde va la caja fuerte dentro del 
 local AFFORD = Color3.fromRGB(60, 200, 90) -- botón: te alcanza
 local TOO_EXPENSIVE = Color3.fromRGB(170, 60, 60) -- botón: todavía no te alcanza
 local BUILD_TIME = 0.6 -- segundos que tarda la animación al construir
+local REBIRTH_COLOR = Color3.fromRGB(230, 180, 50)
 
 local TycoonService = {}
 
 type Button = { part: BasePart, item: any }
 type State = {
+	owner: Player,
 	plot: PlotService.Plot,
 	buttons: { [string]: Button },
 	vaultText: TextLabel,
+	rebirthButton: BasePart?,
 }
 
 local states: { [Player]: State } = {}
@@ -42,7 +49,12 @@ local function placeOf(plot: PlotService.Plot, spot: { number }, rot: number?): 
 	return plot.cframe * CFrame.new(spot[1], 0, spot[2]) * CFrame.Angles(0, math.rad(rot or 0), 0)
 end
 
--- El dinero por segundo que genera la base de un jugador
+-- Cuánto multiplica el dinero cada renacimiento: 0 = x1, 1 = x1.5, 2 = x2...
+local function multiplierOf(rebirths: number): number
+	return 1 + rebirths * Buildings.rebirth.bonusPerRebirth
+end
+
+-- El dinero por segundo que genera la base de un jugador (con lo de sus renacimientos)
 local function incomeOf(profile: DataService.Profile): number
 	local total = 0
 	for id in profile.owned do
@@ -51,7 +63,31 @@ local function incomeOf(profile: DataService.Profile): number
 			total += item.income
 		end
 	end
-	return total
+	return math.floor(total * multiplierOf(profile.rebirths))
+end
+
+local function ownsEverything(profile: DataService.Profile): boolean
+	for _, item in Buildings.list do
+		if not profile.owned[item.id] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Un letrero que se activa manteniendo E (o tocándolo en celular). Solo lo puede usar el dueño
+local function prompt(parent: Instance, action: string, owner: Player, hold: number, onUse: () -> ())
+	local p = Instance.new("ProximityPrompt")
+	p.ActionText = action
+	p.HoldDuration = hold
+	p.MaxActivationDistance = 14
+	p.RequiresLineOfSight = false
+	p.Triggered:Connect(function(who)
+		if who == owner then
+			onUse()
+		end
+	end)
+	p.Parent = parent
 end
 
 local function isAvailable(profile: DataService.Profile, item): boolean
@@ -103,6 +139,17 @@ local function build(state: State, item, animate: boolean, player: Player?)
 		end
 	end
 	model.Parent = state.plot.contents
+
+	-- El garaje: su entrada tiene el letrero para sacar el jeep
+	if item.id == "Garaje" then
+		local door = model:FindFirstChild("Puerta")
+		if door then
+			local spot = placeOf(state.plot, item.at, item.rot) * CFrame.new(0, 0, -Buildings.jeepFromGarage)
+			prompt(door, "Sacar jeep", state.owner, 0, function()
+				JeepService.Spawn(state.owner, spot, state.plot.contents)
+			end)
+		end
+	end
 end
 
 local refreshButtons: (Player) -> ()
@@ -156,6 +203,35 @@ local function makeButton(player: Player, state: State, item)
 	state.buttons[item.id] = { part = part, item = item }
 end
 
+local function rebirth(player: Player)
+	local state = states[player]
+	local profile = DataService.Get(player)
+	if not state or not profile or not ownsEverything(profile) then
+		return
+	end
+	JeepService.Remove(player)
+	state.plot.contents:ClearAllChildren()
+	states[player] = nil
+	DataService.Rebirth(player)
+	TycoonService.Setup(player, state.plot)
+	local text = string.format("¡Renaciste! Ahora todo genera x%g", multiplierOf(profile.rebirths))
+	notice:FireClient(player, text, "great")
+end
+
+local function makeRebirthButton(player: Player, state: State, profile: DataService.Profile)
+	local nextMultiplier = multiplierOf(profile.rebirths + 1)
+	local text = string.format("RENACER\nTodo genera x%g", nextMultiplier)
+	local part = Builder.Button(placeOf(state.plot, Buildings.rebirth.at), text)
+	part.Color = REBIRTH_COLOR
+	part.Size = Vector3.new(0.6, 8, 8)
+	-- Se mantiene presionado: así nadie renace por pisarlo sin querer
+	prompt(part, "Renacer (pierdes la base)", player, 2, function()
+		rebirth(player)
+	end)
+	part.Parent = state.plot.contents
+	state.rebirthButton = part
+end
+
 -- Crea los botones que faltan y los pinta verde (te alcanza) o rojo (todavía no)
 refreshButtons = function(player: Player)
 	local state = states[player]
@@ -170,6 +246,9 @@ refreshButtons = function(player: Player)
 	end
 	for _, button in state.buttons do
 		button.part.Color = if profile.money >= button.item.price then AFFORD else TOO_EXPENSIVE
+	end
+	if not state.rebirthButton and ownsEverything(profile) then
+		makeRebirthButton(player, state, profile)
 	end
 end
 
@@ -205,7 +284,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 			collect(player)
 		end
 	end)
-	local state: State = { plot = plot, buttons = {}, vaultText = vaultText }
+	local state: State = { owner = player, plot = plot, buttons = {}, vaultText = vaultText }
 	states[player] = state
 	for _, item in Buildings.list do
 		if profile.owned[item.id] then
@@ -218,12 +297,14 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 end
 
 function TycoonService.Cleanup(player: Player)
+	JeepService.Remove(player)
 	states[player] = nil
 	lastWarning[player] = nil
 	lastCollect[player] = nil
 end
 
 function TycoonService.Start()
+	JeepService.Start()
 	DataService.MoneyChanged.Event:Connect(refreshButtons)
 	-- Cada segundo, cada base genera su dinero y lo deja en la caja fuerte
 	task.spawn(function()

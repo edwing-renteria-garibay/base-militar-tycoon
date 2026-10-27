@@ -5,6 +5,8 @@
 -- Para agregar una construcción nueva: escribe aquí su función en Builder.kinds y ponla en
 -- Config/Buildings con ese kind.
 
+local CollectionService = game:GetService("CollectionService")
+
 local Builder = {}
 
 local OLIVE = Color3.fromRGB(86, 92, 62)
@@ -76,6 +78,18 @@ local function light(target: BasePart, color: Color3, range: number)
 	l.Range = range
 	l.Brightness = 1.5
 	l.Parent = target
+end
+
+-- Un grupo de piezas que gira sobre su eje vertical: aspas, radar, torretas. Lo hace girar
+-- cada jugador en su pantalla (src/client/Spinner.luau), así no gasta al servidor.
+-- speed: radianes por segundo. Después de agregarle piezas hay que fijar su WorldPivot (el eje)
+local function spinner(m: Model, speed: number): Model
+	local group = Instance.new("Model")
+	group.Name = "Gira"
+	group:SetAttribute("SpinSpeed", speed)
+	CollectionService:AddTag(group, "Spin")
+	group.Parent = m
+	return group
 end
 
 Builder.kinds = {}
@@ -246,11 +260,12 @@ function Builder.kinds.MessHall(m: Model, o: CFrame)
 	label(sign, "COMEDOR")
 end
 
--- El muro va en las orillas del terreno: atrás y a los lados (el frente lo cierra el portón)
+-- El muro va en las orillas del terreno: atrás y a los lados (el frente lo cierra el portón).
+-- Se coloca en { 0, 160 }: la orilla de atrás está en z = 165 y la de enfrente en z = -65
 function Builder.kinds.Wall(m: Model, o: CFrame)
 	part(m, o, Vector3.new(130, 8, 2), at(0, 4, 4), CONCRETE, Enum.Material.Concrete)
 	for _, side in { -1, 1 } do
-		part(m, o, Vector3.new(2, 8, 128), at(side * 64, 4, -60), CONCRETE, Enum.Material.Concrete)
+		part(m, o, Vector3.new(2, 8, 230), at(side * 64, 4, -110), CONCRETE, Enum.Material.Concrete)
 	end
 end
 
@@ -266,6 +281,250 @@ function Builder.kinds.Gate(m: Model, o: CFrame)
 	part(m, o, Vector3.new(4, 0.4, 4), at(15, 4.7, 5), DARK_METAL, Enum.Material.Metal)
 	local boom = part(m, o, Vector3.new(0.6, 0.6, 12), at(7, 6, 1.5) * CFrame.Angles(math.rad(70), 0, 0), RED)
 	boom.CanCollide = false
+end
+
+-- Etapa 3 -----------------------------------------------------------------------------------
+
+function Builder.kinds.FuelTanks(m: Model, o: CFrame)
+	part(m, o, Vector3.new(12, 0.6, 10), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	for i, x in { -4, 0, 4 } do
+		part(m, o, Vector3.new(0.6, 1, 8), at(x, 1.1, 0), DARK_METAL, Enum.Material.Metal)
+		local color = if i == 2 then RED else WHITE
+		part(m, o, Vector3.new(9, 3.4, 3.4), at(x, 3, 0) * FACING, color, Enum.Material.Metal, Enum.PartType.Cylinder)
+	end
+end
+
+function Builder.kinds.GasStation(m: Model, o: CFrame)
+	part(m, o, Vector3.new(16, 0.4, 10), at(0, 0.2, 0), CONCRETE, Enum.Material.Concrete)
+	for _, x in { -7, 7 } do
+		for _, z in { -4, 4 } do
+			part(m, o, Vector3.new(0.6, 7.6, 0.6), at(x, 4.2, z), WHITE, Enum.Material.Metal)
+		end
+	end
+	local roof = part(m, o, Vector3.new(17, 1, 11), at(0, 8.5, 0), RED, Enum.Material.Metal)
+	label(roof, "GASOLINERA")
+	for _, x in { -3, 3 } do
+		part(m, o, Vector3.new(1.4, 3, 1), at(x, 1.9, 0), RED, Enum.Material.Metal)
+		local screen = part(m, o, Vector3.new(1, 0.6, 0.1), at(x, 2.8, -0.55), Color3.fromRGB(80, 255, 100), Enum.Material.Neon)
+		screen.CanCollide = false
+	end
+end
+
+function Builder.kinds.Garage(m: Model, o: CFrame)
+	part(m, o, Vector3.new(17, 0.6, 15), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(2.5, 9, 14), at(-6.75, 5.1, 0), OLIVE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(2.5, 9, 14), at(6.75, 5.1, 0), OLIVE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(16, 9, 1), at(0, 5.1, 6.5), OLIVE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(16, 2, 14), at(0, 8.6, 0), OLIVE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(17, 0.8, 15), at(0, 10, 0), DARK_METAL, Enum.Material.CorrugatedSteel)
+	-- La entrada: aquí está el letrero para sacar el jeep (TycoonService busca "Puerta")
+	local door = part(m, o, Vector3.new(11, 1.6, 0.3), at(0, 8.2, -7.2), DARK_OLIVE)
+	door.Name = "Puerta"
+	label(door, "GARAJE", YELLOW)
+end
+
+function Builder.kinds.Workshop(m: Model, o: CFrame)
+	part(m, o, Vector3.new(12, 0.4, 10), at(0, 0.2, 0), CONCRETE, Enum.Material.Concrete)
+	for _, x in { -5.5, 5.5 } do
+		for _, z in { -4.5, 4.5 } do
+			part(m, o, Vector3.new(0.6, 7, 0.6), at(x, 3.9, z), DARK_METAL, Enum.Material.Metal)
+		end
+	end
+	part(m, o, Vector3.new(13, 0.6, 11), at(0, 7.6, 0), DARK_METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(8, 3, 2), at(0, 1.9, 4), WOOD, Enum.Material.WoodPlanks)
+	for i = 0, 3 do
+		part(m, o, Vector3.new(0.9, 2.6, 2.6), at(-4, 0.85 + i * 0.9, -2) * UPRIGHT, Color3.fromRGB(25, 25, 25), Enum.Material.Rubber, Enum.PartType.Cylinder)
+	end
+	part(m, o, Vector3.new(2, 2.4, 1.4), at(3.5, 1.6, -2), RED, Enum.Material.Metal)
+end
+
+function Builder.kinds.Factory(m: Model, o: CFrame)
+	part(m, o, Vector3.new(23, 0.6, 25), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(22, 12, 24), at(0, 6.6, 0), METAL, Enum.Material.CorrugatedSteel)
+	-- Techo de "dientes de sierra", como las fábricas de verdad
+	for _, z in { -8, 0, 8 } do
+		part(m, o, Vector3.new(22, 0.4, 8.6), at(0, 14, z) * CFrame.Angles(math.rad(-25), 0, 0), DARK_METAL, Enum.Material.Metal)
+		part(m, o, Vector3.new(22, 3.6, 0.2), at(0, 14.4, z + 3.9), GLASS, Enum.Material.Glass)
+	end
+	for _, x in { -7, 7 } do
+		local chimney = part(m, o, Vector3.new(10, 1.8, 1.8), at(x, 17, 8) * UPRIGHT, STONE, Enum.Material.Brick, Enum.PartType.Cylinder)
+		local smoke = Instance.new("Smoke")
+		smoke.Size = 3
+		smoke.RiseVelocity = 5
+		smoke.Opacity = 0.15
+		smoke.Parent = chimney
+	end
+	part(m, o, Vector3.new(10, 8, 0.3), at(0, 4.6, -12.1), DARK_METAL, Enum.Material.CorrugatedSteel)
+	local sign = part(m, o, Vector3.new(14, 2, 0.2), at(0, 10, -12.15), DARK_OLIVE)
+	label(sign, "FÁBRICA DE JEEPS", YELLOW)
+end
+
+function Builder.kinds.Truck(m: Model, o: CFrame)
+	part(m, o, Vector3.new(6, 1, 18), at(0, 1.8, 0), DARK_METAL, Enum.Material.Metal)
+	part(m, o, Vector3.new(6, 4.5, 5), at(0, 4.5, -6.5), OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(5, 1.8, 0.2), at(0, 5.3, -9.05), GLASS, Enum.Material.Glass)
+	part(m, o, Vector3.new(6.4, 6, 12), at(0, 5.3, 3), DARK_OLIVE, Enum.Material.Fabric)
+	for _, x in { -3.2, 3.2 } do
+		for _, z in { -6.5, 2, 6 } do
+			part(m, o, Vector3.new(1, 2.6, 2.6), at(x, 1.3, z), Color3.fromRGB(25, 25, 25), Enum.Material.Rubber, Enum.PartType.Cylinder)
+		end
+	end
+end
+
+-- Etapa 4 -----------------------------------------------------------------------------------
+
+function Builder.kinds.Bunker(m: Model, o: CFrame)
+	part(m, o, Vector3.new(12, 4, 10), at(0, 2, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(14, 1.5, 12), at(0, 4.6, 0), DARK_OLIVE, Enum.Material.Ground)
+	part(m, o, Vector3.new(8, 0.8, 0.2), at(0, 3, -5.05), Color3.fromRGB(15, 15, 15))
+	part(m, o, Vector3.new(3, 3, 0.2), at(4, 1.5, -5.05), DARK_METAL, Enum.Material.Metal)
+	for i = 0, 4 do
+		part(m, o, Vector3.new(1.9, 0.9, 1.3), at(-4 + i * 2, 0.45, -6.5), SAND, Enum.Material.Fabric)
+	end
+end
+
+function Builder.kinds.Turret(m: Model, o: CFrame)
+	part(m, o, Vector3.new(7, 0.6, 7), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(3, 5, 5), at(0, 2.1, 0) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local head = spinner(m, 0.4)
+	part(head, o, Vector3.new(4, 2.4, 4.5), at(0, 4.8, 0), OLIVE, Enum.Material.Metal)
+	for _, x in { -0.8, 0.8 } do
+		part(head, o, Vector3.new(6, 0.5, 0.5), at(x, 5, -5) * FACING, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	end
+	head.WorldPivot = o * at(0, 4.8, 0)
+end
+
+function Builder.kinds.Radar(m: Model, o: CFrame)
+	part(m, o, Vector3.new(6, 3, 6), at(0, 1.5, 0), DARK_OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(6, 1, 1), at(0, 6, 0) * UPRIGHT, METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local dish = spinner(m, 1)
+	part(dish, o, Vector3.new(0.6, 7, 7), at(0, 10, -0.5) * FACING * CFrame.Angles(0, 0, math.rad(15)), WHITE, Enum.Material.Metal, Enum.PartType.Cylinder)
+	part(dish, o, Vector3.new(0.3, 0.3, 3), at(0, 10, -2.2), DARK_METAL, Enum.Material.Metal)
+	dish.WorldPivot = o * at(0, 10, 0)
+	local beacon = part(m, o, Vector3.new(0.6, 0.6, 0.6), at(2.5, 3.3, -2.5), Color3.fromRGB(80, 255, 100), Enum.Material.Neon)
+	light(beacon, Color3.fromRGB(80, 255, 100), 8)
+end
+
+function Builder.kinds.AmmoDepot(m: Model, o: CFrame)
+	part(m, o, Vector3.new(12, 0.4, 10), at(0, 0.2, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(10, 5, 8), at(0, 2.9, 0.5), DARK_OLIVE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(11, 1.4, 9), at(0, 6, 0.5), OLIVE, Enum.Material.Ground)
+	part(m, o, Vector3.new(4, 4, 0.3), at(0, 2.4, -3.6), DARK_METAL, Enum.Material.Metal)
+	local sign = part(m, o, Vector3.new(6, 1, 0.2), at(0, 4.9, -3.65), DARK_METAL)
+	label(sign, "POLVORÍN", RED)
+	local lamp = part(m, o, Vector3.new(0.6, 0.6, 0.6), at(3.5, 4.5, -3.7), RED, Enum.Material.Neon)
+	light(lamp, RED, 8)
+	part(m, o, Vector3.new(2, 2, 3), at(-4, 1.4, -5), OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(2, 2, 3), at(-4, 3.4, -5), OLIVE, Enum.Material.Metal)
+end
+
+function Builder.kinds.SniperTower(m: Model, o: CFrame)
+	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		part(m, o, Vector3.new(0.6, 24, 0.6), at(corner[1] * 2.2, 12, corner[2] * 2.2), DARK_METAL, Enum.Material.Metal)
+	end
+	for y = 4, 20, 4 do
+		part(m, o, Vector3.new(4.8, 0.3, 4.8), at(0, y, 0), METAL, Enum.Material.Metal)
+	end
+	part(m, o, Vector3.new(6, 0.5, 6), at(0, 24.2, 0), DARK_WOOD, Enum.Material.WoodPlanks)
+	for i = 0, 2 do
+		part(m, o, Vector3.new(1.8, 0.9, 1.2), at(-2 + i * 2, 24.9, -2.6), SAND, Enum.Material.Fabric)
+	end
+	part(m, o, Vector3.new(6.6, 0.4, 6.6), at(0, 28, 0), DARK_OLIVE, Enum.Material.Fabric)
+	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		part(m, o, Vector3.new(0.3, 3.4, 0.3), at(corner[1] * 2.8, 26.2, corner[2] * 2.8), DARK_WOOD, Enum.Material.Wood)
+	end
+end
+
+function Builder.kinds.Tank(m: Model, o: CFrame)
+	local tread = Color3.fromRGB(30, 30, 28)
+	for _, x in { -4, 4 } do
+		part(m, o, Vector3.new(2.2, 2.6, 13), at(x, 1.3, 0), tread, Enum.Material.Metal)
+	end
+	part(m, o, Vector3.new(6, 2.4, 12), at(0, 2.4, 0), OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(10.4, 0.4, 13.4), at(0, 2.8, 0), DARK_OLIVE, Enum.Material.Metal)
+	local turret = spinner(m, 0.15)
+	part(turret, o, Vector3.new(6, 2.2, 6.5), at(0, 4.1, 0.5), OLIVE, Enum.Material.Metal)
+	part(turret, o, Vector3.new(9, 0.8, 0.8), at(0, 4.3, -6.5) * FACING, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	part(turret, o, Vector3.new(1.6, 0.8, 1.6), at(1.5, 5.6, 1.5) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	turret.WorldPivot = o * at(0, 4.1, 0.5)
+	part(m, o, Vector3.new(0.15, 1.2, 1.2), at(5.25, 2.4, 0), WHITE)
+end
+
+-- Etapa 5 -----------------------------------------------------------------------------------
+
+function Builder.kinds.Helipad(m: Model, o: CFrame)
+	part(m, o, Vector3.new(20, 0.6, 20), at(0, 0.3, 0), Color3.fromRGB(70, 70, 72), Enum.Material.Concrete)
+	part(m, o, Vector3.new(1.4, 0.05, 9), at(-3, 0.62, 0), WHITE)
+	part(m, o, Vector3.new(1.4, 0.05, 9), at(3, 0.62, 0), WHITE)
+	part(m, o, Vector3.new(4.6, 0.05, 1.4), at(0, 0.62, 0), WHITE)
+	for _, x in { -9.3, 9.3 } do
+		for _, z in { -9.3, 9.3 } do
+			local lamp = part(m, o, Vector3.new(0.8, 0.5, 0.8), at(x, 0.85, z), YELLOW, Enum.Material.Neon)
+			light(lamp, YELLOW, 6)
+		end
+	end
+end
+
+function Builder.kinds.Helicopter(m: Model, o: CFrame)
+	local y = 0.6 -- encima del helipuerto
+	for _, x in { -2, 2 } do
+		part(m, o, Vector3.new(0.4, 0.4, 10), at(x, y + 0.2, 0), DARK_METAL, Enum.Material.Metal)
+		part(m, o, Vector3.new(0.3, 1.6, 0.3), at(x, y + 1.2, -2.5), DARK_METAL, Enum.Material.Metal)
+		part(m, o, Vector3.new(0.3, 1.6, 0.3), at(x, y + 1.2, 2.5), DARK_METAL, Enum.Material.Metal)
+	end
+	part(m, o, Vector3.new(5, 4, 10), at(0, y + 4, 0), OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(4.4, 2.6, 0.2), at(0, y + 4.4, -5.05), GLASS, Enum.Material.Glass)
+	part(m, o, Vector3.new(1.4, 1.4, 11), at(0, y + 4.8, 10), OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(0.3, 3, 1.6), at(0, y + 6, 15), DARK_OLIVE, Enum.Material.Metal)
+	part(m, o, Vector3.new(1, 1.4, 1.4), at(0, y + 6.6, 0) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local rotor = spinner(m, 6)
+	part(rotor, o, Vector3.new(24, 0.15, 1), at(0, y + 7.4, 0), DARK_METAL, Enum.Material.Metal)
+	part(rotor, o, Vector3.new(1, 0.15, 24), at(0, y + 7.4, 0), DARK_METAL, Enum.Material.Metal)
+	rotor.WorldPivot = o * at(0, y + 7.4, 0)
+end
+
+function Builder.kinds.Hangar(m: Model, o: CFrame)
+	part(m, o, Vector3.new(25, 0.6, 19), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(24, 10, 18), at(0, 5.6, 0), METAL, Enum.Material.CorrugatedSteel)
+	-- Techo redondeado: un cilindro acostado de lado a lado
+	part(m, o, Vector3.new(24, 18, 8), at(0, 10.6, 0), METAL, Enum.Material.CorrugatedSteel, Enum.PartType.Cylinder)
+	part(m, o, Vector3.new(16, 9, 0.3), at(0, 5.1, -9.1), DARK_METAL, Enum.Material.CorrugatedSteel)
+	local sign = part(m, o, Vector3.new(12, 2, 0.2), at(0, 12, -9.15), DARK_OLIVE)
+	label(sign, "HANGAR", YELLOW)
+end
+
+function Builder.kinds.CommandCenter(m: Model, o: CFrame)
+	part(m, o, Vector3.new(23, 0.6, 15), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(22, 8, 14), at(0, 4.6, 0), DARK_OLIVE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(14, 6, 10), at(0, 11.6, 1), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(13, 3, 0.2), at(0, 12, -4.05), GLASS, Enum.Material.Glass)
+	part(m, o, Vector3.new(15, 0.6, 11), at(0, 14.9, 1), DARK_METAL, Enum.Material.Metal)
+	part(m, o, Vector3.new(8, 0.4, 0.4), at(4, 19.2, 3) * UPRIGHT, METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local beacon = part(m, o, Vector3.new(0.6, 0.6, 0.6), at(4, 23.4, 3), RED, Enum.Material.Neon)
+	light(beacon, RED, 10)
+	part(m, o, Vector3.new(4, 6, 0.3), at(0, 3.6, -7.1), DARK_METAL, Enum.Material.Metal)
+	local sign = part(m, o, Vector3.new(14, 1.6, 0.2), at(0, 7.4, -7.15), DARK_METAL)
+	label(sign, "CENTRO DE MANDO", YELLOW)
+end
+
+function Builder.kinds.SatDish(m: Model, o: CFrame)
+	part(m, o, Vector3.new(8, 1, 8), at(0, 0.5, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(5, 2, 2), at(0, 3.5, 0) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local dish = spinner(m, 0.1)
+	-- El plato mira al cielo, inclinado hacia el frente
+	part(dish, o, Vector3.new(0.8, 12, 12), at(0, 8, 0) * CFrame.Angles(math.rad(-30), 0, 0) * UPRIGHT, WHITE, Enum.Material.Metal, Enum.PartType.Cylinder)
+	part(dish, o, Vector3.new(0.4, 6, 0.4), at(0, 10.5, -1.5), DARK_METAL, Enum.Material.Metal)
+	dish.WorldPivot = o * at(0, 8, 0)
+end
+
+function Builder.kinds.BigFlag(m: Model, o: CFrame)
+	part(m, o, Vector3.new(8, 2, 8), at(0, 1, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(6, 1, 6), at(0, 2.5, 0), STONE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(40, 1, 1), at(0, 23, 0) * UPRIGHT, METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	part(m, o, Vector3.new(1.4, 1.4, 1.4), at(0, 43.5, 0), YELLOW, Enum.Material.Metal, Enum.PartType.Ball)
+	part(m, o, Vector3.new(0.2, 9, 15), at(0, 38, 8), OLIVE, Enum.Material.Fabric)
+	local star = part(m, o, Vector3.new(0.3, 4, 4), at(0, 38, 8), YELLOW, Enum.Material.Neon)
+	light(star, YELLOW, 20)
 end
 
 -- Lo que trae todo terreno al reclamarlo ---------------------------------------------------

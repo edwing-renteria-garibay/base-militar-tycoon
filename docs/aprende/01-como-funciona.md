@@ -38,3 +38,16 @@ el perfil de los jugadores.
 Cada terreno tiene un `cframe` en el centro de su piso que mira a la calle. Todas las
 posiciones son relativas a él (`plot.cframe * CFrame.new(x, 0, z)`), por eso la misma lista
 sirve para los 6 terrenos aunque estén de lados distintos de la calle.
+
+## Renacer (semana 2)
+
+Cuando compras la última construcción, sale el botón dorado de **Renacer** en `{ 0, 60 }`.
+Usa un `ProximityPrompt` (mantener E) en lugar de pisarlo, para que nadie renazca sin querer.
+Al renacer, `DataService.Rebirth` borra `owned`, el dinero y la caja fuerte, y suma 1 a
+`rebirths`. `incomeOf` multiplica todo por `1 + rebirths * 0.5`.
+
+## El jeep
+
+`JeepService.luau` arma el jeep con bloques soldados y lo mueve con dos "motores" de física
+(`LinearVelocity` y `AngularVelocity`) según lo que aprieta quien va en el asiento del
+conductor (`VehicleSeat.ThrottleFloat` y `SteerFloat`). Es el mismo truco de Escuadrón Cero.

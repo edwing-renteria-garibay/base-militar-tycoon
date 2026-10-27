@@ -1,7 +1,8 @@
 -- El mapa y los terrenos. Hay una calle en medio y 3 terrenos de cada lado (Settings.plotCount).
 -- Cada jugador que entra recibe un terreno libre; al salir, el terreno se limpia y queda libre.
 --
--- Cada terreno tiene un CFrame en el centro de su piso, mirando hacia la calle: así todas las
+-- Cada terreno mide 130 de ancho y 230 de fondo: enfrente (junto a la calle) van las etapas 1 y
+-- 2, y atrás las etapas 3 a 5. Su CFrame está en el centro de la parte de enfrente, mirando hacia la calle: así todas las
 -- construcciones se colocan igual en cualquier terreno (ver Config/Buildings, "at").
 
 local Players = game:GetService("Players")
@@ -19,7 +20,8 @@ export type Plot = {
 	sign: TextLabel,
 }
 
-local PLOT_SIZE = 130
+local PLOT_SIZE = 130 -- ancho del terreno, y fondo de la parte de enfrente (etapas 1 y 2)
+local BACK_DEPTH = 100 -- la parte de atrás (etapas 3 a 5): de z = 65 a z = 165
 local ROAD_WIDTH = 40
 local SPACING = 140 -- distancia entre terrenos del mismo lado
 local SPAWN = CFrame.new(-20, 3, -55) -- dónde apareces dentro de tu terreno
@@ -45,7 +47,7 @@ local function buildWorld()
 	world.Parent = workspace
 	local perSide = math.ceil(Settings.plotCount / 2)
 	local length = perSide * SPACING + 120
-	local depth = 2 * PLOT_SIZE + ROAD_WIDTH + 120
+	local depth = 2 * (PLOT_SIZE + BACK_DEPTH) + ROAD_WIDTH + 120
 	block(world, "Pasto", Vector3.new(length, 2, depth), CFrame.new(0, -1, 0), Color3.fromRGB(90, 110, 60), Enum.Material.Grass)
 	block(world, "Calle", Vector3.new(length, 0.2, ROAD_WIDTH), CFrame.new(0, 0.1, 0), Color3.fromRGB(60, 60, 62), Enum.Material.Asphalt)
 	for x = -length / 2 + 10, length / 2 - 10, 20 do
@@ -74,7 +76,14 @@ local function createPlot(world: Folder, index: number, perSide: number): Plot
 	local model = Instance.new("Model")
 	model.Name = "Terreno" .. index
 	model.Parent = world
-	block(model, "Piso", Vector3.new(PLOT_SIZE, 1, PLOT_SIZE), cframe * CFrame.new(0, -0.5, 0), Color3.fromRGB(110, 120, 80), Enum.Material.Ground)
+	block(
+		model,
+		"Piso",
+		Vector3.new(PLOT_SIZE, 1, PLOT_SIZE + BACK_DEPTH),
+		cframe * CFrame.new(0, -0.5, BACK_DEPTH / 2),
+		Color3.fromRGB(110, 120, 80),
+		Enum.Material.Ground
+	)
 
 	-- Letrero con el nombre del dueño, en la esquina de enfrente
 	block(model, "Poste", Vector3.new(0.6, 12, 0.6), cframe * CFrame.new(-55, 6, -58), Color3.fromRGB(80, 55, 35), Enum.Material.Wood)

@@ -1,10 +1,11 @@
--- La pantalla: arriba al centro tu dinero y cuánto genera tu base por segundo, y en medio los
--- avisos que manda el servidor ("Construiste: Fogata", "+$120", "Te faltan $300"...).
+-- La pantalla: arriba al centro tu dinero y cuánto genera tu base por segundo (y el multiplicador
+-- si ya renaciste), y en medio los avisos que manda el servidor ("Construiste: Fogata", "+$120", "Te faltan $300"...).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Format = require(ReplicatedStorage.Shared.Format)
 
 local notice = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notice") :: RemoteEvent
@@ -38,7 +39,13 @@ end
 
 local function update()
 	moneyLabel.Text = Format.Money(player:GetAttribute("Money") or 0)
-	incomeLabel.Text = string.format("+%s por segundo", Format.Money(player:GetAttribute("Income") or 0))
+	local text = string.format("+%s por segundo", Format.Money(player:GetAttribute("Income") or 0))
+	-- Cada renacimiento suma x0.5 (Config/Buildings, rebirth)
+	local rebirths = player:GetAttribute("Rebirths") or 0
+	if rebirths > 0 then
+		text ..= string.format("  ·  x%g", 1 + rebirths * Buildings.rebirth.bonusPerRebirth)
+	end
+	incomeLabel.Text = text
 end
 
 local function showNotice(text: string, kind: string?)
@@ -90,6 +97,7 @@ function HUD.Start()
 	update()
 	player:GetAttributeChangedSignal("Money"):Connect(update)
 	player:GetAttributeChangedSignal("Income"):Connect(update)
+	player:GetAttributeChangedSignal("Rebirths"):Connect(update)
 	notice.OnClientEvent:Connect(showNotice)
 end
 
