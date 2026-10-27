@@ -1,0 +1,45 @@
+{
+  "name": "base-militar-tycoon",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "Notice": {
+          "$className": "RemoteEvent"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "Brightness": 2.5,
+        "ClockTime": 14,
+        "GlobalShadows": true,
+        "Ambient": [0.27, 0.27, 0.3],
+        "OutdoorAmbient": [0.5, 0.5, 0.52]
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere"
+      },
+      "Sky": {
+        "$className": "Sky"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
