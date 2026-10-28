@@ -51,18 +51,7 @@ local function build(cframe: CFrame, golden: boolean): Model
 	chassis.CFrame = cframe
 	chassis.RootPriority = 1
 	chassis.Parent = model
-	-- Atropellar enemigos de las olas (las ruedas y la carrocería van soldadas al chasis)
-	chassis.Touched:Connect(function(hit)
-		local enemy = hit:FindFirstAncestorOfClass("Model")
-		if not enemy or not CollectionService:HasTag(enemy, "Enemy") then
-			return
-		end
-		local humanoid = enemy:FindFirstChildOfClass("Humanoid")
-		local speed = chassis.AssemblyLinearVelocity.Magnitude
-		if humanoid and humanoid.Health > 0 and speed >= RUN_OVER_SPEED then
-			humanoid:TakeDamage(RUN_OVER_DAMAGE)
-		end
-	end)
+
 	model.PrimaryPart = chassis
 
 	-- Ruedas: cilindros soldados que tocan el suelo un poco por debajo del chasis
@@ -116,6 +105,24 @@ local function build(cframe: CFrame, golden: boolean): Model
 	steering.MaxTorque = 1e7
 	steering.AngularVelocity = Vector3.zero
 	steering.Parent = chassis
+
+	-- Atropellar enemigos de las olas: con cualquier pieza del jeep (ruedas, cofre...)
+	local function onTouched(hit: BasePart)
+		local enemy = hit:FindFirstAncestorOfClass("Model")
+		if not enemy or not CollectionService:HasTag(enemy, "Enemy") then
+			return
+		end
+		local humanoid = enemy:FindFirstChildOfClass("Humanoid")
+		local speed = chassis.AssemblyLinearVelocity.Magnitude
+		if humanoid and humanoid.Health > 0 and speed >= RUN_OVER_SPEED then
+			humanoid:TakeDamage(RUN_OVER_DAMAGE)
+		end
+	end
+	for _, piece in model:GetDescendants() do
+		if piece:IsA("BasePart") then
+			piece.Touched:Connect(onTouched)
+		end
+	end
 	return model
 end
 
