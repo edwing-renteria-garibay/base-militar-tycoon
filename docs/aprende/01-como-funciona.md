@@ -1,53 +1,53 @@
-# 1. Cómo funciona el tycoon
+# 1. Cómo funciona el juego
 
 ## Las piezas del código
 
 | Archivo | Qué hace |
 |---|---|
-| `src/shared/Config/Buildings.luau` | La lista de construcciones: nombre, precio, cuánto generan y dónde van |
+| `src/shared/Config/Buildings.luau` | Todo lo que se compra: nombre, precio, lugar y para qué sirve |
+| `src/shared/Config/Waves.luau` | Los números de las olas, el muro, las trampas y el rifle |
 | `src/shared/Config/Settings.luau` | Ajustes: dinero inicial, modo de prueba, número de terrenos |
 | `src/server/Services/PlotService.luau` | Arma el mapa y reparte los terrenos |
-| `src/server/Services/DataService.luau` | El dinero y la base de cada jugador, y el guardado |
-| `src/server/Services/TycoonService.luau` | Botones de compra, construir y la caja fuerte |
+| `src/server/Services/DataService.luau` | El dinero, la base, la ola y el récord de cada jugador, y el guardado |
+| `src/server/Services/TycoonService.luau` | La caja fuerte, los botones de compra y lo que hace cada edificio |
+| `src/server/Services/WallService.luau` | El muro y las barricadas: vida, daño y reparación |
+| `src/server/Services/WaveService.luau` | Las olas de zombis, las trampas y las torres |
 | `src/server/Builder.luau` | Los "dibujos" de cada construcción, hechos con bloques |
-| `src/client/UI/HUD.luau` | La pantalla con tu dinero y los avisos |
-
-## El ciclo
-
-1. Cada segundo, `TycoonService` suma el `income` de todo lo que construiste y lo mete a tu
-   caja fuerte (`profile.vault`).
-2. Al pisar el botón verde de la caja fuerte, ese dinero pasa a tu cuenta (`profile.money`).
-3. Al pisar el botón de una construcción, `DataService.Spend` revisa que te alcance. Si sí,
-   se marca como tuya (`profile.owned`) y `Builder` la dibuja.
-4. Sale el botón de la siguiente de la lista.
-
-## Cambiar precios o agregar una construcción
-
-Abre `Config/Buildings.luau` y cambia `price` o `income`. Para una construcción nueva:
-
-1. Escribe su dibujo en `Builder.luau`, dentro de `Builder.kinds` (copia uno parecido).
-2. Agrégala a `Buildings.list` con ese `kind`, en el lugar de la lista donde quieres que se
-   desbloquee.
-3. Elige un `at` libre dentro del terreno: va de -65 a 65, y el frente (la calle) es z = -65.
-
-**Ojo:** no cambies el `id` de una construcción después de publicar, porque así se guarda en
-el perfil de los jugadores.
+| `src/client/UI/HUD.luau` | La pantalla: dinero, ola, vida de la caja fuerte y avisos |
 
 ## El terreno
 
-Cada terreno tiene un `cframe` en el centro de su piso que mira a la calle. Todas las
-posiciones son relativas a él (`plot.cframe * CFrame.new(x, 0, z)`), por eso la misma lista
-sirve para los 6 terrenos aunque estén de lados distintos de la calle.
+Cada terreno es un cuadrado de 200 x 200 con su `cframe` en el centro, mirando a la calle
+(-Z). Todas las posiciones son relativas a él (`plot.cframe * CFrame.new(x, 0, z)`), por eso
+la misma lista sirve para los 6 terrenos.
 
-## Renacer (semana 2)
+- La caja fuerte está en `{ 0, 0 }`.
+- El muro está a 70 del centro por los 4 lados (`Waves.wallInset`).
+- Afuera del muro, en cada lado, van de adentro hacia afuera: barricadas (z = -77), alambre
+  (-83), zanja (-89) y minas (-95). Sus botones están adentro, en z = -64.
+- `Buildings.sides` gira esas mismas posiciones para los otros 3 lados.
 
-Cuando compras la última construcción, sale el botón dorado de **Renacer** en `{ 0, 60 }`.
-Usa un `ProximityPrompt` (mantener E) en lugar de pisarlo, para que nadie renazca sin querer.
-Al renacer, `DataService.Rebirth` borra `owned`, el dinero y la caja fuerte, y suma 1 a
-`rebirths`. `incomeOf` multiplica todo por `1 + rebirths * 0.5`.
+## El ciclo
+
+1. Cada segundo, la caja fuerte junta `Waves.vaultIncome[nivel]` y al pisar su botón verde
+   ese dinero pasa a tu cuenta.
+2. Al pisar un botón, `DataService.Spend` revisa que te alcance. Si sí, se marca como tuyo
+   (`profile.owned`) y `Builder` lo dibuja.
+3. Las olas (`WaveService`) te dan dinero por cada zombi y por pasar la ola.
+
+## Cambiar precios o agregar algo
+
+Abre `Config/Buildings.luau` y cambia `price`. Para algo nuevo:
+
+1. Escribe su dibujo en `Builder.luau`, dentro de `Builder.kinds` (copia uno parecido).
+2. Agrégalo con `add({ ... })`: `id`, `name`, `price`, `kind`, `at` y, si quieres, `requires`,
+   `defense` (para que dispare solo) o `effect`.
+
+**Ojo:** no cambies el `id` de algo después de publicar, porque así se guarda en el perfil de
+los jugadores.
 
 ## El jeep
 
 `JeepService.luau` arma el jeep con bloques soldados y lo mueve con dos "motores" de física
 (`LinearVelocity` y `AngularVelocity`) según lo que aprieta quien va en el asiento del
-conductor (`VehicleSeat.ThrottleFloat` y `SteerFloat`). Es el mismo truco de Escuadrón Cero.
+conductor. Si va rápido, atropella zombis.

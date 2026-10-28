@@ -260,29 +260,6 @@ function Builder.kinds.MessHall(m: Model, o: CFrame)
 	label(sign, "COMEDOR")
 end
 
--- El muro va en las orillas del terreno: atrás y a los lados (el frente lo cierra el portón).
--- Se coloca en { 0, 160 }: la orilla de atrás está en z = 165 y la de enfrente en z = -65
-function Builder.kinds.Wall(m: Model, o: CFrame)
-	part(m, o, Vector3.new(130, 8, 2), at(0, 4, 4), CONCRETE, Enum.Material.Concrete)
-	for _, side in { -1, 1 } do
-		part(m, o, Vector3.new(2, 8, 230), at(side * 64, 4, -110), CONCRETE, Enum.Material.Concrete)
-	end
-end
-
-function Builder.kinds.Gate(m: Model, o: CFrame)
-	for _, side in { -1, 1 } do
-		part(m, o, Vector3.new(52, 8, 2), at(side * 38, 4, 0), CONCRETE, Enum.Material.Concrete)
-		part(m, o, Vector3.new(3, 11, 3), at(side * 11.5, 5.5, 0), DARK_METAL, Enum.Material.Metal)
-	end
-	local beam = part(m, o, Vector3.new(26, 2.4, 2), at(0, 12, 0), DARK_OLIVE, Enum.Material.Metal)
-	-- El letrero mira a la calle (-Z)
-	label(beam, "BASE MILITAR", YELLOW)
-	part(m, o, Vector3.new(3.5, 4.5, 3.5), at(15, 2.25, 5), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(4, 0.4, 4), at(15, 4.7, 5), DARK_METAL, Enum.Material.Metal)
-	local boom = part(m, o, Vector3.new(0.6, 0.6, 12), at(7, 6, 1.5) * CFrame.Angles(math.rad(70), 0, 0), RED)
-	boom.CanCollide = false
-end
-
 -- Etapa 3 -----------------------------------------------------------------------------------
 
 function Builder.kinds.FuelTanks(m: Model, o: CFrame)
@@ -527,6 +504,67 @@ function Builder.kinds.BigFlag(m: Model, o: CFrame)
 	light(star, YELLOW, 20)
 end
 
+-- Defensas de afuera del muro ----------------------------------------------------------------
+-- Sus medidas tienen que coincidir con las zonas que revisa WaveService (alambre y zanja)
+
+-- Barricada de concreto: tapa el paso hasta que los zombis la rompen (WallService)
+function Builder.kinds.Barricade(m: Model, o: CFrame)
+	for _, x in { -4, 4 } do
+		part(m, o, Vector3.new(7.8, 1.6, 3.4), at(x, 0.8, 0), CONCRETE, Enum.Material.Concrete)
+		part(m, o, Vector3.new(7.8, 2.6, 1.8), at(x, 2.9, 0), CONCRETE, Enum.Material.Concrete)
+		part(m, o, Vector3.new(2, 0.5, 0.1), at(x, 3.4, -0.95), YELLOW, Enum.Material.SmoothPlastic)
+	end
+end
+
+-- Alambre de púas: 16 de ancho. No tapa el paso (se puede atravesar), pero frena y lastima
+function Builder.kinds.Wire(m: Model, o: CFrame)
+	for x = -8, 8, 4 do
+		local post = part(m, o, Vector3.new(0.4, 3.4, 0.4), at(x, 1.7, 0), DARK_WOOD, Enum.Material.Wood)
+		post.CanCollide = false
+	end
+	for _, y in { 1, 2, 3 } do
+		for _, z in { -0.6, 0.6 } do
+			local wire = part(m, o, Vector3.new(16, 0.12, 0.12), at(0, y, z), METAL, Enum.Material.Metal)
+			wire.CanCollide = false
+		end
+	end
+	-- Rollos de alambre en el piso
+	for x = -6, 6, 4 do
+		local coil = part(m, o, Vector3.new(3.6, 1.6, 1.6), at(x, 0.8, 0), DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+		coil.Transparency = 0.5
+		coil.CanCollide = false
+	end
+end
+
+-- Zanja de gasolina: 60 de ancho y 4 de fondo. Las "Llama" son donde sale el fuego al
+-- encenderla (TycoonService)
+function Builder.kinds.FireTrench(m: Model, o: CFrame)
+	local trench = part(m, o, Vector3.new(60, 0.2, 4), at(0, 0.1, 0), Color3.fromRGB(35, 30, 25), Enum.Material.Ground)
+	trench.CanCollide = false
+	local fuel = part(m, o, Vector3.new(58, 0.1, 2.6), at(0, 0.22, 0), Color3.fromRGB(70, 50, 90), Enum.Material.Glass)
+	fuel.Transparency = 0.3
+	fuel.CanCollide = false
+	for x = -27, 27, 6 do
+		local flame = part(m, o, Vector3.new(1, 1, 1), at(x, 1, 0), RED)
+		flame.Name = "Llama"
+		flame.Transparency = 1
+		flame.CanCollide = false
+		flame.CanQuery = false
+	end
+	for _, x in { -31.5, 31.5 } do
+		part(m, o, Vector3.new(3, 2.4, 2.4), at(x, 1.5, 0) * UPRIGHT, RED, Enum.Material.Metal, Enum.PartType.Cylinder)
+	end
+end
+
+-- Mina: explota cuando un zombi pasa cerca (WaveService) y se gasta
+function Builder.kinds.Mine(m: Model, o: CFrame)
+	local body = part(m, o, Vector3.new(0.5, 2.6, 2.6), at(0, 0.25, 0) * UPRIGHT, DARK_OLIVE, Enum.Material.Metal, Enum.PartType.Cylinder)
+	body.CanCollide = false
+	local dot = part(m, o, Vector3.new(0.3, 0.3, 0.3), at(0, 0.55, 0), RED, Enum.Material.Neon)
+	dot.CanCollide = false
+	light(dot, RED, 4)
+end
+
 -- Lo que trae todo terreno al reclamarlo ---------------------------------------------------
 
 -- La caja fuerte: junta el dinero que genera la base. Devuelve el modelo, el botón para
@@ -582,6 +620,26 @@ function Builder.Button(o: CFrame, title: string): (BasePart, TextLabel)
 	text.Text = title
 	text.Parent = gui
 	return button, text
+end
+
+-- Un pedazo del muro (WallService). level: 1 = madera, 2 = concreto, 3 = reforzado
+local WALL_LOOK = {
+	{ color = WOOD, material = Enum.Material.WoodPlanks, height = 8 },
+	{ color = CONCRETE, material = Enum.Material.Concrete, height = 10 },
+	{ color = DARK_METAL, material = Enum.Material.DiamondPlate, height = 12 },
+}
+function Builder.WallSegment(o: CFrame, width: number, level: number): Part
+	local look = WALL_LOOK[level] or WALL_LOOK[1]
+	local p = Instance.new("Part")
+	p.Name = "Muro"
+	p.Anchored = true
+	p.Size = Vector3.new(width, look.height, 2)
+	p.CFrame = o * at(0, look.height / 2, 0)
+	p.Color = look.color
+	p.Material = look.material
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	return p
 end
 
 -- Arma una construcción y la devuelve (sin ponerla en el mundo)

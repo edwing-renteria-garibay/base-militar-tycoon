@@ -1,8 +1,8 @@
 -- El mapa y los terrenos. Hay una calle en medio y 3 terrenos de cada lado (Settings.plotCount).
 -- Cada jugador que entra recibe un terreno libre; al salir, el terreno se limpia y queda libre.
 --
--- Cada terreno mide 130 de ancho y 230 de fondo: enfrente (junto a la calle) van las etapas 1 y
--- 2, y atrás las etapas 3 a 5. Su CFrame está en el centro de la parte de enfrente, mirando hacia la calle: así todas las
+-- Cada terreno es un cuadrado de 200 x 200. Su CFrame está en el centro (donde va la caja
+-- fuerte), mirando hacia la calle: así todas las
 -- construcciones se colocan igual en cualquier terreno (ver Config/Buildings, "at").
 
 local Players = game:GetService("Players")
@@ -20,11 +20,14 @@ export type Plot = {
 	sign: TextLabel,
 }
 
-local PLOT_SIZE = 130 -- ancho del terreno, y fondo de la parte de enfrente (etapas 1 y 2)
-local BACK_DEPTH = 100 -- la parte de atrás (etapas 3 a 5): de z = 65 a z = 165
+-- El terreno es un cuadrado de 200 x 200 con la caja fuerte en el centro. El muro va a 70 del
+-- centro (Config/Waves, wallInset); afuera del muro queda el anillo de las defensas (alambre,
+-- minas, barricadas, zanjas) y más afuera aparecen los zombis.
+local PLOT_SIZE = 200
 local ROAD_WIDTH = 40
-local SPACING = 140 -- distancia entre terrenos del mismo lado
-local SPAWN = CFrame.new(-20, 3, -55) -- dónde apareces dentro de tu terreno
+local SPACING = 230 -- distancia entre terrenos del mismo lado (deja pasillo para los zombis)
+local ROAD_GAP = 10 -- distancia entre la calle y la orilla del terreno
+local SPAWN = CFrame.new(0, 3, -16) -- dónde apareces dentro de tu terreno (junto a la caja)
 
 local plots: { Plot } = {}
 
@@ -47,7 +50,7 @@ local function buildWorld()
 	world.Parent = workspace
 	local perSide = math.ceil(Settings.plotCount / 2)
 	local length = perSide * SPACING + 120
-	local depth = 2 * (PLOT_SIZE + BACK_DEPTH) + ROAD_WIDTH + 120
+	local depth = 2 * (PLOT_SIZE + ROAD_GAP) + ROAD_WIDTH + 160
 	block(world, "Pasto", Vector3.new(length, 2, depth), CFrame.new(0, -1, 0), Color3.fromRGB(90, 110, 60), Enum.Material.Grass)
 	block(world, "Calle", Vector3.new(length, 0.2, ROAD_WIDTH), CFrame.new(0, 0.1, 0), Color3.fromRGB(60, 60, 62), Enum.Material.Asphalt)
 	for x = -length / 2 + 10, length / 2 - 10, 20 do
@@ -69,7 +72,7 @@ local function createPlot(world: Folder, index: number, perSide: number): Plot
 	local row = if index <= perSide then 1 else -1
 	local column = (index - 1) % perSide
 	local x = (column - (perSide - 1) / 2) * SPACING
-	local z = row * (ROAD_WIDTH / 2 + PLOT_SIZE / 2)
+	local z = row * (ROAD_WIDTH / 2 + ROAD_GAP + PLOT_SIZE / 2)
 	-- Los terrenos de un lado miran a -Z y los del otro a +Z: los dos hacia la calle
 	local cframe = CFrame.new(x, 1, z) * CFrame.Angles(0, if row == 1 then 0 else math.pi, 0)
 
@@ -79,15 +82,15 @@ local function createPlot(world: Folder, index: number, perSide: number): Plot
 	block(
 		model,
 		"Piso",
-		Vector3.new(PLOT_SIZE, 1, PLOT_SIZE + BACK_DEPTH),
-		cframe * CFrame.new(0, -0.5, BACK_DEPTH / 2),
+		Vector3.new(PLOT_SIZE, 1, PLOT_SIZE),
+		cframe * CFrame.new(0, -0.5, 0),
 		Color3.fromRGB(110, 120, 80),
 		Enum.Material.Ground
 	)
 
-	-- Letrero con el nombre del dueño, en la esquina de enfrente
-	block(model, "Poste", Vector3.new(0.6, 12, 0.6), cframe * CFrame.new(-55, 6, -58), Color3.fromRGB(80, 55, 35), Enum.Material.Wood)
-	local board = block(model, "Letrero", Vector3.new(14, 4, 0.4), cframe * CFrame.new(-55, 13, -58), Color3.fromRGB(40, 43, 36), Enum.Material.Wood)
+	-- Letrero con el nombre del dueño, enfrente, más alto que el muro
+	block(model, "Poste", Vector3.new(0.6, 12, 0.6), cframe * CFrame.new(-30, 6, -60), Color3.fromRGB(80, 55, 35), Enum.Material.Wood)
+	local board = block(model, "Letrero", Vector3.new(14, 4, 0.4), cframe * CFrame.new(-30, 13, -60), Color3.fromRGB(40, 43, 36), Enum.Material.Wood)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud

@@ -4,8 +4,9 @@
 -- que no se borra al salir del juego):
 --   money = el dinero que tiene para gastar
 --   vault = el dinero que está en la caja fuerte, sin cobrar
---   owned = lo que ya construyó: { Bandera = true, Sacos = true, ... }
---   rebirths = cuántas veces ha renacido (cada vez, su base genera más)
+--   owned = lo que ya construyó: { Caja2 = true, Torre1 = true, ... }
+--   wave     = la ola que sigue (si sale y vuelve, sigue desde ahí)
+--   record   = la ola más alta que ha pasado
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
 --
@@ -23,7 +24,8 @@ export type Profile = {
 	money: number,
 	vault: number,
 	owned: { [string]: boolean },
-	rebirths: number,
+	wave: number,
+	record: number,
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -69,16 +71,16 @@ local function publish(player: Player)
 		return
 	end
 	player:SetAttribute("Money", profile.money) -- lo lee la pantalla de dinero
-	player:SetAttribute("Rebirths", profile.rebirths)
+	player:SetAttribute("Record", profile.record)
 	local stats = player:FindFirstChild("leaderstats")
 	if stats then
 		local money = stats:FindFirstChild("Dinero") :: IntValue?
-		local rebirths = stats:FindFirstChild("Renacer") :: IntValue?
+		local record = stats:FindFirstChild("Récord") :: IntValue?
 		if money then
 			money.Value = math.floor(profile.money)
 		end
-		if rebirths then
-			rebirths.Value = profile.rebirths
+		if record then
+			record.Value = profile.record
 		end
 	end
 	DataService.MoneyChanged:Fire(player)
@@ -90,7 +92,8 @@ function DataService.Load(player: Player): Profile
 		money = if testing then Settings.Testing.startMoney else Settings.startMoney,
 		vault = 0,
 		owned = {},
-		rebirths = 0,
+		wave = 1,
+		record = 0,
 		daily = { last = 0, streak = 0 },
 		receipts = {},
 	}
@@ -102,7 +105,8 @@ function DataService.Load(player: Player): Profile
 			profile.money = tonumber(data.money) or profile.money
 			profile.vault = tonumber(data.vault) or 0
 			profile.owned = if type(data.owned) == "table" then data.owned else {}
-			profile.rebirths = tonumber(data.rebirths) or 0
+			profile.wave = math.max(1, tonumber(data.wave) or 1)
+			profile.record = tonumber(data.record) or 0
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0
@@ -114,15 +118,15 @@ function DataService.Load(player: Player): Profile
 	end
 	profiles[player] = profile
 
-	-- La tabla de jugadores de Roblox (arriba a la derecha) muestra el dinero
+	-- La tabla de jugadores de Roblox (arriba a la derecha) muestra el dinero y el récord
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
 	local value = Instance.new("IntValue")
 	value.Name = "Dinero"
 	value.Parent = stats
-	local rebirths = Instance.new("IntValue")
-	rebirths.Name = "Renacer"
-	rebirths.Parent = stats
+	local record = Instance.new("IntValue")
+	record.Name = "Récord"
+	record.Parent = stats
 	stats.Parent = player
 	publish(player)
 	return profile
@@ -166,18 +170,23 @@ function DataService.SaveNow(player: Player): boolean
 	return ok
 end
 
--- Renacer: borra la base y el dinero, y suma un renacimiento. Se guarda en seguida
-function DataService.Rebirth(player: Player)
+-- Pasó la ola n: sigue la n + 1 y, si es la más alta, es su nuevo récord
+function DataService.WaveCleared(player: Player, n: number)
 	local profile = profiles[player]
 	if not profile then
 		return
 	end
-	profile.rebirths += 1
-	profile.money = if testing then Settings.Testing.startMoney else Settings.startMoney
-	profile.vault = 0
-	profile.owned = {}
+	profile.wave = n + 1
+	profile.record = math.max(profile.record, n)
 	publish(player)
-	task.spawn(save, player)
+end
+
+-- Perdió la caja fuerte: vuelve a la ola 1 (el récord se queda)
+function DataService.ResetWave(player: Player)
+	local profile = profiles[player]
+	if profile then
+		profile.wave = 1
+	end
 end
 
 -- Al salir: guarda y olvida el perfil

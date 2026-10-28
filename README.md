@@ -1,32 +1,30 @@
 # Base Militar Tycoon
 
-Tycoon militar para Roblox: cada jugador recibe un terreno y construye su base pieza por
-pieza. La base genera dinero sola y con ese dinero compras la siguiente construcción.
+Juego de defensa para Roblox: cada jugador recibe un terreno con una caja fuerte en el centro
+que junta dinero. Con ese dinero construyes muros, trampas y defensas para aguantar olas de
+zombis cada vez más difíciles. Tu récord es la ola más alta que pasas.
 
 Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 
-## Qué hay ya (semanas 1 a 3)
+## Qué hay
 
-- Mapa con una calle y 6 terrenos de 130 x 230; cada jugador recibe uno con un letrero con su nombre
-- **Etapa 1, Campamento:** bandera, sacos de arena, tienda de campaña, fogata, cajas, antena de radio y torre de vigilancia
-- **Etapa 2, Cuartel:** generador, cuartel, armería, campo de tiro, comedor, muro de concreto y portón
-- **Etapa 3, Motor:** tanques de gasolina, gasolinera, garaje, taller, fábrica de jeeps y camión
-- **Etapa 4, Defensa:** búnker, dos torretas, radar, polvorín, torre de francotirador y tanque de guerra
-- **Etapa 5, Comando:** helipuerto, helicóptero, hangar, centro de mando, antena satelital y bandera gigante
-- **Jeep:** con el garaje, mantén **E** en su entrada para sacar un jeep y manejarlo por tu base
-- **Renacer:** al terminar toda la base sale un botón dorado; mantén **E** 2 segundos y tu base se reinicia, pero desde entonces todo genera más (x1.5, x2, x2.5...)
-- Aspas, radar, torretas y antena giran (`src/client/Spinner.luau`)
-- **Olas de enemigos** (semana 3): cada 2 minutos y medio llegan soldados a robar tu caja fuerte. Te defiendes con tu **rifle** (tecla 1) y tus torres, torretas, tanque y helicóptero disparan solos
+- Mapa con una calle y 6 terrenos de 200 x 200; cada jugador recibe uno con un letrero con su nombre
+- **Caja fuerte** en el centro: junta dinero cada segundo; pisa su botón verde para cobrar. Se mejora hasta el nivel 5
+- **Muro** alrededor (a 70 del centro) hecho de pedazos con vida: los zombis lo rompen y tú lo reparas manteniendo **E** junto a la caja fuerte. Se mejora a concreto y a reforzado
+- **Olas de zombis** numeradas: cada una trae más, con más vida y por más lados (frente, derecha, atrás, izquierda). Si destruyen tu caja fuerte se llevan parte de su dinero y vuelves a la ola 1
+- **Defensas** en lugares marcados (sus botones están adentro, junto al muro):
+  - torre de francotirador en cada esquina y una torreta por lado (disparan solas)
+  - barricadas de concreto (se rompen y se reparan), alambre de púas (frena y lastima)
+  - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina
+- **Edificios con función:** gasolinera (enciende las zanjas), armería y arsenal (mejor rifle), taller (repara el muro solo), radar (ves a los zombis a través de las paredes) y garaje (jeep para atropellarlos)
+- **Rifle** (tecla 1): mantén el clic para disparar seguido
 - **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y jeep dorado, y bolsa de dinero
 - **Premio diario** que sube si entras días seguidos
-- Botones de compra en el piso: verdes si te alcanza, rojos si no. Al comprar, la construcción cae del cielo
-- Caja fuerte que junta el dinero de la base; pisa su botón verde para cobrar
-- Se guarda tu dinero y tu base (DataStore)
-- Pantalla con tu dinero y cuánto genera tu base por segundo, y avisos
+- Se guardan tu dinero, tu base, la ola en la que vas y tu récord (DataStore)
 
 ## Cómo probarlo
 
-1. En una terminal, dentro de esta carpeta: `rojo serve`
+1. En una terminal, dentro de esta carpeta: `git pull` y luego `rojo serve`
 2. Abre Roblox Studio con un lugar vacío (Baseplate), conecta el plugin de Rojo y dale **Play**.
 3. Para probar rápido con mucho dinero: en `src/shared/Config/Settings.luau` pon
    `Testing.enabled = true` (y regrésalo a `false` antes de publicar).

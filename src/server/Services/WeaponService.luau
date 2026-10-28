@@ -1,4 +1,5 @@
--- El rifle de cada jugador, para defender su base de las olas (Config/Waves, rifle).
+-- El rifle de cada jugador, para defender su base de las olas (Config/Waves, rifle). Mejora
+-- con la Armería y el Arsenal: el atributo "WeaponLevel" (lo pone TycoonService) dice cuál usa.
 --
 -- El cliente (src/client/Weapon.luau) avisa con el RemoteEvent "Shoot" a dónde apuntó. El
 -- servidor revisa que traiga el rifle en la mano y que no dispare más rápido de lo permitido,
@@ -68,8 +69,9 @@ local function onShoot(player: Player, target: any)
 	if not tool or not head or not humanoid or humanoid.Health <= 0 then
 		return
 	end
+	local rifle = Waves.rifle[player:GetAttribute("WeaponLevel") or 1] or Waves.rifle[1]
 	local now = os.clock()
-	if now - (lastShot[player] or 0) < Waves.rifle.cooldown * 0.8 then
+	if now - (lastShot[player] or 0) < rifle.cooldown * 0.8 then
 		return -- dispara más rápido de lo permitido
 	end
 	lastShot[player] = now
@@ -79,7 +81,7 @@ local function onShoot(player: Player, target: any)
 	if direction.Magnitude < 0.1 then
 		return
 	end
-	direction = direction.Unit * Waves.rifle.range
+	direction = direction.Unit * Waves.rifleRange
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
@@ -90,7 +92,7 @@ local function onShoot(player: Player, target: any)
 	if result then
 		local enemy = enemyOf(result.Instance)
 		if enemy and enemy.Health > 0 then
-			enemy:TakeDamage(Waves.rifle.damage)
+			enemy:TakeDamage(rifle.damage)
 		end
 	end
 end

@@ -1,5 +1,6 @@
 -- El rifle: al hacer clic (o tocar la pantalla en celular) con el rifle en la mano, le dice
--- al servidor a dónde apuntaste. El servidor decide si le diste a alguien (WeaponService).
+-- al servidor a dónde apuntaste; si lo mantienes, sigue disparando. El servidor decide si le
+-- diste a alguien (WeaponService).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,13 +21,29 @@ local function hook(tool: Instance)
 		return
 	end
 	connected[tool] = true
+	-- Mientras mantienes el clic (o el dedo), sigue disparando a la velocidad de tu arma
+	local firing = false
 	tool.Activated:Connect(function()
-		local now = os.clock()
-		if now - lastShot < Waves.rifle.cooldown then
+		if firing then
 			return
 		end
-		lastShot = now
-		shootRemote:FireServer(mouse.Hit.Position)
+		firing = true
+		while firing and tool.Parent == player.Character do
+			local now = os.clock()
+			local rifle = Waves.rifle[player:GetAttribute("WeaponLevel") or 1] or Waves.rifle[1]
+			if now - lastShot >= rifle.cooldown then
+				lastShot = now
+				shootRemote:FireServer(mouse.Hit.Position)
+			end
+			task.wait()
+		end
+		firing = false
+	end)
+	tool.Deactivated:Connect(function()
+		firing = false
+	end)
+	tool.Unequipped:Connect(function()
+		firing = false
 	end)
 end
 
