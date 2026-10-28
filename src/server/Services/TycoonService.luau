@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
+local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.Builder)
 local DataService = require(script.Parent.DataService)
@@ -54,8 +55,9 @@ local function multiplierOf(rebirths: number): number
 	return 1 + rebirths * Buildings.rebirth.bonusPerRebirth
 end
 
--- El dinero por segundo que genera la base de un jugador (con lo de sus renacimientos)
-local function incomeOf(profile: DataService.Profile): number
+-- El dinero por segundo que genera la base de un jugador, con lo de sus renacimientos y sus
+-- pases (los pone StoreService como atributos: "Pass_x2", "Pass_VIP"...)
+local function incomeOf(player: Player, profile: DataService.Profile): number
 	local total = 0
 	for id in profile.owned do
 		local item = Buildings.byId[id]
@@ -63,7 +65,14 @@ local function incomeOf(profile: DataService.Profile): number
 			total += item.income
 		end
 	end
-	return math.floor(total * multiplierOf(profile.rebirths))
+	local multiplier = multiplierOf(profile.rebirths)
+	if player:GetAttribute("Pass_x2") then
+		multiplier *= 2
+	end
+	if player:GetAttribute("Pass_VIP") then
+		multiplier *= 1 + Store.vipBonus
+	end
+	return math.floor(total * multiplier)
 end
 
 local function ownsEverything(profile: DataService.Profile): boolean
@@ -176,7 +185,7 @@ local function buy(player: Player, item)
 		state.buttons[item.id] = nil
 	end
 	build(state, item, true, player)
-	player:SetAttribute("Income", incomeOf(profile))
+	player:SetAttribute("Income", incomeOf(player, profile))
 	if Buildings.IsLastOfStage(item.id) then
 		local stage = Buildings.stages[item.stage]
 		notice:FireClient(player, string.format("¡Etapa %s completa!", stage.name), "great")
@@ -292,8 +301,50 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		end
 	end
 	vaultText.Text = Format.Money(profile.vault)
-	player:SetAttribute("Income", incomeOf(profile))
+	player:SetAttribute("Income", incomeOf(player, profile))
 	refreshButtons(player)
+end
+
+-- Para las olas y la tienda ----------------------------------------------------------------
+
+-- Lo que genera por segundo la base de un jugador (0 si no tiene terreno)
+function TycoonService.IncomeOf(player: Player): number
+	local profile = DataService.Get(player)
+	return if profile then incomeOf(player, profile) else 0
+end
+
+-- El terreno de un jugador (nil si todavía no tiene)
+function TycoonService.GetPlot(player: Player): PlotService.Plot?
+	local state = states[player]
+	return state and state.plot
+end
+
+-- La etapa más alta en la que tiene algo construido (0 si nada)
+function TycoonService.StageOf(player: Player): number
+	local profile = DataService.Get(player)
+	local stage = 0
+	if profile then
+		for id in profile.owned do
+			local item = Buildings.byId[id]
+			if item and item.stage > stage then
+				stage = item.stage
+			end
+		end
+	end
+	return stage
+end
+
+-- Un enemigo llegó a la caja fuerte: se lleva share (0.25 = la cuarta parte). Devuelve cuánto
+function TycoonService.Steal(player: Player, share: number): number
+	local profile = DataService.Get(player)
+	local state = states[player]
+	if not profile or not state then
+		return 0
+	end
+	local amount = math.floor(profile.vault * share)
+	profile.vault -= amount
+	state.vaultText.Text = Format.Money(profile.vault)
+	return amount
 end
 
 function TycoonService.Cleanup(player: Player)
@@ -313,7 +364,13 @@ function TycoonService.Start()
 			for player, state in states do
 				local profile = DataService.Get(player)
 				if profile then
-					profile.vault += incomeOf(profile)
+					local income = incomeOf(player, profile)
+					player:SetAttribute("Income", income) -- por si compró un pase
+					if player:GetAttribute("Pass_AutoCobrar") then
+						DataService.AddMoney(player, income) -- con el pase, directo a su cuenta
+					else
+						profile.vault += income
+					end
 					state.vaultText.Text = Format.Money(profile.vault)
 				end
 			end

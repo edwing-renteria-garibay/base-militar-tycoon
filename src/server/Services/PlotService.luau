@@ -132,6 +132,15 @@ function PlotService.Claim(player: Player): Plot?
 	return nil
 end
 
+-- Los VIP tienen estrellas en su letrero
+function PlotService.SetVIP(player: Player)
+	for _, plot in plots do
+		if plot.owner == player then
+			plot.sign.Text = "★ Base de " .. player.DisplayName .. " ★"
+		end
+	end
+end
+
 function PlotService.Release(player: Player)
 	for _, plot in plots do
 		if plot.owner == player then

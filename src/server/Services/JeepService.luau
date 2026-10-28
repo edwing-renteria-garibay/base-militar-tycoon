@@ -16,6 +16,7 @@ local TURN_RATE = 2.4 -- radianes por segundo al girar
 local OLIVE = Color3.fromRGB(85, 92, 60)
 local OLIVE_DARK = Color3.fromRGB(64, 70, 46)
 local DARK = Color3.fromRGB(35, 35, 35)
+local GOLD = Color3.fromRGB(230, 180, 50) -- con el pase "Jeep dorado"
 
 local jeeps: { [Player]: Model } = {}
 
@@ -35,13 +36,13 @@ local function addPart(model: Model, chassis: BasePart, className: string, size:
 	return part
 end
 
-local function build(cframe: CFrame): Model
+local function build(cframe: CFrame, golden: boolean): Model
 	local model = Instance.new("Model")
 	model.Name = "Jeep"
 	local chassis = Instance.new("Part")
 	chassis.Name = "Chassis"
 	chassis.Size = Vector3.new(7, 1.5, 11)
-	chassis.Color = OLIVE
+	chassis.Color = if golden then GOLD else OLIVE
 	chassis.Material = Enum.Material.Metal
 	chassis.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0)
 	chassis.CFrame = cframe
@@ -59,8 +60,9 @@ local function build(cframe: CFrame): Model
 		end
 	end
 	-- Carrocería
-	addPart(model, chassis, "Part", Vector3.new(7, 1.2, 3), CFrame.new(0, 1.3, -4), OLIVE_DARK) -- cofre
-	addPart(model, chassis, "Part", Vector3.new(7, 2, 0.4), CFrame.new(0, 1.7, 5.3), OLIVE_DARK) -- atrás
+	local trim = if golden then GOLD else OLIVE_DARK
+	addPart(model, chassis, "Part", Vector3.new(7, 1.2, 3), CFrame.new(0, 1.3, -4), trim) -- cofre
+	addPart(model, chassis, "Part", Vector3.new(7, 2, 0.4), CFrame.new(0, 1.7, 5.3), trim) -- atrás
 	local glass = addPart(model, chassis, "Part", Vector3.new(6.4, 2, 0.2), CFrame.new(0, 2.8, -2.4), Color3.fromRGB(120, 170, 200))
 	glass.Material = Enum.Material.Glass
 	glass.Transparency = 0.4
@@ -130,7 +132,7 @@ end
 -- Saca un jeep nuevo en cframe (si ya tenía uno, el viejo desaparece)
 function JeepService.Spawn(player: Player, cframe: CFrame, parent: Instance)
 	JeepService.Remove(player)
-	local model = build(cframe + Vector3.new(0, 3, 0))
+	local model = build(cframe + Vector3.new(0, 3, 0), player:GetAttribute("Pass_JeepOro") == true)
 	model.Parent = parent
 	model.PrimaryPart:SetNetworkOwner(nil) -- el servidor maneja la física del jeep
 	jeeps[player] = model

@@ -1,18 +1,25 @@
 -- Punto de entrada del servidor: arma el mapa y, a cada jugador que entra, le carga sus datos,
--- le da un terreno y le prepara su base.
+-- le da un terreno, revisa sus pases, le prepara su base y le da su premio diario. También
+-- arranca el rifle (WeaponService) y las olas de enemigos (WaveService).
 
 local Players = game:GetService("Players")
 
 local Services = script.Services
 local DataService = require(Services.DataService)
 local PlotService = require(Services.PlotService)
+local StoreService = require(Services.StoreService)
 local TycoonService = require(Services.TycoonService)
+local WaveService = require(Services.WaveService)
+local WeaponService = require(Services.WeaponService)
 
 local notice = game:GetService("ReplicatedStorage").Remotes.Notice :: RemoteEvent
 
 PlotService.Start()
 DataService.Start()
 TycoonService.Start()
+StoreService.Start()
+WeaponService.Start()
+WaveService.Start()
 
 local function onPlayerAdded(player: Player)
 	DataService.Load(player)
@@ -25,7 +32,9 @@ local function onPlayerAdded(player: Player)
 		notice:FireClient(player, "No hay terrenos libres en este servidor", "bad")
 		return
 	end
+	StoreService.CheckPasses(player) -- antes de armar la base: los pases cambian lo que genera
 	TycoonService.Setup(player, plot)
+	StoreService.GiveDaily(player)
 end
 
 local function onPlayerRemoving(player: Player)

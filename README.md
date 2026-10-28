@@ -5,7 +5,7 @@ pieza. La base genera dinero sola y con ese dinero compras la siguiente construc
 
 Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 
-## Qué hay ya (semanas 1 y 2)
+## Qué hay ya (semanas 1 a 3)
 
 - Mapa con una calle y 6 terrenos de 130 x 230; cada jugador recibe uno con un letrero con su nombre
 - **Etapa 1, Campamento:** bandera, sacos de arena, tienda de campaña, fogata, cajas, antena de radio y torre de vigilancia
@@ -16,6 +16,9 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Jeep:** con el garaje, mantén **E** en su entrada para sacar un jeep y manejarlo por tu base
 - **Renacer:** al terminar toda la base sale un botón dorado; mantén **E** 2 segundos y tu base se reinicia, pero desde entonces todo genera más (x1.5, x2, x2.5...)
 - Aspas, radar, torretas y antena giran (`src/client/Spinner.luau`)
+- **Olas de enemigos** (semana 3): cada 2 minutos y medio llegan soldados a robar tu caja fuerte. Te defiendes con tu **rifle** (tecla 1) y tus torres, torretas, tanque y helicóptero disparan solos
+- **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y jeep dorado, y bolsa de dinero
+- **Premio diario** que sube si entras días seguidos
 - Botones de compra en el piso: verdes si te alcanza, rojos si no. Al comprar, la construcción cae del cielo
 - Caja fuerte que junta el dinero de la base; pisa su botón verde para cobrar
 - Se guarda tu dinero y tu base (DataStore)

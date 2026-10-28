@@ -6,6 +6,8 @@
 --   vault = el dinero que está en la caja fuerte, sin cobrar
 --   owned = lo que ya construyó: { Bandera = true, Sacos = true, ... }
 --   rebirths = cuántas veces ha renacido (cada vez, su base genera más)
+--   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
+--   receipts = compras con Robux ya entregadas (para no darlas dos veces)
 --
 -- En Studio el DataStore solo funciona si el juego está publicado y activaste "Enable Studio
 -- Access to API Services". Si no, todo funciona igual, pero no guarda nada.
@@ -22,6 +24,8 @@ export type Profile = {
 	vault: number,
 	owned: { [string]: boolean },
 	rebirths: number,
+	daily: { last: number, streak: number },
+	receipts: { string },
 }
 
 -- Avisa cuando cambia el dinero de alguien (para pintar los botones que ya le alcanzan)
@@ -87,6 +91,8 @@ function DataService.Load(player: Player): Profile
 		vault = 0,
 		owned = {},
 		rebirths = 0,
+		daily = { last = 0, streak = 0 },
+		receipts = {},
 	}
 	if store then
 		local ok, data = pcall(function()
@@ -97,6 +103,11 @@ function DataService.Load(player: Player): Profile
 			profile.vault = tonumber(data.vault) or 0
 			profile.owned = if type(data.owned) == "table" then data.owned else {}
 			profile.rebirths = tonumber(data.rebirths) or 0
+			if type(data.daily) == "table" then
+				profile.daily.last = tonumber(data.daily.last) or 0
+				profile.daily.streak = tonumber(data.daily.streak) or 0
+			end
+			profile.receipts = if type(data.receipts) == "table" then data.receipts else {}
 		elseif not ok then
 			warn("[Datos] No se pudo cargar a", player.Name, data)
 		end
@@ -138,6 +149,21 @@ function DataService.Spend(player: Player, amount: number): boolean
 	profile.money -= amount
 	publish(player)
 	return true
+end
+
+-- Guarda en seguida (después de una compra con Robux). Devuelve si se pudo
+function DataService.SaveNow(player: Player): boolean
+	local profile = profiles[player]
+	if not store or not profile then
+		return true -- sin DataStore no hay nada que guardar
+	end
+	local ok, err = pcall(function()
+		(store :: DataStore):SetAsync(keyOf(player), profile)
+	end)
+	if not ok then
+		warn("[Datos] No se pudo guardar a", player.Name, err)
+	end
+	return ok
 end
 
 -- Renacer: borra la base y el dinero, y suma un renacimiento. Se guarda en seguida

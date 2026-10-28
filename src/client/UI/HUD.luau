@@ -23,6 +23,7 @@ local HUD = {}
 local gui: ScreenGui
 local moneyLabel: TextLabel
 local incomeLabel: TextLabel
+local waveLabel: TextLabel
 local notices: Frame
 
 local function newLabel(parent: Instance, size: UDim2, textSize: number): TextLabel
@@ -46,6 +47,23 @@ local function update()
 		text ..= string.format("  ·  x%g", 1 + rebirths * Buildings.rebirth.bonusPerRebirth)
 	end
 	incomeLabel.Text = text
+end
+
+-- Debajo del dinero: cuánto falta para la siguiente ola, o cuántos enemigos quedan
+local function updateWave()
+	local enemies = player:GetAttribute("WaveEnemies")
+	local waveIn = player:GetAttribute("WaveIn")
+	if enemies then
+		waveLabel.Text = string.format("¡ATAQUE! Enemigos: %d  (usa tu rifle)", enemies)
+		waveLabel.TextColor3 = COLORS.bad
+		waveLabel.Visible = true
+	elseif waveIn then
+		waveLabel.Text = string.format("Próximo ataque en %d:%02d", waveIn // 60, waveIn % 60)
+		waveLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+		waveLabel.Visible = true
+	else
+		waveLabel.Visible = false
+	end
 end
 
 local function showNotice(text: string, kind: string?)
@@ -83,10 +101,15 @@ function HUD.Start()
 	incomeLabel.Position = UDim2.fromOffset(0, 40)
 	incomeLabel.Font = Enum.Font.GothamBold
 
+	waveLabel = newLabel(gui, UDim2.fromOffset(360, 24), 18)
+	waveLabel.AnchorPoint = Vector2.new(0.5, 0)
+	waveLabel.Position = UDim2.new(0.5, 0, 0, 78)
+	waveLabel.Visible = false
+
 	notices = Instance.new("Frame")
 	notices.AnchorPoint = Vector2.new(0.5, 0)
 	notices.Position = UDim2.new(0.5, 0, 0.25, 0)
-	notices.Size = UDim2.fromOffset(500, 200)
+	notices.Size = UDim2.new(0.95, 0, 0, 200) -- en celular no cabían 500 de ancho
 	notices.BackgroundTransparency = 1
 	notices.Parent = gui
 	local layout = Instance.new("UIListLayout")
@@ -99,6 +122,9 @@ function HUD.Start()
 	player:GetAttributeChangedSignal("Income"):Connect(update)
 	player:GetAttributeChangedSignal("Rebirths"):Connect(update)
 	notice.OnClientEvent:Connect(showNotice)
+	updateWave()
+	player:GetAttributeChangedSignal("WaveIn"):Connect(updateWave)
+	player:GetAttributeChangedSignal("WaveEnemies"):Connect(updateWave)
 end
 
 return HUD

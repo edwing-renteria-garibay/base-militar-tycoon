@@ -10,6 +10,9 @@
         "$className": "Folder",
         "Notice": {
           "$className": "RemoteEvent"
+        },
+        "Shoot": {
+          "$className": "RemoteEvent"
         }
       }
     },
