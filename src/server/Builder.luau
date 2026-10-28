@@ -176,7 +176,7 @@ function Builder.kinds.Watchtower(m: Model, o: CFrame)
 		part(m, o, Vector3.new(8, 1.2, 0.3), at(0, 15.2, side * 4), WOOD, Enum.Material.Wood)
 		part(m, o, Vector3.new(0.3, 1.2, 8), at(side * 4, 15.2, 0), WOOD, Enum.Material.Wood)
 	end
-	part(m, o, Vector3.new(9.5, 0.4, 9.5), at(0, 19.4, 0), DARK_OLIVE, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(9.5, 0.4, 9.5), at(0, 19.4, 0), DARK_OLIVE, Enum.Material.DiamondPlate)
 	part(m, o, Vector3.new(2, 14, 0.3), at(0, 7, -4.2), DARK_WOOD, Enum.Material.Wood)
 	local lamp = part(m, o, Vector3.new(1, 1, 1), at(0, 15.5, -3.6), WHITE, Enum.Material.Neon)
 	local spot = Instance.new("SpotLight")
@@ -208,7 +208,7 @@ end
 function Builder.kinds.Barracks(m: Model, o: CFrame)
 	part(m, o, Vector3.new(27, 0.6, 15), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(26, 9.4, 14), at(0, 5.3, 0), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(28, 1, 16), at(0, 10.5, 0), DARK_METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(28, 1, 16), at(0, 10.5, 0), DARK_METAL, Enum.Material.DiamondPlate)
 	part(m, o, Vector3.new(4, 7, 0.3), at(0, 4.1, -7.1), DARK_WOOD, Enum.Material.Wood)
 	for _, x in { -10, -5, 5, 10 } do
 		part(m, o, Vector3.new(3, 2.5, 0.2), at(x, 6, -7.05), GLASS, Enum.Material.Glass)
@@ -221,7 +221,7 @@ function Builder.kinds.Armory(m: Model, o: CFrame)
 	part(m, o, Vector3.new(15, 0.6, 13), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(14, 9, 12), at(0, 5.1, 0), DARK_OLIVE, Enum.Material.Metal)
 	part(m, o, Vector3.new(15, 0.8, 13), at(0, 10, 0), DARK_METAL, Enum.Material.Metal)
-	part(m, o, Vector3.new(8, 6, 0.3), at(0, 3.6, -6.1), METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(8, 6, 0.3), at(0, 3.6, -6.1), METAL, Enum.Material.DiamondPlate)
 	local sign = part(m, o, Vector3.new(10, 1.6, 0.2), at(0, 8, -6.15), DARK_METAL)
 	label(sign, "ARMERÍA", YELLOW)
 	part(m, o, Vector3.new(3, 3, 3), at(-5.5, 2.1, -8), OLIVE, Enum.Material.Metal)
@@ -316,7 +316,7 @@ function Builder.kinds.Garage(m: Model, o: CFrame)
 	part(m, o, Vector3.new(2.5, 9, 14), at(6.75, 5.1, 0), OLIVE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(16, 9, 1), at(0, 5.1, 6.5), OLIVE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(16, 2, 14), at(0, 8.6, 0), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(17, 0.8, 15), at(0, 10, 0), DARK_METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(17, 0.8, 15), at(0, 10, 0), DARK_METAL, Enum.Material.DiamondPlate)
 	-- La entrada: aquí está el letrero para sacar el jeep (TycoonService busca "Puerta")
 	local door = part(m, o, Vector3.new(11, 1.6, 0.3), at(0, 8.2, -7.2), DARK_OLIVE)
 	door.Name = "Puerta"
@@ -330,7 +330,7 @@ function Builder.kinds.Workshop(m: Model, o: CFrame)
 			part(m, o, Vector3.new(0.6, 7, 0.6), at(x, 3.9, z), DARK_METAL, Enum.Material.Metal)
 		end
 	end
-	part(m, o, Vector3.new(13, 0.6, 11), at(0, 7.6, 0), DARK_METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(13, 0.6, 11), at(0, 7.6, 0), DARK_METAL, Enum.Material.DiamondPlate)
 	part(m, o, Vector3.new(8, 3, 2), at(0, 1.9, 4), WOOD, Enum.Material.WoodPlanks)
 	for i = 0, 3 do
 		part(m, o, Vector3.new(0.9, 2.6, 2.6), at(-4, 0.85 + i * 0.9, -2) * UPRIGHT, Color3.fromRGB(25, 25, 25), Enum.Material.Rubber, Enum.PartType.Cylinder)
@@ -340,7 +340,7 @@ end
 
 function Builder.kinds.Factory(m: Model, o: CFrame)
 	part(m, o, Vector3.new(23, 0.6, 25), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(22, 12, 24), at(0, 6.6, 0), METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(22, 12, 24), at(0, 6.6, 0), METAL, Enum.Material.DiamondPlate)
 	-- Techo de "dientes de sierra", como las fábricas de verdad
 	for _, z in { -8, 0, 8 } do
 		part(m, o, Vector3.new(22, 0.4, 8.6), at(0, 14, z) * CFrame.Angles(math.rad(-25), 0, 0), DARK_METAL, Enum.Material.Metal)
@@ -354,7 +354,7 @@ function Builder.kinds.Factory(m: Model, o: CFrame)
 		smoke.Opacity = 0.15
 		smoke.Parent = chimney
 	end
-	part(m, o, Vector3.new(10, 8, 0.3), at(0, 4.6, -12.1), DARK_METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(10, 8, 0.3), at(0, 4.6, -12.1), DARK_METAL, Enum.Material.DiamondPlate)
 	local sign = part(m, o, Vector3.new(14, 2, 0.2), at(0, 10, -12.15), DARK_OLIVE)
 	label(sign, "FÁBRICA DE JEEPS", YELLOW)
 end
@@ -485,10 +485,10 @@ end
 
 function Builder.kinds.Hangar(m: Model, o: CFrame)
 	part(m, o, Vector3.new(25, 0.6, 19), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(24, 10, 18), at(0, 5.6, 0), METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(24, 10, 18), at(0, 5.6, 0), METAL, Enum.Material.DiamondPlate)
 	-- Techo redondeado: un cilindro acostado de lado a lado
-	part(m, o, Vector3.new(24, 18, 8), at(0, 10.6, 0), METAL, Enum.Material.CorrugatedSteel, Enum.PartType.Cylinder)
-	part(m, o, Vector3.new(16, 9, 0.3), at(0, 5.1, -9.1), DARK_METAL, Enum.Material.CorrugatedSteel)
+	part(m, o, Vector3.new(24, 18, 8), at(0, 10.6, 0), METAL, Enum.Material.DiamondPlate, Enum.PartType.Cylinder)
+	part(m, o, Vector3.new(16, 9, 0.3), at(0, 5.1, -9.1), DARK_METAL, Enum.Material.DiamondPlate)
 	local sign = part(m, o, Vector3.new(12, 2, 0.2), at(0, 12, -9.15), DARK_OLIVE)
 	label(sign, "HANGAR", YELLOW)
 end

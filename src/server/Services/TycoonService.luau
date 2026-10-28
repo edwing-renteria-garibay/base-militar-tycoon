@@ -80,7 +80,7 @@ local function prompt(parent: Instance, action: string, owner: Player, hold: num
 	local p = Instance.new("ProximityPrompt")
 	p.ActionText = action
 	p.HoldDuration = hold
-	p.MaxActivationDistance = 14
+	p.MaxActivationDistance = 18
 	p.RequiresLineOfSight = false
 	p.Triggered:Connect(function(who)
 		if who == owner then
