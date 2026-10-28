@@ -6,8 +6,11 @@
 --    una barricada, ver WallService) lo golpea hasta romperlo. Ya adentro, va por la caja
 --    fuerte y la golpea. Si pasa junto a un jugador, también lo golpea.
 -- 3. Las defensas: el alambre lo frena y lastima, las minas explotan cuando pasa cerca, las
---    zanjas encendidas lo queman, y las torres y torretas le disparan solas.
--- 4. Si eliminas a todos, pasas la ola: premio, récord y descanso hasta la siguiente. Si
+--    zanjas encendidas lo queman, las torretas le disparan solas (si lo tienen enfrente) y las
+--    torres, si tienen francotirador.
+-- 4. Zombis especiales (Waves.special): el trepador se salta el muro y sube a las torres por
+--    el francotirador, el demoledor va por los edificios y el saboteador por torres y torretas.
+-- 5. Si eliminas a todos, pasas la ola: premio, récord y descanso hasta la siguiente. Si
 --    destruyen tu caja fuerte, se llevan parte de su dinero y vuelves a la ola 1.
 -- Mientras hay ola, el atributo "WaveEnemies" dice cuántos zombis quedan (lo lee el HUD).
 
@@ -50,6 +53,10 @@ type Zombie = {
 	stuckSince: number,
 	detour: Vector3?,
 	detourUntil: number,
+	special: any, -- su tipo en Waves.special (nil = zombi normal)
+	targetId: string?, -- la construcción a la que va (zombis especiales)
+	climbing: boolean, -- trepando: lo mueve climb(), no piensa
+	onTower: string?, -- el trepador ya está arriba de esta torre
 }
 type State = {
 	nextWave: number, -- os.clock() en que empieza la siguiente ola
@@ -61,15 +68,17 @@ type State = {
 }
 
 local states: { [Player]: State } = {}
-local template: Model? = nil -- el zombi, para clonarlo
+local templates: { [string]: Model } = {} -- un zombi de cada tipo, para clonarlo
 
-local function getTemplate(): Model?
-	if template then
-		return template
+-- El zombi de cada tipo: piel verde, y la camisa y el tamaño de su tipo
+local function getTemplate(special): Model?
+	local key = if special then special.key else "Normal"
+	if templates[key] then
+		return templates[key]
 	end
 	local description = Instance.new("HumanoidDescription")
 	local skin = Color3.fromRGB(110, 150, 90)
-	local shirt = Color3.fromRGB(90, 80, 70)
+	local shirt = if special then special.shirt else Color3.fromRGB(90, 80, 70)
 	local pants = Color3.fromRGB(50, 55, 70)
 	description.HeadColor = skin
 	description.LeftArmColor = skin
@@ -77,6 +86,11 @@ local function getTemplate(): Model?
 	description.TorsoColor = shirt
 	description.LeftLegColor = pants
 	description.RightLegColor = pants
+	local scale = if special then special.scale else 1
+	description.HeightScale = scale
+	description.WidthScale = scale
+	description.DepthScale = scale
+	description.HeadScale = scale
 	local ok, model = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
 	end)
@@ -85,7 +99,7 @@ local function getTemplate(): Model?
 		return nil
 	end
 	model.Name = "Zombi"
-	template = model
+	templates[key] = model
 	return model
 end
 
@@ -107,9 +121,9 @@ local function aliveCount(state: State): number
 	return count
 end
 
-local function spawnZombie(player: Player, state: State, side, n: number)
+local function spawnZombie(player: Player, state: State, side, n: number, special)
 	local plot = TycoonService.GetPlot(player)
-	local base = getTemplate()
+	local base = getTemplate(special)
 	if not plot or not base then
 		return
 	end
@@ -118,11 +132,11 @@ local function spawnZombie(player: Player, state: State, side, n: number)
 	local model = base:Clone()
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
-	local speed = Waves.SpeedOf(n)
-	humanoid.MaxHealth = Waves.HealthOf(n)
+	local speed = Waves.SpeedOf(n) * (if special then special.speed else 1)
+	humanoid.MaxHealth = Waves.HealthOf(n) * (if special then special.health else 1)
 	humanoid.Health = humanoid.MaxHealth
 	humanoid.WalkSpeed = speed
-	humanoid.DisplayName = "Zombi"
+	humanoid.DisplayName = if special then "Zombi " .. special.name else "Zombi"
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
 	CollectionService:AddTag(model, "Enemy") -- así le hacen daño las armas del jugador
 	-- Aparece afuera, mirando hacia la base
@@ -149,6 +163,10 @@ local function spawnZombie(player: Player, state: State, side, n: number)
 		stuckSince = os.clock(),
 		detour = nil,
 		detourUntil = 0,
+		special = special,
+		targetId = nil,
+		climbing = false,
+		onTower = nil,
 	}
 	table.insert(state.zombies, zombie)
 	humanoid.Died:Connect(function()
@@ -178,9 +196,37 @@ local function pickSides(count: number)
 	return chosen, (text:gsub("la frente", "el frente"):gsub("la atrás", "atrás"))
 end
 
+-- Qué tipo es el zombi número i de la ola n: uno de cada "every" es especial
+local function specialOf(i: number, n: number)
+	for _, special in Waves.special do
+		if n >= special.from and i % special.every == 0 then
+			return special
+		end
+	end
+	return nil
+end
+
 local function startWave(player: Player, state: State, n: number)
 	local count = Waves.CountOf(n)
 	local sides, sideText = pickSides(Waves.SidesOf(n))
+	-- Cuántos especiales trae, para avisar: "(2 trepadores, 1 demoledor)"
+	local counts = {}
+	for i = 1, count do
+		local special = specialOf(i, n)
+		if special then
+			counts[special] = (counts[special] or 0) + 1
+		end
+	end
+	local extras = {}
+	for _, special in Waves.special do
+		local amount = counts[special]
+		if amount then
+			table.insert(extras, string.format("%d %s%s", amount, special.name, if amount > 1 then "es" else ""))
+		end
+	end
+	if #extras > 0 then
+		sideText ..= " (" .. table.concat(extras, ", ") .. ")"
+	end
 	state.active = true
 	state.spawning = true
 	state.zombies = {}
@@ -194,7 +240,7 @@ local function startWave(player: Player, state: State, n: number)
 			if states[player] ~= state or state.waveId ~= waveId then
 				return -- el jugador se fue o perdió
 			end
-			spawnZombie(player, state, sides[(i - 1) % #sides + 1], n)
+			spawnZombie(player, state, sides[(i - 1) % #sides + 1], n, specialOf(i, n))
 			task.wait(Waves.spawnEvery)
 		end
 		state.spawning = false
@@ -299,24 +345,134 @@ local function hitPlayers(zombie: Zombie, now: number): boolean
 	return false
 end
 
+-- Mueve a un zombi por varios puntos, sin física (así trepa muros y torres). Mientras, no
+-- piensa. Al terminar, si stay es false, vuelve a caminar
+local function climb(zombie: Zombie, path: { Vector3 }, stay: boolean)
+	zombie.climbing = true
+	zombie.root.Anchored = true
+	task.spawn(function()
+		local stepTime = Waves.climbTime / #path
+		for _, point in path do
+			local start = zombie.root.CFrame
+			local look = flat(point - start.Position)
+			local goal = if look.Magnitude > 0.1 then CFrame.lookAt(point, point + look) else start.Rotation + point
+			for step = 1, 10 do
+				if not isAlive(zombie) then
+					return
+				end
+				zombie.model:PivotTo(start:Lerp(goal, step / 10))
+				task.wait(stepTime / 10)
+			end
+		end
+		zombie.climbing = false
+		if not stay and isAlive(zombie) then
+			zombie.root.Anchored = false
+		end
+	end)
+end
+
+-- La construcción a la que va un zombi especial (nil si ya no queda ninguna: va a la caja)
+local function targetOf(player: Player, zombie: Zombie): Model?
+	local special = zombie.special
+	if not special then
+		return nil
+	end
+	if zombie.targetId and TycoonService.IsWorking(player, zombie.targetId) then
+		return TycoonService.ModelOf(player, zombie.targetId)
+	end
+	local candidates = TycoonService.Targets(player, special.target)
+	-- Los trepadores prefieren las torres que tienen francotirador
+	if special.target == "tower" then
+		local manned = {}
+		for _, candidate in candidates do
+			if TycoonService.SniperOf(player, candidate.id) then
+				table.insert(manned, candidate)
+			end
+		end
+		if #manned > 0 then
+			candidates = manned
+		end
+	end
+	local best, bestDistance = nil, math.huge
+	for _, candidate in candidates do
+		local distance = ((candidate.model:GetBoundingBox()).Position - zombie.root.Position).Magnitude
+		if distance < bestDistance then
+			best, bestDistance = candidate, distance
+		end
+	end
+	zombie.targetId = best and best.id
+	return best and best.model
+end
+
+-- ¿Ya está junto a la construcción? (según su tamaño)
+local function reached(zombie: Zombie, target: Model): boolean
+	local box, size = target:GetBoundingBox()
+	return flat(box.Position - zombie.root.Position).Magnitude < math.max(size.X, size.Z) / 2 + REACH
+end
+
+-- El trepador arriba de una torre: golpea al francotirador y, sin él, a la torre
+local function attackTower(player: Player, zombie: Zombie, damage: number)
+	local id = zombie.onTower :: string
+	local tower = TycoonService.ModelOf(player, id)
+	if not tower or not TycoonService.IsWorking(player, id) then
+		zombie.onTower = nil -- la torre se cayó: él también
+		zombie.targetId = nil
+		zombie.root.Anchored = false
+		return
+	end
+	local sniper = TycoonService.SniperOf(player, id)
+	local humanoid = sniper and sniper:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:TakeDamage(damage)
+	else
+		WallService.Damage(tower, damage)
+	end
+end
+
 -- Un zombi piensa: ¿a quién golpeo?, si no, ¿hacia dónde camino?
 -- Devuelve true si destruyó la caja fuerte
 local function think(player: Player, zombie: Zombie, center: Vector3, params: RaycastParams, now: number): boolean
+	if zombie.climbing then
+		return false
+	end
+	local special = zombie.special
+	local damage = Waves.zombieDps * TICK * (if special then special.dps else 1)
+	if zombie.onTower then
+		attackTower(player, zombie, damage)
+		return false
+	end
 	local position = zombie.root.Position
 	if hitPlayers(zombie, now) then
 		return false
 	end
-	-- Ya llegó a la caja fuerte
-	if flat(position - center).Magnitude < VAULT_REACH then
+	local target = targetOf(player, zombie)
+	-- Ya llegó a lo que busca: la caja fuerte o su construcción
+	if not target and flat(position - center).Magnitude < VAULT_REACH then
 		zombie.humanoid:MoveTo(position)
-		return TycoonService.DamageVault(player, Waves.zombieDps * TICK) <= 0
+		return TycoonService.DamageVault(player, damage) <= 0
 	end
-	-- Afuera del muro camina derecho por su carril; ya adentro, va a la caja fuerte
+	if target and reached(zombie, target) then
+		zombie.humanoid:MoveTo(position)
+		if special.target == "tower" then
+			-- Sube por la torre hasta donde está el francotirador
+			local top = (target:GetBoundingBox()).Position
+			local away = flat(position - top)
+			away = if away.Magnitude > 0.1 then away.Unit * 1.5 else Vector3.zero
+			local platform = Vector3.new(top.X, position.Y + 24.5, top.Z) + away
+			zombie.onTower = zombie.targetId
+			climb(zombie, { position + Vector3.new(0, 24.5, 0), platform }, true)
+		else
+			WallService.Damage(target, damage)
+		end
+		return false
+	end
+	-- Afuera del muro camina derecho por su carril; ya adentro, va a lo que busca
 	local here = zombie.side:PointToObjectSpace(position)
 	local inset = Waves.wallInset
+	local inside = if target then (target:GetBoundingBox()).Position else center
 	local goal = if here.Z < -(inset - 6)
 		then (zombie.side * CFrame.new(zombie.lane, 0, -(inset - 10))).Position
-		else center
+		else inside
 	local direction = flat(goal - position)
 	if direction.Magnitude < 0.1 then
 		return false
@@ -325,11 +481,17 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 	local blocker = blockerAhead(zombie, direction, params)
 	if blocker then
 		zombie.humanoid:MoveTo(position)
-		WallService.Damage(blocker, Waves.zombieDps * TICK)
 		zombie.stuckSince = now
+		if special and special.target == "tower" and blocker.Name == "Muro" and blocker:IsA("BasePart") then
+			-- El trepador no rompe el muro: se lo salta
+			local height = Vector3.new(0, blocker.Size.Y, 0)
+			climb(zombie, { position + height, position + height + direction * 6, position + direction * 6 }, false)
+		else
+			WallService.Damage(blocker, damage)
+		end
 		return false
 	end
-	-- Si lleva rato atorado en algo que no se rompe (un edificio), lo rodea
+	-- Si lleva rato atorado en algo que no se rompe, lo rodea
 	if (position - zombie.lastPosition).Magnitude > 1 then
 		zombie.lastPosition = position
 		zombie.stuckSince = now
@@ -414,10 +576,22 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 	for id in profile.owned do
 		local item = Buildings.byId[id]
 		local stats = item and item.defense
-		local building = stats and plot.contents:FindFirstChild(id)
-		if building and building:IsA("Model") and now - (state.lastShot[id] or 0) >= stats.cooldown then
+		local building = stats and TycoonService.ModelOf(player, id)
+		-- Las torres solo disparan con francotirador, y nada roto dispara
+		local sniper = if item and item.kind == "SniperTower" then TycoonService.SniperOf(player, id) else nil
+		local manned = item ~= nil and (item.kind ~= "SniperTower" or sniper ~= nil)
+		if
+			building
+			and manned
+			and TycoonService.IsWorking(player, id)
+			and now - (state.lastShot[id] or 0) >= stats.cooldown
+		then
 			local box, size = building:GetBoundingBox()
 			local from = box.Position + Vector3.new(0, size.Y / 2 - 1.5, 0) -- desde arriba
+			local sniperHead = sniper and sniper:FindFirstChild("Head") :: BasePart?
+			if sniperHead then
+				from = sniperHead.Position
+			end
 			local facing = if item.kind == "Turret" then (TycoonService.PlaceOf(player, item) :: CFrame).LookVector else nil
 			local best: Zombie? = nil
 			local bestDistance = stats.range
@@ -434,6 +608,11 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 				state.lastShot[id] = now
 				local target = best.root.Position
 				-- La torreta gira su cabeza hacia el zombi
+				if sniper then
+					-- El francotirador voltea hacia el zombi
+					local pivot = sniper:GetPivot().Position
+					sniper:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
+				end
 				local head = building:FindFirstChild("Cabeza")
 				if head and head:IsA("Model") then
 					local pivot = head:GetPivot().Position

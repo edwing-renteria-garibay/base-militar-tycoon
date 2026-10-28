@@ -1,7 +1,8 @@
--- El muro y las barricadas: cosas con vida que los zombis rompen y tú reparas.
+-- El muro, las barricadas, los edificios y las defensas: cosas con vida que los zombis rompen
+-- y tú reparas.
 --
 -- El muro es un cuadrado alrededor de la caja fuerte (a Waves.wallInset del centro), hecho de
--- pedazos de 10 studs. Cada pedazo, y cada barricada, es un "objetivo" con los atributos
+-- pedazos de 10 studs. Cada pedazo, y cada construcción, es un "objetivo" con los atributos
 -- Health y MaxHealth. Al perder vida se oscurece; con 0 queda como escombro transparente que
 -- los zombis atraviesan. Al repararlo vuelve a estar como nuevo.
 --
@@ -43,14 +44,18 @@ local function show(target: Instance)
 	local broken = health <= 0
 	local wear = 1 - math.clamp(health / max, 0, 1)
 	for _, p in partsOf(target) do
+		-- La primera vez se apunta cómo era la pieza, para volver a dejarla igual al repararla
 		if p:GetAttribute("BaseColor") == nil then
 			p:SetAttribute("BaseColor", p.Color)
 			p:SetAttribute("BaseTransparency", p.Transparency)
+			p:SetAttribute("BaseCollide", p.CanCollide)
+			p:SetAttribute("BaseQuery", p.CanQuery)
 		end
+		local baseTransparency = p:GetAttribute("BaseTransparency") :: number
 		p.Color = (p:GetAttribute("BaseColor") :: Color3):Lerp(DAMAGED, wear * 0.6)
-		p.Transparency = if broken then 0.85 else p:GetAttribute("BaseTransparency") :: number
-		p.CanCollide = not broken
-		p.CanQuery = not broken -- roto, ni los zombis ni las balas lo "ven"
+		p.Transparency = if broken then math.max(baseTransparency, 0.85) else baseTransparency
+		p.CanCollide = p:GetAttribute("BaseCollide") == true and not broken
+		p.CanQuery = p:GetAttribute("BaseQuery") == true and not broken -- roto, ni los zombis ni las balas lo "ven""
 	end
 end
 
@@ -102,7 +107,7 @@ function WallService.SetLevel(player: Player, level: number)
 	end
 end
 
--- Agrega algo que se puede romper (una barricada)
+-- Agrega algo que se puede romper (una barricada, un edificio, una torre...)
 function WallService.Add(player: Player, target: Instance, maxHealth: number)
 	local state = states[player]
 	if not state then

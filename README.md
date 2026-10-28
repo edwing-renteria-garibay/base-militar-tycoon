@@ -12,8 +12,10 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Caja fuerte** en el centro: junta dinero cada segundo; pisa su botón verde para cobrar. Se mejora hasta el nivel 5
 - **Muro** alrededor (a 70 del centro) hecho de pedazos con vida: los zombis lo rompen y tú lo reparas manteniendo **E** junto a la caja fuerte. Se mejora a concreto y a reforzado
 - **Olas de zombis** numeradas: cada una trae más, con más vida y por más lados (frente, derecha, atrás, izquierda). Si destruyen tu caja fuerte se llevan parte de su dinero y vuelves a la ola 1
+- **Zombis especiales:** trepadores (se saltan el muro y suben a las torres por el francotirador), demoledores (grandes, van por tus edificios) y saboteadores (van por tus torres y torretas)
+- Los edificios y defensas también tienen vida: rotos dejan de funcionar hasta que los reparas
 - **Defensas** en lugares marcados (sus botones están adentro, junto al muro):
-  - torre de francotirador en cada esquina y una torreta por lado (disparan solas)
+  - torre en cada esquina donde contratas un francotirador (mantén **E** al pie; si muere, contratas otro; ¡tus balas también le pegan!) y una torreta por lado (dispara sola)
   - barricadas de concreto (se rompen y se reparan), alambre de púas (frena y lastima)
   - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina
 - **Edificios con función:** gasolinera (enciende las zanjas), armería (compra armas y munición), enfermería (te cura si estás cerca), laboratorio (más daño para todo), taller (repara el muro solo) y radar (ves a los zombis a través de las paredes)

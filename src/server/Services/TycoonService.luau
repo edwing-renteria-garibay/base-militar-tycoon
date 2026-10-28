@@ -20,6 +20,7 @@
 --
 -- Solo el dueño del terreno puede usar sus botones y letreros.
 
+local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -54,6 +55,9 @@ type State = {
 	firePrompt: ProximityPrompt?,
 	fireUntil: number, -- os.clock() hasta el que arden las zanjas
 	fireReady: number, -- os.clock() desde el que se pueden volver a encender
+	models: { [string]: Model }, -- lo construido, por id
+	snipers: { [string]: Model }, -- el francotirador de cada torre (si tiene)
+	hirePrompts: { [string]: ProximityPrompt },
 }
 
 local states: { [Player]: State } = {}
@@ -78,10 +82,21 @@ local function incomeOf(player: Player, profile: DataService.Profile): number
 	return math.floor(Waves.vaultIncome[level] * multiplier)
 end
 
-local function hasEffect(profile: DataService.Profile, effect: string): boolean
+-- ¿Funciona? Una construcción rota (vida 0, ver WallService) no funciona hasta repararla
+local function working(model: Instance?): boolean
+	return model ~= nil and (model:GetAttribute("Health") or 1) > 0
+end
+
+-- Las trampas (alambre, minas, zanjas) no se rompen; todo lo demás que se dibuja, sí
+local function isBreakable(item): boolean
+	return item.kind ~= nil and item.effect ~= "wire" and item.effect ~= "mine" and item.kind ~= "FireTrench"
+end
+
+-- ¿Tiene algo con este effect que esté funcionando? (las mejoras sin dibujo siempre funcionan)
+local function hasEffect(state: State, profile: DataService.Profile, effect: string): boolean
 	for id in profile.owned do
 		local item = Buildings.byId[id]
-		if item and item.effect == effect then
+		if item and item.effect == effect and (item.kind == nil or working(state.models[id])) then
 			return true
 		end
 	end
@@ -142,6 +157,94 @@ end
 
 local ignite: (Player) -> ()
 
+-- El francotirador: un soldado parado arriba de su torre. Es quien dispara (WaveService)
+local sniperTemplate: Model? = nil
+local function getSniperTemplate(): Model?
+	if sniperTemplate then
+		return sniperTemplate
+	end
+	local description = Instance.new("HumanoidDescription")
+	local skin = Color3.fromRGB(204, 160, 120)
+	local camo = Color3.fromRGB(86, 92, 62)
+	description.HeadColor = skin
+	description.LeftArmColor = camo
+	description.RightArmColor = camo
+	description.TorsoColor = camo
+	description.LeftLegColor = Color3.fromRGB(56, 60, 42)
+	description.RightLegColor = Color3.fromRGB(56, 60, 42)
+	local ok, model = pcall(function()
+		return Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
+	end)
+	if not ok then
+		warn("[Torres] No se pudo crear el francotirador:", model)
+		return nil
+	end
+	sniperTemplate = model
+	return model
+end
+
+local function spawnSniper(state: State, item)
+	local base = getSniperTemplate()
+	if not base or state.snipers[item.id] then
+		return
+	end
+	local model = base:Clone()
+	model.Name = "Francotirador_" .. item.id
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	humanoid.MaxHealth = Waves.sniper.health
+	humanoid.Health = Waves.sniper.health
+	humanoid.DisplayName = "Francotirador"
+	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
+	CollectionService:AddTag(model, "Ally") -- tus balas también le pegan (WeaponService)
+	-- Arriba de la torre, mirando hacia afuera del terreno
+	local top = (placeOf(state.plot, item.at) * CFrame.new(0, 27.5, 0)).Position
+	local outward = Vector3.new(top.X - state.plot.cframe.X, 0, top.Z - state.plot.cframe.Z)
+	model:PivotTo(CFrame.lookAt(top, top + outward))
+	root.Anchored = true -- no se cae de la torre
+	model.Parent = state.plot.contents
+	state.snipers[item.id] = model
+	local hire = state.hirePrompts[item.id]
+	if hire then
+		hire.Enabled = false
+	end
+	humanoid.Died:Connect(function()
+		if state.snipers[item.id] ~= model then
+			return
+		end
+		state.snipers[item.id] = nil
+		local profile = DataService.Get(state.owner)
+		if profile then
+			profile.snipers[item.id] = nil
+		end
+		if hire and hire.Parent then
+			hire.Enabled = true
+		end
+		root.Anchored = false
+		Debris:AddItem(model, 3)
+		notice:FireClient(state.owner, "¡Mataron a tu francotirador! Contrata otro en su torre", "bad")
+	end)
+end
+
+local function hireSniper(state: State, item)
+	local player = state.owner
+	local profile = DataService.Get(player)
+	if not profile or state.snipers[item.id] then
+		return
+	end
+	if not working(state.models[item.id]) then
+		notice:FireClient(player, "Primero repara la torre", "bad")
+		return
+	end
+	if not DataService.Spend(player, Waves.sniper.price) then
+		notice:FireClient(player, "Te faltan " .. Format.Money(Waves.sniper.price - profile.money), "bad")
+		return
+	end
+	profile.snipers[item.id] = true
+	spawnSniper(state, item)
+	notice:FireClient(player, "Contrataste un francotirador", "great")
+end
+
 -- Pone una construcción en el terreno. Con animate, las piezas bajan del cielo y aparecen
 local function build(state: State, item, animate: boolean)
 	if not item.kind then
@@ -151,8 +254,10 @@ local function build(state: State, item, animate: boolean)
 	local o = placeOf(state.plot, item.at, item.rot)
 	local model = Builder.Build(item.kind, o)
 	model.Name = item.id
-	if item.effect == "barricade" then
-		WallService.Add(player, model, Waves.barricadeHealth) -- la pone en "Rompibles"
+	state.models[item.id] = model
+	if isBreakable(item) then
+		-- La pone en la carpeta "Rompibles", con su vida
+		WallService.Add(player, model, Waves.buildingHealth[item.kind] or Waves.buildingHealth.default)
 	else
 		model.Parent = state.plot.contents
 	end
@@ -162,6 +267,17 @@ local function build(state: State, item, animate: boolean)
 		prompt(spot, "Abrir armería", player, 0, function()
 			armoryRemote:FireClient(player, "open")
 		end)
+	elseif item.kind == "SniperTower" then
+		local spot = promptSpot(model, o * CFrame.new(0, 3, -4))
+		local hire = prompt(spot, "Contratar francotirador", player, 0.5, function()
+			hireSniper(state, item)
+		end)
+		hire.ObjectText = Format.Money(Waves.sniper.price)
+		state.hirePrompts[item.id] = hire
+		local profile = DataService.Get(player)
+		if profile and profile.snipers[item.id] then
+			spawnSniper(state, item) -- ya lo tenía contratado
+		end
 	elseif item.kind == "GasStation" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -3))
 		state.firePrompt = prompt(spot, "Encender zanjas", player, 0.5, function()
@@ -317,7 +433,7 @@ ignite = function(player: Player)
 	local trenches = {}
 	for _, item in Buildings.list do
 		if item.kind == "FireTrench" and profile.owned[item.id] then
-			local model = state.plot.contents:FindFirstChild(item.id)
+			local model = state.models[item.id]
 			if model then
 				table.insert(trenches, model)
 			end
@@ -353,11 +469,11 @@ local function heal(state: State)
 	local character = state.owner.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local infirmary = state.plot.contents:FindFirstChild("Enfermeria")
+	local infirmary = state.models.Enfermeria
 	if not root or not humanoid or humanoid.Health <= 0 or not infirmary or not infirmary:IsA("Model") then
 		return
 	end
-	if (root.Position - infirmary:GetPivot().Position).Magnitude < Waves.healRange then
+	if (root.Position - (infirmary:GetBoundingBox()).Position).Magnitude < Waves.healRange then
 		humanoid.Health = math.min(humanoid.Health + Waves.heal, humanoid.MaxHealth)
 	end
 end
@@ -389,6 +505,9 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		repairPrompt = repairPrompt,
 		fireUntil = 0,
 		fireReady = 0,
+		models = {},
+		snipers = {},
+		hirePrompts = {},
 	}
 	states[player] = state
 	WallService.Setup(player, plot, Buildings.LevelOf(profile.owned, "wall"))
@@ -420,7 +539,8 @@ end
 -- ¿Tiene algo con este effect? ("radar", "repair"...)
 function TycoonService.Has(player: Player, effect: string): boolean
 	local profile = DataService.Get(player)
-	return profile ~= nil and hasEffect(profile, effect)
+	local state = states[player]
+	return state ~= nil and profile ~= nil and hasEffect(state, profile, effect)
 end
 
 -- ¿Están encendidas sus zanjas?
@@ -443,9 +563,10 @@ function TycoonService.Consume(player: Player, id: string)
 		return
 	end
 	profile.owned[id] = nil
-	local model = state.plot.contents:FindFirstChild(id)
+	local model = state.models[id]
 	if model then
 		model:Destroy()
+		state.models[id] = nil
 	end
 	refreshButtons(player)
 end
@@ -478,6 +599,49 @@ function TycoonService.LoseVault(player: Player): number
 	return lost
 end
 
+-- Lo construido con ese id (nil si no lo tiene)
+function TycoonService.ModelOf(player: Player, id: string): Model?
+	local state = states[player]
+	return state and state.models[id]
+end
+
+-- ¿Funciona lo construido con ese id? (no está roto)
+function TycoonService.IsWorking(player: Player, id: string): boolean
+	return working(TycoonService.ModelOf(player, id))
+end
+
+-- El francotirador vivo de una torre (nil si no tiene)
+function TycoonService.SniperOf(player: Player, id: string): Model?
+	local state = states[player]
+	local sniper = state and state.snipers[id]
+	local humanoid = sniper and sniper:FindFirstChildOfClass("Humanoid")
+	return if humanoid and humanoid.Health > 0 then sniper else nil
+end
+
+-- Lo que buscan los zombis especiales (que no esté roto):
+--   "tower" las torres, "defense" torres y torretas, "building" los demás edificios
+function TycoonService.Targets(player: Player, category: string): { { id: string, model: Model, item: any } }
+	local state = states[player]
+	local list = {}
+	if not state then
+		return list
+	end
+	for id, model in state.models do
+		local item = Buildings.byId[id]
+		if item and isBreakable(item) and working(model) and item.effect ~= "barricade" then
+			local defense = item.kind == "SniperTower" or item.kind == "Turret"
+			local fits = if category == "tower"
+				then item.kind == "SniperTower"
+				elseif category == "defense" then defense
+				else not defense
+			if fits then
+				table.insert(list, { id = id, model = model, item = item })
+			end
+		end
+	end
+	return list
+end
+
 function TycoonService.Cleanup(player: Player)
 	WallService.Cleanup(player)
 	states[player] = nil
@@ -502,10 +666,17 @@ function TycoonService.Start()
 						profile.vault += income
 					end
 					state.vaultText.Text = Format.Money(profile.vault)
-					if hasEffect(profile, "heal") then
+					if hasEffect(state, profile, "heal") then
 						heal(state)
 					end
-					if hasEffect(profile, "repair") then
+					-- Si rompen una torre, su francotirador se cae
+					for id, sniper in state.snipers do
+						local humanoid = sniper:FindFirstChildOfClass("Humanoid")
+						if humanoid and not working(state.models[id]) then
+							humanoid.Health = 0
+						end
+					end
+					if hasEffect(state, profile, "repair") then
 						WallService.RepairShare(player, Waves.workshopRepair)
 					end
 					local missing = WallService.Missing(player)

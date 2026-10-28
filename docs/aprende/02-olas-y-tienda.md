@@ -17,8 +17,14 @@ se pierde.
   el clic, o el dedo en celular, para disparar seguido. Todo está en `Config/Weapons.luau`.
 - **Laboratorio:** sube el daño de todo: +25%, +50% y x2 con sus mejoras.
 - **Enfermería:** si estás cerca, te cura 20 de vida por segundo.
-- **Torres y torretas:** disparan solas al zombi más cercano. Las torretas solo ven hacia su
-  frente (45°, las rayas amarillas del piso).
+- **Torres:** solo disparan si contratas un francotirador (mantén **E** al pie de la torre).
+  Si un zombi lo mata, o tú le disparas por error, hay que contratar otro.
+- **Torretas:** disparan solas, pero solo hacia su frente (45°, las rayas amarillas del piso).
+- **Zombis especiales** (`Waves.special`): desde la ola 3 salen trepadores (se saltan el muro
+  y suben a las torres por el francotirador), desde la 4 demoledores (grandes y lentos, van
+  por tus edificios) y desde la 5 saboteadores (van por tus torres y torretas).
+- **Todo se rompe:** los edificios y las defensas tienen vida. Rotos se ven oscuros y
+  transparentes, y no funcionan hasta que los reparas.
 - **Alambre:** frena a los zombis y los lastima mientras lo cruzan.
 - **Minas:** explotan cuando un zombi pasa cerca y se gastan; su botón vuelve a salir.
 - **Zanjas de gasolina:** mantén **E** en la gasolinera para encenderlas 10 segundos. Se

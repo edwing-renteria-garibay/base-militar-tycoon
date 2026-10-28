@@ -70,7 +70,63 @@ Waves.healRange = 16
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
 Waves.wallHealth = { 200, 600, 1500 }
 Waves.wallInset = 70 -- distancia del centro al muro
-Waves.barricadeHealth = 800
+
+-- Vida de las construcciones (los zombis también las rompen). Rota, una construcción deja de
+-- funcionar hasta que la reparas
+Waves.buildingHealth = {
+	Barricade = 800,
+	SniperTower = 1500,
+	Turret = 800,
+	default = 1000,
+}
+
+-- Los francotiradores que contratas en las torres (mantén E al pie de la torre). Si mueren
+-- (por un zombi trepador, o por un disparo tuyo) hay que volver a contratarlos
+Waves.sniper = { price = 500, health = 150 }
+
+-- Zombis especiales: a partir de la ola "from", uno de cada "every" zombis es de ese tipo.
+--   health, speed, dps  multiplican la vida, la velocidad y el daño de un zombi normal
+--   target              a qué va: "tower" (torres y su francotirador; además trepa el muro),
+--                       "building" (edificios) o "defense" (torres y torretas)
+Waves.special = {
+	{
+		key = "Trepador",
+		name = "trepador",
+		from = 3,
+		every = 5,
+		health = 0.7,
+		speed = 1.3,
+		dps = 1,
+		target = "tower",
+		shirt = Color3.fromRGB(110, 60, 140),
+		scale = 0.9,
+	},
+	{
+		key = "Demoledor",
+		name = "demoledor",
+		from = 4,
+		every = 7,
+		health = 3,
+		speed = 0.7,
+		dps = 3,
+		target = "building",
+		shirt = Color3.fromRGB(220, 110, 30),
+		scale = 1.4,
+	},
+	{
+		key = "Saboteador",
+		name = "saboteador",
+		from = 5,
+		every = 6,
+		health = 1.2,
+		speed = 1.1,
+		dps = 2,
+		target = "defense",
+		shirt = Color3.fromRGB(200, 190, 40),
+		scale = 1,
+	},
+}
+Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre
 
 -- Reparar: el taller repara solo esta parte de la vida cada segundo; a mano cuesta esto por
 -- cada punto de vida

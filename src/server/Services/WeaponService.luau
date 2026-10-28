@@ -94,16 +94,19 @@ local function giveWeapons(player: Player)
 	publish(player)
 end
 
--- ¿Es un zombi? Devuelve su Humanoid
-local function enemyOf(part: BasePart): Humanoid?
+-- ¿Le dio a alguien? Devuelve su Humanoid y si es aliado (un francotirador de las torres:
+-- también le pega, así que cuidado)
+local function targetOf(part: BasePart): (Humanoid?, boolean)
 	local model = part:FindFirstAncestorOfClass("Model")
 	while model do
 		if CollectionService:HasTag(model, "Enemy") then
-			return model:FindFirstChildOfClass("Humanoid")
+			return model:FindFirstChildOfClass("Humanoid"), false
+		elseif CollectionService:HasTag(model, "Ally") then
+			return model:FindFirstChildOfClass("Humanoid"), true
 		end
 		model = model:FindFirstAncestorOfClass("Model")
 	end
-	return nil
+	return nil, false
 end
 
 -- Cuánto multiplica el daño su Laboratorio
@@ -167,11 +170,15 @@ local function onShoot(player: Player, target: any)
 		local hitPoint = if result then result.Position else origin + direction * weapon.range
 		local surface = nil
 		if result then
-			local enemy = enemyOf(result.Instance)
-			if enemy then
+			local victim, ally = targetOf(result.Instance)
+			if victim then
 				surface = "flesh"
-				if enemy.Health > 0 then
-					enemy:TakeDamage(damage)
+				if victim.Health > 0 then
+					victim:TakeDamage(damage)
+					if ally and now - (lastEmpty[player] or 0) > 3 then
+						lastEmpty[player] = now
+						notice:FireClient(player, "¡Cuidado! Le diste a tu francotirador", "bad")
+					end
 				end
 			else
 				surface = Effects.SurfaceOf(result.Instance)
