@@ -15,6 +15,7 @@ Premium.list = {
 	{
 		key = "TorretaPesada",
 		name = "Torreta pesada",
+		description = "Dispara a todos lados, con mucho alcance",
 		kind = "HeavyTurret",
 		radius = 5,
 		defense = { damage = 40, range = 120, cooldown = 0.3, sound = "AssaultRifle" },
@@ -22,6 +23,7 @@ Premium.list = {
 	{
 		key = "BarricadaAcero",
 		name = "Barricada de acero",
+		description = "Tapa el paso y aguanta 3,000 golpes",
 		kind = "SteelBarricade",
 		radius = 7,
 		effect = "barricade",

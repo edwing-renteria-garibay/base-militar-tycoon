@@ -1,5 +1,6 @@
--- Colocar defensas premium (Config/Premium): si tienes alguna sin poner, sale el botón
--- COLOCAR abajo a la izquierda. Al tocarlo aparece una vista previa que sigue a tu mouse (en
+-- Colocar defensas premium (Config/Premium): el botón COLOCAR, abajo a la izquierda, abre un
+-- menú con cada defensa, cuántas tienes sin poner y para comprar más con Robux. Al elegir una
+-- aparece una vista previa que sigue a tu mouse (en
 -- celular, toca el piso donde la quieres): verde = se puede, rojo = no (Placement.Check).
 -- R o "Girar" la gira, clic o "Colocar" la pone. El servidor revisa todo otra vez
 -- (TycoonService).
@@ -9,7 +10,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local MarketplaceService = game:GetService("MarketplaceService")
+
 local Premium = require(ReplicatedStorage.Shared.Config.Premium)
+local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Placement = require(ReplicatedStorage.Shared.Placement)
 
 local placeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Place") :: RemoteEvent
@@ -22,6 +26,8 @@ local BAD_COLOR = Color3.fromRGB(230, 70, 60)
 local PlacementUI = {}
 
 local openButton: TextButton
+local menu: Frame
+local menuList: Frame
 local bar: Frame
 local nameLabel: TextLabel
 local ghost: Model? = nil
@@ -94,7 +100,7 @@ local function stop()
 	current = nil
 	spot = nil
 	bar.Visible = false
-	openButton.Visible = totalCount() > 0
+	openButton.Visible = true
 end
 
 local function start(item)
@@ -104,6 +110,7 @@ local function start(item)
 	ghost = makeGhost(item)
 	nameLabel.Text = string.format("%s (%d)", item.name, countOf(item))
 	bar.Visible = true
+	menu.Visible = false
 	openButton.Visible = false
 	-- Guarda el arma, para que el clic no dispare
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -149,6 +156,79 @@ local function update()
 	arrow.CFrame = place * CFrame.new(0, 0.3, -current.radius / 2)
 end
 
+-- El producto de Robux que da esta defensa (Config/Store), si ya tiene ID
+local function productOf(item): any
+	for _, product in Store.products do
+		if product.kind == "defense" and product.key == item.key then
+			return product
+		end
+	end
+	return nil
+end
+
+-- El menú: una fila por defensa, con cuántas tienes, "Colocar" y "Comprar"
+local function redrawMenu()
+	for _, child in menuList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	for i, item in Premium.list do
+		local count = countOf(item)
+		local card = Instance.new("Frame")
+		card.Size = UDim2.new(1, 0, 0, 70)
+		card.BackgroundColor3 = Color3.fromRGB(42, 46, 38)
+		card.LayoutOrder = i
+		card.Parent = menuList
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 8)
+		corner.Parent = card
+		local title = Instance.new("TextLabel")
+		title.Position = UDim2.fromOffset(12, 6)
+		title.Size = UDim2.new(0.55, -12, 0, 24)
+		title.BackgroundTransparency = 1
+		title.Font = Enum.Font.GothamBlack
+		title.TextSize = 17
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.TextColor3 = Color3.fromRGB(230, 180, 50)
+		title.Text = string.format("%s · tienes %d", item.name, count)
+		title.Parent = card
+		local info = Instance.new("TextLabel")
+		info.Position = UDim2.fromOffset(12, 32)
+		info.Size = UDim2.new(0.55, -12, 0, 32)
+		info.BackgroundTransparency = 1
+		info.Font = Enum.Font.GothamBold
+		info.TextSize = 13
+		info.TextWrapped = true
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		info.TextColor3 = Color3.new(1, 1, 1)
+		info.Text = item.description or ""
+		info.Parent = card
+		local put = button(
+			card,
+			if count > 0 then "Colocar" else "No tienes",
+			if count > 0 then OK_COLOR else Color3.fromRGB(90, 90, 96),
+			0.69
+		)
+		put.Size = UDim2.new(0.2, 0, 0, 40)
+		if count > 0 then
+			put.Activated:Connect(function()
+				start(item)
+			end)
+		end
+		local product = productOf(item)
+		local ready = product and product.id ~= 0
+		local label = if ready then product.robux .. " Robux" else "Próximamente"
+		local buy = button(card, label, if ready then Color3.fromRGB(230, 180, 50) else Color3.fromRGB(90, 90, 96), 0.89)
+		buy.Size = UDim2.new(0.18, 0, 0, 40)
+		if ready then
+			buy.Activated:Connect(function()
+				MarketplaceService:PromptProductPurchase(player, product.id)
+			end)
+		end
+	end
+end
+
 function PlacementUI.Start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "Placement"
@@ -169,6 +249,55 @@ function PlacementUI.Start()
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = openButton
+
+	menu = Instance.new("Frame")
+	menu.AnchorPoint = Vector2.new(0.5, 0.5)
+	menu.Position = UDim2.fromScale(0.5, 0.5)
+	menu.Size = UDim2.fromScale(0.9, 0.7)
+	menu.BackgroundColor3 = Color3.fromRGB(24, 26, 22)
+	menu.Visible = false
+	menu.Parent = gui
+	local menuCorner = Instance.new("UICorner")
+	menuCorner.CornerRadius = UDim.new(0, 12)
+	menuCorner.Parent = menu
+	local menuLimit = Instance.new("UISizeConstraint")
+	menuLimit.MaxSize = Vector2.new(560, 300)
+	menuLimit.Parent = menu
+	local menuTitle = Instance.new("TextLabel")
+	menuTitle.Position = UDim2.fromOffset(16, 6)
+	menuTitle.Size = UDim2.new(1, -70, 0, 40)
+	menuTitle.BackgroundTransparency = 1
+	menuTitle.Font = Enum.Font.GothamBlack
+	menuTitle.TextSize = 22
+	menuTitle.TextXAlignment = Enum.TextXAlignment.Left
+	menuTitle.TextColor3 = Color3.new(1, 1, 1)
+	menuTitle.Text = "Defensas premium"
+	menuTitle.Parent = menu
+	local menuClose = Instance.new("TextButton")
+	menuClose.AnchorPoint = Vector2.new(1, 0)
+	menuClose.Position = UDim2.new(1, -10, 0, 10)
+	menuClose.Size = UDim2.fromOffset(36, 36)
+	menuClose.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+	menuClose.Font = Enum.Font.GothamBlack
+	menuClose.Text = "X"
+	menuClose.TextSize = 18
+	menuClose.TextColor3 = Color3.new(1, 1, 1)
+	menuClose.Parent = menu
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 8)
+	closeCorner.Parent = menuClose
+	menuClose.Activated:Connect(function()
+		menu.Visible = false
+	end)
+	menuList = Instance.new("Frame")
+	menuList.Position = UDim2.fromOffset(12, 54)
+	menuList.Size = UDim2.new(1, -24, 1, -64)
+	menuList.BackgroundTransparency = 1
+	menuList.Parent = menu
+	local menuLayout = Instance.new("UIListLayout")
+	menuLayout.Padding = UDim.new(0, 8)
+	menuLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	menuLayout.Parent = menuList
 
 	bar = Instance.new("Frame")
 	bar.AnchorPoint = Vector2.new(0.5, 1)
@@ -207,8 +336,9 @@ function PlacementUI.Start()
 			else
 				nameLabel.Text = string.format("%s (%d)", current.name, countOf(current))
 			end
-		else
-			openButton.Visible = total > 0
+		end
+		if menu.Visible then
+			redrawMenu()
 		end
 	end
 	for _, item in Premium.list do
@@ -216,10 +346,11 @@ function PlacementUI.Start()
 	end
 	refresh()
 
+	openButton.Visible = true
 	openButton.Activated:Connect(function()
-		local item = nextItem(nil)
-		if item then
-			start(item)
+		menu.Visible = not menu.Visible
+		if menu.Visible then
+			redrawMenu()
 		end
 	end)
 	change.Activated:Connect(function()

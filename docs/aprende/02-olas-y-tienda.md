@@ -67,7 +67,8 @@ El botón **TIENDA** abajo a la izquierda abre la lista. Todo está en
 ### Defensas premium
 
 Lo que compras con Robux (`Config/Premium.luau`) no tiene lugar marcado: con el botón
-**COLOCAR** (abajo a la izquierda) sale una vista previa. Verde = se puede, rojo = no. **R** o
+**COLOCAR** (abajo a la izquierda) se abre un menú con cada defensa, cuántas tienes y botones
+para colocarla o comprar más. Al elegir "Colocar" sale una vista previa. Verde = se puede, rojo = no. **R** o
 "Girar" la gira y clic o "Colocar" la pone. No se puede encimar en los lugares marcados de lo
 que se compra con dinero del juego, ni en el muro, ni en otra defensa
 (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una sin pagar.
