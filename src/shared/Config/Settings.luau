@@ -2,9 +2,10 @@
 
 local Settings = {}
 
--- Modo de prueba: empiezas con mucho dinero y no se guarda nada. Apágalo antes de publicar
+-- Modo de prueba: empiezas con mucho dinero y no se guarda nada. Se prende solo al darle
+-- Play en Studio; en el juego publicado siempre está apagado (ya no hay que cambiarlo a mano)
 Settings.Testing = {
-	enabled = false,
+	enabled = game:GetService("RunService"):IsStudio(),
 	startMoney = 10000000, -- alcanza para toda la base
 	premium = 2, -- de cada defensa premium, para probar a colocarlas sin pagar Robux
 }

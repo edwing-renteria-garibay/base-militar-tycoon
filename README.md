@@ -30,8 +30,8 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 
 1. En una terminal, dentro de esta carpeta: `git pull` y luego `rojo serve`
 2. Abre Roblox Studio con un lugar vacío (Baseplate), conecta el plugin de Rojo y dale **Play**.
-3. Para probar rápido con mucho dinero: en `src/shared/Config/Settings.luau` pon
-   `Testing.enabled = true` (y regrésalo a `false` antes de publicar).
+3. En Studio el modo de prueba se prende solo (mucho dinero, olas rápidas, no se guarda nada).
+   En el juego publicado siempre está apagado.
 
 Para publicar: `rojo build -o base-militar-tycoon.rbxl`, ábrelo en Studio y usa
 *Archivo > Publicar en Roblox como…*.
