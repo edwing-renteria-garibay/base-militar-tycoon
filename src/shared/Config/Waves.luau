@@ -55,14 +55,17 @@ function Waves.WaveReward(n: number): number -- por pasar la ola n
 	return 100 * n
 end
 
--- Tu rifle según el nivel de arma (1 = el de siempre, 2 = Armería, 3 = Arsenal):
--- daño por disparo y segundos entre disparos
-Waves.rifle = {
-	{ damage = 34, cooldown = 0.3 },
-	{ damage = 50, cooldown = 0.2 },
-	{ damage = 70, cooldown = 0.12 },
-}
-Waves.rifleRange = 300
+-- El Laboratorio multiplica el daño de tus armas, torres, torretas, minas y zanjas según su
+-- nivel (1 = sin laboratorio)
+Waves.labBonus = { 1, 1.25, 1.5, 2 }
+
+-- Las torretas solo disparan hacia su frente: este es su ángulo de vista, en grados (45 = 22.5
+-- a cada lado)
+Waves.turretArc = 45
+
+-- La enfermería cura esto por segundo si estás cerca (a menos de healRange studs)
+Waves.heal = 20
+Waves.healRange = 16
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
 Waves.wallHealth = { 200, 600, 1500 }

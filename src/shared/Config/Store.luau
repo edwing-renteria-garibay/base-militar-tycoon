@@ -8,7 +8,7 @@
 local Store = {}
 
 Store.passes = {
-	{ key = "x2", id = 0, name = "x2 Dinero", robux = 299, description = "Tu base genera el doble para siempre" },
+	{ key = "x2", id = 0, name = "x2 Dinero", robux = 299, description = "Tu caja fuerte junta el doble para siempre" },
 	{
 		key = "AutoCobrar",
 		id = 0,
@@ -17,7 +17,13 @@ Store.passes = {
 		description = "El dinero entra solo, sin ir a la caja fuerte",
 	},
 	{ key = "VIP", id = 0, name = "VIP", robux = 249, description = "+20% de dinero y nombre dorado" },
-	{ key = "JeepOro", id = 0, name = "Jeep dorado", robux = 149, description = "Tu jeep sale de oro" },
+	{
+		key = "MunicionX2",
+		id = 0,
+		name = "Munición x2",
+		robux = 149,
+		description = "Cada paquete de munición de la armería trae el doble",
+	},
 }
 
 Store.vipBonus = 0.2 -- el VIP genera 20% más

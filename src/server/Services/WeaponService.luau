@@ -1,32 +1,45 @@
--- El rifle de cada jugador, para defender su base de las olas (Config/Waves, rifle). Mejora
--- con la Armería y el Arsenal: el atributo "WeaponLevel" (lo pone TycoonService) dice cuál usa.
+-- Las armas de cada jugador (Config/Weapons) y la Armería.
 --
--- El cliente (src/client/Weapon.luau) avisa con el RemoteEvent "Shoot" a dónde apuntó. El
--- servidor revisa que traiga el rifle en la mano y que no dispare más rápido de lo permitido,
--- traza la bala (Raycast) y, si le da a un enemigo, le quita vida.
+-- 1. Al aparecer, el jugador recibe todas las armas que tiene (el Rifle siempre).
+-- 2. El cliente (src/client/Weapon.luau) avisa con el RemoteEvent "Shoot" a dónde apuntó. El
+--    servidor revisa qué arma trae en la mano, que no dispare más rápido de lo permitido y que
+--    le queden balas; traza las balas (Raycast) y, si le dan a un zombi, le quita vida (más
+--    con el Laboratorio).
+-- 3. En la Armería (el RemoteEvent "Armory") se compran armas y munición.
+--
+-- Lo que tiene cada quien se guarda en su perfil (weapons y ammo) y se muestra con los
+-- atributos "Weapon_<id>" y "Ammo_<id>" (los lee la pantalla).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
+local Format = require(ReplicatedStorage.Shared.Format)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
+local DataService = require(script.Parent.DataService)
+local TycoonService = require(script.Parent.TycoonService)
 
 local shootRemote = ReplicatedStorage.Remotes.Shoot :: RemoteEvent
+local armoryRemote = ReplicatedStorage.Remotes.Armory :: RemoteEvent
+local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
 local WeaponService = {}
 
 local lastShot: { [Player]: number } = {}
+local lastEmpty: { [Player]: number } = {}
 
-local function makeRifle(): Tool
+local function makeTool(weapon): Tool
 	local tool = Instance.new("Tool")
-	tool.Name = "Rifle"
-	tool.ToolTip = "Rifle: defiende tu base"
+	tool.Name = weapon.id
+	tool.ToolTip = weapon.name
 	tool.CanBeDropped = false
-	tool.GripPos = Vector3.new(0, -0.2, 0.6)
+	tool.GripPos = Vector3.new(0, -0.2, weapon.size / 5)
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.4, 0.7, 3)
+	handle.Size = Vector3.new(0.4, 0.7, weapon.size)
 	handle.Color = Color3.fromRGB(40, 42, 40)
 	handle.Material = Enum.Material.Metal
 	handle.CanCollide = false
@@ -37,7 +50,7 @@ local function makeRifle(): Tool
 	stock.Color = Color3.fromRGB(86, 92, 62)
 	stock.CanCollide = false
 	stock.Massless = true
-	stock.CFrame = handle.CFrame * CFrame.new(0, -0.2, 1.8)
+	stock.CFrame = handle.CFrame * CFrame.new(0, -0.2, weapon.size / 2 + 0.3)
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = handle
 	weld.Part1 = stock
@@ -46,7 +59,42 @@ local function makeRifle(): Tool
 	return tool
 end
 
--- ¿Es un enemigo de las olas? Devuelve su Humanoid
+-- Pone en la pantalla qué armas tiene y cuántas balas le quedan
+local function publish(player: Player)
+	local profile = DataService.Get(player)
+	if not profile then
+		return
+	end
+	for _, weapon in Weapons.list do
+		player:SetAttribute("Weapon_" .. weapon.id, weapon.price == 0 or profile.weapons[weapon.id] == true)
+		if weapon.ammo then
+			player:SetAttribute("Ammo_" .. weapon.id, profile.ammo[weapon.id] or 0)
+		end
+	end
+end
+
+local function owns(profile: DataService.Profile, weapon): boolean
+	return weapon.price == 0 or profile.weapons[weapon.id] == true
+end
+
+-- Le da las armas que tiene y que todavía no trae
+local function giveWeapons(player: Player)
+	local profile = DataService.Get(player)
+	local backpack = player:WaitForChild("Backpack", 5)
+	if not profile or not backpack then
+		return
+	end
+	local character = player.Character
+	for _, weapon in Weapons.list do
+		local has = backpack:FindFirstChild(weapon.id) or (character and character:FindFirstChild(weapon.id))
+		if owns(profile, weapon) and not has then
+			makeTool(weapon).Parent = backpack
+		end
+	end
+	publish(player)
+end
+
+-- ¿Es un zombi? Devuelve su Humanoid
 local function enemyOf(part: BasePart): Humanoid?
 	local model = part:FindFirstAncestorOfClass("Model")
 	while model do
@@ -58,60 +106,131 @@ local function enemyOf(part: BasePart): Humanoid?
 	return nil
 end
 
+-- Cuánto multiplica el daño su Laboratorio
+function WeaponService.DamageBonus(player: Player): number
+	local profile = DataService.Get(player)
+	if not profile then
+		return 1
+	end
+	return Waves.labBonus[Buildings.LevelOf(profile.owned, "damage")] or 1
+end
+
 local function onShoot(player: Player, target: any)
 	if typeof(target) ~= "Vector3" then
 		return
 	end
+	local profile = DataService.Get(player)
 	local character = player.Character
-	local tool = character and character:FindFirstChild("Rifle")
+	local tool = character and character:FindFirstChildOfClass("Tool")
+	local weapon = tool and Weapons.byId[tool.Name]
 	local head = character and character:FindFirstChild("Head") :: BasePart?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not tool or not head or not humanoid or humanoid.Health <= 0 then
+	if not profile or not weapon or not head or not humanoid or humanoid.Health <= 0 then
 		return
 	end
-	local rifle = Waves.rifle[player:GetAttribute("WeaponLevel") or 1] or Waves.rifle[1]
 	local now = os.clock()
-	if now - (lastShot[player] or 0) < rifle.cooldown * 0.8 then
+	if now - (lastShot[player] or 0) < weapon.cooldown * 0.8 then
 		return -- dispara más rápido de lo permitido
+	end
+	if weapon.ammo then
+		local ammo = profile.ammo[weapon.id] or 0
+		if ammo <= 0 then
+			if now - (lastEmpty[player] or 0) > 3 then
+				lastEmpty[player] = now
+				notice:FireClient(player, "Sin balas: compra munición en la Armería", "bad")
+			end
+			return
+		end
+		profile.ammo[weapon.id] = ammo - 1
+		player:SetAttribute("Ammo_" .. weapon.id, ammo - 1)
 	end
 	lastShot[player] = now
 
 	local origin = head.Position
-	local direction = target - origin
-	if direction.Magnitude < 0.1 then
+	if (target - origin).Magnitude < 0.1 then
 		return
 	end
-	direction = direction.Unit * Waves.rifleRange
+	local aim = CFrame.lookAt(origin, target)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
-	local result = workspace:Raycast(origin, direction, params)
-	local hitPoint = if result then result.Position else origin + direction
-	local muzzle = (tool:FindFirstChild("Handle") :: BasePart?)
-	Effects.Tracer(if muzzle then muzzle.Position else origin, hitPoint)
-	if result then
-		local enemy = enemyOf(result.Instance)
-		if enemy and enemy.Health > 0 then
-			enemy:TakeDamage(rifle.damage)
+	local handle = (tool :: Tool):FindFirstChild("Handle") :: BasePart?
+	local muzzle = if handle then (handle.CFrame * CFrame.new(0, 0, -weapon.size / 2)).Position else origin
+	local damage = weapon.damage * WeaponService.DamageBonus(player)
+	for i = 1, weapon.pellets or 1 do
+		local direction = aim.LookVector
+		if weapon.spread then
+			local spread = math.rad(weapon.spread)
+			direction = (aim * CFrame.Angles((math.random() - 0.5) * spread * 2, (math.random() - 0.5) * spread * 2, 0)).LookVector
 		end
+		local result = workspace:Raycast(origin, direction * weapon.range, params)
+		local hitPoint = if result then result.Position else origin + direction * weapon.range
+		local surface = nil
+		if result then
+			local enemy = enemyOf(result.Instance)
+			if enemy then
+				surface = "flesh"
+				if enemy.Health > 0 then
+					enemy:TakeDamage(damage)
+				end
+			else
+				surface = Effects.SurfaceOf(result.Instance)
+			end
+		end
+		-- Solo la primera bala suena (la escopeta dispara 6 a la vez)
+		Effects.Shot(muzzle, hitPoint, if i == 1 then weapon.sound else nil, surface)
 	end
 end
 
-local function giveRifle(player: Player)
-	local backpack = player:WaitForChild("Backpack", 5)
-	if backpack and not backpack:FindFirstChild("Rifle") then
-		makeRifle().Parent = backpack
+-- La Armería: comprar un arma (trae un paquete de balas) o más munición
+local function onArmory(player: Player, action: any, id: any)
+	local profile = DataService.Get(player)
+	local weapon = Weapons.byId[id]
+	if not profile or not weapon or not TycoonService.Has(player, "armory") then
+		return
+	end
+	local packSize = if weapon.ammo then weapon.ammo.amount else 0
+	if player:GetAttribute("Pass_MunicionX2") then
+		packSize *= 2
+	end
+	if action == "weapon" then
+		if owns(profile, weapon) then
+			return
+		end
+		if not DataService.Spend(player, weapon.price) then
+			notice:FireClient(player, "Te faltan " .. Format.Money(weapon.price - profile.money), "bad")
+			return
+		end
+		profile.weapons[weapon.id] = true
+		profile.ammo[weapon.id] = (profile.ammo[weapon.id] or 0) + packSize
+		giveWeapons(player)
+		notice:FireClient(player, "Compraste: " .. weapon.name, "great")
+	elseif action == "ammo" then
+		if not weapon.ammo or not owns(profile, weapon) then
+			return
+		end
+		if not DataService.Spend(player, weapon.ammo.price) then
+			notice:FireClient(player, "Te faltan " .. Format.Money(weapon.ammo.price - profile.money), "bad")
+			return
+		end
+		profile.ammo[weapon.id] = (profile.ammo[weapon.id] or 0) + packSize
+		publish(player)
+		notice:FireClient(player, string.format("+%d balas de %s", packSize, weapon.name), "good")
 	end
 end
+
+-- Al terminar de cargar su perfil (init.server.luau): sus armas
+WeaponService.Give = giveWeapons
 
 function WeaponService.Start()
 	shootRemote.OnServerEvent:Connect(onShoot)
+	armoryRemote.OnServerEvent:Connect(onArmory)
 	local function onPlayer(player: Player)
 		player.CharacterAdded:Connect(function()
-			giveRifle(player)
+			giveWeapons(player)
 		end)
 		if player.Character then
-			task.spawn(giveRifle, player)
+			task.spawn(giveWeapons, player)
 		end
 	end
 	Players.PlayerAdded:Connect(onPlayer)
@@ -120,6 +239,7 @@ function WeaponService.Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
+		lastEmpty[player] = nil
 	end)
 end
 

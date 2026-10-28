@@ -287,19 +287,6 @@ function Builder.kinds.GasStation(m: Model, o: CFrame)
 	end
 end
 
-function Builder.kinds.Garage(m: Model, o: CFrame)
-	part(m, o, Vector3.new(17, 0.6, 15), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(2.5, 9, 14), at(-6.75, 5.1, 0), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(2.5, 9, 14), at(6.75, 5.1, 0), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(16, 9, 1), at(0, 5.1, 6.5), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(16, 2, 14), at(0, 8.6, 0), OLIVE, Enum.Material.Concrete)
-	part(m, o, Vector3.new(17, 0.8, 15), at(0, 10, 0), DARK_METAL, Enum.Material.DiamondPlate)
-	-- La entrada: aquí está el letrero para sacar el jeep (TycoonService busca "Puerta")
-	local door = part(m, o, Vector3.new(11, 1.6, 0.3), at(0, 8.2, -7.2), DARK_OLIVE)
-	door.Name = "Puerta"
-	label(door, "GARAJE", YELLOW)
-end
-
 function Builder.kinds.Workshop(m: Model, o: CFrame)
 	part(m, o, Vector3.new(12, 0.4, 10), at(0, 0.2, 0), CONCRETE, Enum.Material.Concrete)
 	for _, x in { -5.5, 5.5 } do
@@ -360,15 +347,26 @@ function Builder.kinds.Bunker(m: Model, o: CFrame)
 	end
 end
 
+-- La torreta solo dispara hacia su frente (Waves.turretArc): las rayas del piso marcan su
+-- vista. Su "Cabeza" la gira el servidor hacia el zombi al que dispara (WaveService)
 function Builder.kinds.Turret(m: Model, o: CFrame)
 	part(m, o, Vector3.new(7, 0.6, 7), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(3, 5, 5), at(0, 2.1, 0) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
-	local head = spinner(m, 0.4)
+	local head = Instance.new("Model")
+	head.Name = "Cabeza"
+	head.Parent = m
 	part(head, o, Vector3.new(4, 2.4, 4.5), at(0, 4.8, 0), OLIVE, Enum.Material.Metal)
 	for _, x in { -0.8, 0.8 } do
 		part(head, o, Vector3.new(6, 0.5, 0.5), at(x, 5, -5) * FACING, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
 	head.WorldPivot = o * at(0, 4.8, 0)
+	for _, side in { -1, 1 } do
+		local angle = CFrame.Angles(0, math.rad(side * 22.5), 0)
+		local line = part(m, o, Vector3.new(0.4, 0.05, 14), at(0, 0.62, 0) * angle * at(0, 0, -11), YELLOW, Enum.Material.Neon)
+		line.Transparency = 0.5
+		line.CanCollide = false
+		line.CanQuery = false
+	end
 end
 
 function Builder.kinds.Radar(m: Model, o: CFrame)
@@ -502,6 +500,43 @@ function Builder.kinds.BigFlag(m: Model, o: CFrame)
 	part(m, o, Vector3.new(0.2, 9, 15), at(0, 38, 8), OLIVE, Enum.Material.Fabric)
 	local star = part(m, o, Vector3.new(0.3, 4, 4), at(0, 38, 8), YELLOW, Enum.Material.Neon)
 	light(star, YELLOW, 20)
+end
+
+-- Enfermería: carpa blanca con cruz roja. Cerca de ella te curas (TycoonService)
+function Builder.kinds.Infirmary(m: Model, o: CFrame)
+	part(m, o, Vector3.new(16, 0.4, 12), at(0, 0.2, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(14, 7, 10), at(0, 3.9, 1), WHITE, Enum.Material.Fabric)
+	part(m, o, Vector3.new(15, 0.8, 11), at(0, 7.8, 1), Color3.fromRGB(200, 200, 195), Enum.Material.Fabric)
+	part(m, o, Vector3.new(4, 5.5, 0.3), at(0, 3.15, -4.1), Color3.fromRGB(180, 210, 220), Enum.Material.Glass)
+	for _, size in { Vector3.new(1.2, 4, 0.2), Vector3.new(4, 1.2, 0.2) } do
+		local cross = part(m, o, size, at(0, 9.8, -4.1), RED, Enum.Material.Neon)
+		cross.CanCollide = false
+	end
+	part(m, o, Vector3.new(0.4, 2.6, 0.4), at(0, 9, -4), DARK_METAL, Enum.Material.Metal)
+	for _, x in { -4.5, 4.5 } do
+		part(m, o, Vector3.new(2.4, 0.8, 5), at(x, 1.4, 1), WHITE, Enum.Material.Fabric) -- camillas
+	end
+end
+
+-- Laboratorio: edificio con ventanales y tubos verdes
+function Builder.kinds.Lab(m: Model, o: CFrame)
+	part(m, o, Vector3.new(15, 0.6, 13), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(14, 8, 12), at(0, 4.6, 0), WHITE, Enum.Material.SmoothPlastic)
+	part(m, o, Vector3.new(15, 0.8, 13), at(0, 9, 0), DARK_METAL, Enum.Material.Metal)
+	for _, x in { -4, 4 } do
+		part(m, o, Vector3.new(4, 3, 0.2), at(x, 5.5, -6.05), GLASS, Enum.Material.Glass)
+	end
+	part(m, o, Vector3.new(3, 6, 0.3), at(0, 3.6, -6.1), DARK_METAL, Enum.Material.Metal)
+	local sign = part(m, o, Vector3.new(9, 1.4, 0.2), at(0, 7.9, -6.15), DARK_METAL)
+	label(sign, "LABORATORIO", Color3.fromRGB(90, 255, 120))
+	for _, x in { -5, -3 } do
+		local tube = part(m, o, Vector3.new(4, 1.2, 1.2), at(x, 11.4, 3) * UPRIGHT, GLASS, Enum.Material.Glass, Enum.PartType.Cylinder)
+		tube.Transparency = 0.3
+		local liquid = part(m, o, Vector3.new(2.6, 0.9, 0.9), at(x, 11, 3) * UPRIGHT, Color3.fromRGB(90, 255, 120), Enum.Material.Neon, Enum.PartType.Cylinder)
+		liquid.CanCollide = false
+	end
+	part(m, o, Vector3.new(0.4, 5, 0.4), at(5, 11.5, 3), METAL, Enum.Material.Metal)
+	part(m, o, Vector3.new(3, 0.3, 3), at(5, 14, 3), METAL, Enum.Material.Metal)
 end
 
 -- Defensas de afuera del muro ----------------------------------------------------------------

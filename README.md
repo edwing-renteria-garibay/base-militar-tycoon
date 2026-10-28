@@ -16,9 +16,10 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
   - torre de francotirador en cada esquina y una torreta por lado (disparan solas)
   - barricadas de concreto (se rompen y se reparan), alambre de púas (frena y lastima)
   - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina
-- **Edificios con función:** gasolinera (enciende las zanjas), armería y arsenal (mejor rifle), taller (repara el muro solo), radar (ves a los zombis a través de las paredes) y garaje (jeep para atropellarlos)
-- **Rifle** (tecla 1): mantén el clic para disparar seguido
-- **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y jeep dorado, y bolsa de dinero
+- **Edificios con función:** gasolinera (enciende las zanjas), armería (compra armas y munición), enfermería (te cura si estás cerca), laboratorio (más daño para todo), taller (repara el muro solo) y radar (ves a los zombis a través de las paredes)
+- **Armas** (Config/Weapons): rifle con balas infinitas, y en la armería escopeta, ametralladora y rifle de francotirador. Mantén el clic para disparar seguido. Mismos sonidos y efectos de Escuadrón Cero
+- **Torretas** que solo disparan hacia su frente (45°, marcado en el piso)
+- **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, y bolsa de dinero
 - **Premio diario** que sube si entras días seguidos
 - Se guardan tu dinero, tu base, la ola en la que vas y tu récord (DataStore)
 

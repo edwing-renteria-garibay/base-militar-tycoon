@@ -34,6 +34,7 @@ local function onPlayerAdded(player: Player)
 	end
 	StoreService.CheckPasses(player) -- antes de armar la base: los pases cambian lo que genera
 	TycoonService.Setup(player, plot)
+	task.spawn(WeaponService.Give, player)
 	StoreService.GiveDaily(player)
 end
 

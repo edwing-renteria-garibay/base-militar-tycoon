@@ -45,9 +45,3 @@ Abre `Config/Buildings.luau` y cambia `price`. Para algo nuevo:
 
 **Ojo:** no cambies el `id` de algo después de publicar, porque así se guarda en el perfil de
 los jugadores.
-
-## El jeep
-
-`JeepService.luau` arma el jeep con bloques soldados y lo mueve con dos "motores" de física
-(`LinearVelocity` y `AngularVelocity`) según lo que aprieta quien va en el asiento del
-conductor. Si va rápido, atropella zombis.

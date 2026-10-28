@@ -1,11 +1,13 @@
--- El rifle: al hacer clic (o tocar la pantalla en celular) con el rifle en la mano, le dice
--- al servidor a dónde apuntaste; si lo mantienes, sigue disparando. El servidor decide si le
--- diste a alguien (WeaponService).
+-- Las armas (Config/Weapons): al hacer clic (o tocar la pantalla en celular) con un arma en
+-- la mano, le dice al servidor a dónde apuntaste; si lo mantienes, sigue disparando. El
+-- servidor decide si le diste a alguien y cuántas balas te quedan (WeaponService).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local Sfx = require(script.Parent.Sfx)
 
 local shootRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Shoot") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -17,7 +19,8 @@ local connected: { [Tool]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local lastShot = 0
 
 local function hook(tool: Instance)
-	if not tool:IsA("Tool") or tool.Name ~= "Rifle" or connected[tool] then
+	local weapon = Weapons.byId[tool.Name]
+	if not tool:IsA("Tool") or not weapon or connected[tool] then
 		return
 	end
 	connected[tool] = true
@@ -30,9 +33,11 @@ local function hook(tool: Instance)
 		firing = true
 		while firing and tool.Parent == player.Character do
 			local now = os.clock()
-			local rifle = Waves.rifle[player:GetAttribute("WeaponLevel") or 1] or Waves.rifle[1]
-			if now - lastShot >= rifle.cooldown then
+			if now - lastShot >= weapon.cooldown then
 				lastShot = now
+				if weapon.ammo and (player:GetAttribute("Ammo_" .. weapon.id) or 0) <= 0 then
+					Sfx.PlayLocal(Sounds.empty) -- clic: sin balas
+				end
 				shootRemote:FireServer(mouse.Hit.Position)
 			end
 			task.wait()

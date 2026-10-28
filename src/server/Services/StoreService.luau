@@ -2,8 +2,8 @@
 --
 -- Pases: Roblox recuerda quién los compró, así que no se guardan en el perfil. Al entrar se
 -- pregunta a Roblox y, si lo tiene, se marca con el atributo "Pass_x2", "Pass_VIP"... Lo
--- demás del juego solo lee esos atributos (TycoonService para el dinero, JeepService para el
--- jeep dorado).
+-- demás del juego solo lee esos atributos (TycoonService para el dinero, WeaponService para
+-- la munición x2).
 --
 -- Paquetes (la bolsa de dinero): Roblox llama a processReceipt y solo da por buena la compra
 -- si devolvemos PurchaseGranted. Si algo falla devolvemos NotProcessedYet y Roblox lo

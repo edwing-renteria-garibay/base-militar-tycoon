@@ -1,29 +1,43 @@
--- Efectos que usan varios servicios: la línea de luz de un disparo y las explosiones.
+-- Efectos que usan varios servicios: los disparos y las explosiones.
+--
+-- El servidor solo avisa a todos los jugadores con el RemoteEvent "Fx"; cada uno dibuja la
+-- línea de la bala, el fogonazo y el impacto, y oye el sonido (src/client/Fx.luau). Son los
+-- mismos efectos y sonidos de Escuadrón Cero.
 
-local Debris = game:GetService("Debris")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local fx = ReplicatedStorage.Remotes.Fx :: RemoteEvent
 
 local Effects = {}
 
--- Una línea brillante de from a to que desaparece en un momento (el "rastro" de la bala)
-function Effects.Tracer(from: Vector3, to: Vector3, color: Color3?)
-	local distance = (to - from).Magnitude
-	if distance < 0.1 then
-		return
+-- Qué tocó la bala, para el color del impacto y su sonido
+local METAL = {
+	[Enum.Material.Metal] = true,
+	[Enum.Material.DiamondPlate] = true,
+}
+local WOOD = {
+	[Enum.Material.Wood] = true,
+	[Enum.Material.WoodPlanks] = true,
+}
+function Effects.SurfaceOf(part: BasePart?): string?
+	if not part then
+		return nil -- no le dio a nada
 	end
-	local beam = Instance.new("Part")
-	beam.Anchored = true
-	beam.CanCollide = false
-	beam.CanQuery = false
-	beam.CanTouch = false
-	beam.Material = Enum.Material.Neon
-	beam.Color = color or Color3.fromRGB(255, 220, 120)
-	beam.Size = Vector3.new(0.15, 0.15, distance)
-	beam.CFrame = CFrame.lookAt(from, to) * CFrame.new(0, 0, -distance / 2)
-	beam.Parent = workspace
-	Debris:AddItem(beam, 0.08)
+	if METAL[part.Material] then
+		return "metal"
+	elseif WOOD[part.Material] then
+		return "wood"
+	end
+	return "concrete"
 end
 
--- Una explosión que solo se ve: no empuja ni rompe nada (el daño lo pone quien la llama)
+-- Un disparo de from a to. sound: su sonido en Config/Sounds (nil = sin sonido, por ejemplo
+-- las otras balas de la escopeta). surface: qué tocó ("flesh" = un zombi o una persona)
+function Effects.Shot(from: Vector3, to: Vector3, sound: string?, surface: string?)
+	fx:FireAllClients("shot", from, to, sound, surface)
+end
+
+-- Una explosión que solo se ve y se oye: no empuja ni rompe nada (el daño lo pone quien la llama)
 function Effects.Explosion(position: Vector3, radius: number)
 	local explosion = Instance.new("Explosion")
 	explosion.Position = position
@@ -31,6 +45,7 @@ function Effects.Explosion(position: Vector3, radius: number)
 	explosion.BlastPressure = 0
 	explosion.DestroyJointPercent = 0
 	explosion.Parent = workspace
+	fx:FireAllClients("explosion", position)
 end
 
 return Effects

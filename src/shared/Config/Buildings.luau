@@ -14,10 +14,10 @@
 --   button   dónde sale su botón, si no es en el mismo lugar (opcional; lo de afuera del muro
 --            tiene el botón adentro, para que no tengas que salir)
 --   requires lo que necesitas tener antes (opcional)
---   defense  si dispara sola a los zombis: { damage, range, cooldown } (opcional)
+--   defense  si dispara sola a los zombis: { damage, range, cooldown, sound } (opcional)
 --   oneUse   se gasta al usarse (las minas): al explotar, su botón vuelve a salir
---   effect   para qué sirve (lo leen los servicios): "vault", "wall", "weapon", "repair",
---            "radar", "fire", "jeep", "wire", "mine", "barricade"
+--   effect   para qué sirve (lo leen los servicios): "vault", "wall", "armory", "heal",
+--            "damage", "repair", "radar", "fire", "wire", "mine", "barricade"
 
 local Buildings = {}
 
@@ -55,15 +55,13 @@ add({
 })
 
 -- Edificios con función
-add({ id = "Armeria", name = "Armería (mejor rifle)", price = 1500, kind = "Armory", at = { 38, -30 }, effect = "weapon", level = 2 })
 add({
-	id = "Arsenal",
-	name = "Arsenal (ametralladora)",
-	price = 12000,
-	at = { 38, -16 },
-	requires = "Armeria",
-	effect = "weapon",
-	level = 3,
+	id = "Armeria",
+	name = "Armería (armas y munición)",
+	price = 1500,
+	kind = "Armory",
+	at = { 38, -30 },
+	effect = "armory",
 })
 add({
 	id = "Gasolinera",
@@ -73,9 +71,38 @@ add({
 	at = { -38, -30 },
 	effect = "fire",
 })
+add({ id = "Enfermeria", name = "Enfermería (te cura)", price = 2500, kind = "Infirmary", at = { 0, 40 }, effect = "heal" })
 add({ id = "Taller", name = "Taller (repara el muro solo)", price = 4000, kind = "Workshop", at = { -38, 30 }, effect = "repair" })
 add({ id = "Radar", name = "Radar (ves a los zombis)", price = 6000, kind = "Radar", at = { 38, 30 }, effect = "radar" })
-add({ id = "Garaje", name = "Garaje (jeep)", price = 8000, kind = "Garage", at = { 0, 40 }, effect = "jeep" })
+
+-- Laboratorio: más daño para todo (Waves.labBonus). Las mejoras salen junto a él
+add({
+	id = "Laboratorio",
+	name = "Laboratorio (+25% de daño)",
+	price = 5000,
+	kind = "Lab",
+	at = { 38, 2 },
+	effect = "damage",
+	level = 2,
+})
+add({
+	id = "Lab3",
+	name = "Investigación (+50% de daño)",
+	price = 15000,
+	at = { 24, 2 },
+	requires = "Laboratorio",
+	effect = "damage",
+	level = 3,
+})
+add({
+	id = "Lab4",
+	name = "Investigación avanzada (x2 daño)",
+	price = 40000,
+	at = { 24, 2 },
+	requires = "Lab3",
+	effect = "damage",
+	level = 4,
+})
 
 -- Torres de francotirador, una en cada esquina
 local towerPrices = { 1500, 3000, 5000, 8000 }
@@ -86,7 +113,7 @@ for i, corner in { { -60, -60 }, { 60, -60 }, { -60, 60 }, { 60, 60 } } do
 		price = towerPrices[i],
 		kind = "SniperTower",
 		at = corner,
-		defense = { damage = 40, range = 160, cooldown = 1.5 },
+		defense = { damage = 40, range = 160, cooldown = 1.5, sound = "Sniper" },
 	})
 end
 
@@ -118,7 +145,7 @@ for i, side in Buildings.sides do
 		kind = "Turret",
 		at = place(0, -58),
 		rot = side.rot,
-		defense = { damage = 15, range = 90, cooldown = 0.6 },
+		defense = { damage = 15, range = 90, cooldown = 0.6, sound = "AssaultRifle" },
 	})
 	for j, x in { -40, 40 } do
 		add({
@@ -176,7 +203,7 @@ for _, item in Buildings.list do
 	Buildings.byId[item.id] = item
 end
 
--- El nivel de algo (caja fuerte, muro, arma) según las mejoras que tiene: 1 si ninguna
+-- El nivel de algo (caja fuerte, muro, laboratorio) según las mejoras que tiene: 1 si ninguna
 function Buildings.LevelOf(owned: { [string]: boolean }, effect: string): number
 	local level = 1
 	for id in owned do

@@ -7,6 +7,8 @@
 --   owned = lo que ya construyó: { Caja2 = true, Torre1 = true, ... }
 --   wave     = la ola que sigue (si sale y vuelve, sigue desde ahí)
 --   record   = la ola más alta que ha pasado
+--   weapons  = las armas que compró en la armería: { Escopeta = true, ... }
+--   ammo     = sus balas: { Escopeta = 24, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
 --
@@ -26,6 +28,8 @@ export type Profile = {
 	owned: { [string]: boolean },
 	wave: number,
 	record: number,
+	weapons: { [string]: boolean },
+	ammo: { [string]: number },
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -94,6 +98,8 @@ function DataService.Load(player: Player): Profile
 		owned = {},
 		wave = 1,
 		record = 0,
+		weapons = {},
+		ammo = {},
 		daily = { last = 0, streak = 0 },
 		receipts = {},
 	}
@@ -107,6 +113,8 @@ function DataService.Load(player: Player): Profile
 			profile.owned = if type(data.owned) == "table" then data.owned else {}
 			profile.wave = math.max(1, tonumber(data.wave) or 1)
 			profile.record = tonumber(data.record) or 0
+			profile.weapons = if type(data.weapons) == "table" then data.weapons else {}
+			profile.ammo = if type(data.ammo) == "table" then data.ammo else {}
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0

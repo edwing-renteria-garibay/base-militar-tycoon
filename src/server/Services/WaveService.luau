@@ -124,7 +124,7 @@ local function spawnZombie(player: Player, state: State, side, n: number)
 	humanoid.WalkSpeed = speed
 	humanoid.DisplayName = "Zombi"
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
-	CollectionService:AddTag(model, "Enemy") -- así le hacen daño el rifle y el jeep
+	CollectionService:AddTag(model, "Enemy") -- así le hacen daño las armas del jugador
 	-- Aparece afuera, mirando hacia la base
 	model:PivotTo(sideFrame * CFrame.new(lane, 3, -Waves.spawnDistance) * CFrame.Angles(0, math.pi, 0))
 	if TycoonService.Has(player, "radar") then
@@ -348,7 +348,7 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 end
 
 -- Alambre, zanjas y minas
-local function applyTraps(player: Player, state: State, traps: Traps)
+local function applyTraps(player: Player, state: State, traps: Traps, bonus: number)
 	local burning = TycoonService.FireActive(player)
 	for _, zombie in state.zombies do
 		if isAlive(zombie) then
@@ -361,12 +361,12 @@ local function applyTraps(player: Player, state: State, traps: Traps)
 			end
 			zombie.humanoid.WalkSpeed = if slowed then zombie.speed * Waves.wire.slow else zombie.speed
 			if slowed then
-				zombie.humanoid:TakeDamage(Waves.wire.dps * TICK)
+				zombie.humanoid:TakeDamage(Waves.wire.dps * TICK * bonus)
 			end
 			if burning then
 				for _, trench in traps.trenches do
 					if inside(trench, TRENCH_HALF, position) then
-						zombie.humanoid:TakeDamage(Waves.fire.dps * TICK)
+						zombie.humanoid:TakeDamage(Waves.fire.dps * TICK * bonus)
 						break
 					end
 				end
@@ -385,7 +385,7 @@ local function applyTraps(player: Player, state: State, traps: Traps)
 			Effects.Explosion(mine.position, Waves.mine.radius)
 			for _, zombie in state.zombies do
 				if isAlive(zombie) and (zombie.root.Position - mine.position).Magnitude < Waves.mine.radius then
-					zombie.humanoid:TakeDamage(Waves.mine.damage)
+					zombie.humanoid:TakeDamage(Waves.mine.damage * bonus)
 				end
 			end
 			TycoonService.Consume(player, mine.id)
@@ -393,8 +393,19 @@ local function applyTraps(player: Player, state: State, traps: Traps)
 	end
 end
 
--- Las torres y torretas disparan al zombi vivo más cercano dentro de su alcance
-local function defend(player: Player, state: State, now: number)
+-- ¿Lo ve la torreta? Solo dispara hacia su frente, dentro de Waves.turretArc grados
+local function inSight(facing: Vector3, from: Vector3, target: Vector3): boolean
+	local direction = flat(target - from)
+	if direction.Magnitude < 0.1 then
+		return true
+	end
+	local cosine = flat(facing).Unit:Dot(direction.Unit)
+	return cosine >= math.cos(math.rad(Waves.turretArc / 2))
+end
+
+-- Las torres y torretas disparan al zombi vivo más cercano dentro de su alcance (las torretas,
+-- solo si lo tienen enfrente)
+local function defend(player: Player, state: State, now: number, bonus: number)
 	local plot = TycoonService.GetPlot(player)
 	local profile = DataService.Get(player)
 	if not plot or not profile then
@@ -407,10 +418,11 @@ local function defend(player: Player, state: State, now: number)
 		if building and building:IsA("Model") and now - (state.lastShot[id] or 0) >= stats.cooldown then
 			local box, size = building:GetBoundingBox()
 			local from = box.Position + Vector3.new(0, size.Y / 2 - 1.5, 0) -- desde arriba
+			local facing = if item.kind == "Turret" then (TycoonService.PlaceOf(player, item) :: CFrame).LookVector else nil
 			local best: Zombie? = nil
 			local bestDistance = stats.range
 			for _, zombie in state.zombies do
-				if isAlive(zombie) then
+				if isAlive(zombie) and (not facing or inSight(facing, from, zombie.root.Position)) then
 					local distance = (zombie.root.Position - from).Magnitude
 					if distance < bestDistance then
 						best = zombie
@@ -420,8 +432,17 @@ local function defend(player: Player, state: State, now: number)
 			end
 			if best then
 				state.lastShot[id] = now
-				Effects.Tracer(from, best.root.Position, Color3.fromRGB(255, 140, 60))
-				best.humanoid:TakeDamage(stats.damage)
+				local target = best.root.Position
+				-- La torreta gira su cabeza hacia el zombi
+				local head = building:FindFirstChild("Cabeza")
+				if head and head:IsA("Model") then
+					local pivot = head:GetPivot().Position
+					head:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
+					local muzzle = head:GetPivot() * CFrame.new(0, 0.2, -8)
+					from = muzzle.Position
+				end
+				Effects.Shot(from, target, stats.sound, "flesh")
+				best.humanoid:TakeDamage(stats.damage * bonus)
 			end
 		end
 	end
@@ -459,8 +480,9 @@ local function tick(player: Player, state: State)
 			return
 		end
 	end
-	applyTraps(player, state, trapsOf(player))
-	defend(player, state, now)
+	local bonus = Waves.labBonus[Buildings.LevelOf(profile.owned, "damage")] or 1
+	applyTraps(player, state, trapsOf(player), bonus)
+	defend(player, state, now, bonus)
 
 	local alive = aliveCount(state)
 	player:SetAttribute("WaveEnemies", if state.spawning then math.max(alive, 1) else alive)

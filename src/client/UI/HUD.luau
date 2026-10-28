@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Format = require(ReplicatedStorage.Shared.Format)
+local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 
 local notice = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notice") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -27,6 +28,7 @@ local waveLabel: TextLabel
 local vaultBar: Frame
 local vaultFill: Frame
 local vaultLabel: TextLabel
+local ammoLabel: TextLabel
 local notices: Frame
 
 local function newLabel(parent: Instance, size: UDim2, textSize: number): TextLabel
@@ -87,6 +89,26 @@ local function updateVault()
 	vaultLabel.Text = string.format("Caja fuerte %d / %d", health, max)
 end
 
+-- Abajo a la izquierda: las balas del arma que traes en la mano (el Rifle no se acaba)
+local function updateAmmo()
+	local character = player.Character
+	local tool = character and character:FindFirstChildOfClass("Tool")
+	local weapon = tool and Weapons.byId[tool.Name]
+	if not weapon then
+		ammoLabel.Visible = false
+		return
+	end
+	ammoLabel.Visible = true
+	if weapon.ammo then
+		local ammo = player:GetAttribute("Ammo_" .. weapon.id) or 0
+		ammoLabel.Text = string.format("%s: %d balas", weapon.name, ammo)
+		ammoLabel.TextColor3 = if ammo > 0 then Color3.new(1, 1, 1) else COLORS.bad
+	else
+		ammoLabel.Text = weapon.name .. ": ∞"
+		ammoLabel.TextColor3 = Color3.new(1, 1, 1)
+	end
+end
+
 local function showNotice(text: string, kind: string?)
 	local label = newLabel(notices, UDim2.new(1, 0, 0, 34), 26)
 	label.Text = text
@@ -140,6 +162,18 @@ function HUD.Start()
 	vaultFill.Parent = vaultBar
 	vaultLabel = newLabel(vaultBar, UDim2.fromScale(1, 1), 13)
 	vaultLabel.Font = Enum.Font.GothamBold
+
+	ammoLabel = newLabel(gui, UDim2.fromOffset(300, 30), 22)
+	ammoLabel.AnchorPoint = Vector2.new(0, 1)
+	ammoLabel.Position = UDim2.new(0, 14, 1, -64) -- encima del botón de la tienda
+	ammoLabel.TextXAlignment = Enum.TextXAlignment.Left
+	ammoLabel.Visible = false
+	task.spawn(function()
+		while true do
+			updateAmmo()
+			task.wait(0.2)
+		end
+	end)
 
 	notices = Instance.new("Frame")
 	notices.AnchorPoint = Vector2.new(0.5, 0)

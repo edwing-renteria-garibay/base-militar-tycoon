@@ -6,12 +6,14 @@
 --    suficiente se compra: el botón se va y la construcción aparece con una animación. Lo de
 --    afuera del muro tiene su botón adentro, junto al muro.
 -- 3. Lo que hace cada cosa ("effect"):
---      vault, wall, weapon  mejoran la caja fuerte, el muro (WallService) o tu rifle
+--      vault, wall          mejoran la caja fuerte o el muro (WallService)
 --      barricade            se rompe y se repara como el muro
 --      mine                 se gasta al explotar (WaveService) y su botón vuelve a salir
 --      fire                 la gasolinera tiene un letrero para encender las zanjas
+--      armory               la armería tiene un letrero que abre su tienda (WeaponService)
+--      heal                 la enfermería te cura si estás cerca
+--      damage               el laboratorio sube el daño de todo (Waves.labBonus)
 --      repair               el taller repara el muro solo, poco a poco
---      jeep                 el garaje tiene un letrero para sacar el jeep (JeepService)
 --      radar                los zombis se ven a través de las paredes (WaveService)
 --    Las torres y torretas ("defense") las hace disparar WaveService.
 -- 4. Mantén E junto a la caja fuerte para reparar el muro y las barricadas con dinero.
@@ -29,16 +31,15 @@ local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.Builder)
 local DataService = require(script.Parent.DataService)
-local JeepService = require(script.Parent.JeepService)
 local PlotService = require(script.Parent.PlotService)
 local WallService = require(script.Parent.WallService)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
+local armoryRemote = ReplicatedStorage.Remotes.Armory :: RemoteEvent
 
 local AFFORD = Color3.fromRGB(60, 200, 90) -- botón: te alcanza
 local TOO_EXPENSIVE = Color3.fromRGB(170, 60, 60) -- botón: todavía no te alcanza
 local BUILD_TIME = 0.6 -- segundos que tarda la animación al construir
-local JEEP_AT = { 0, 26 } -- dónde sale el jeep, enfrente del garaje
 
 local TycoonService = {}
 
@@ -156,13 +157,11 @@ local function build(state: State, item, animate: boolean)
 		model.Parent = state.plot.contents
 	end
 
-	if item.id == "Garaje" then
-		local door = model:FindFirstChild("Puerta")
-		if door then
-			prompt(door, "Sacar jeep", player, 0, function()
-				JeepService.Spawn(player, placeOf(state.plot, JEEP_AT), state.plot.contents)
-			end)
-		end
+	if item.effect == "armory" then
+		local spot = promptSpot(model, o * CFrame.new(0, 3, -8))
+		prompt(spot, "Abrir armería", player, 0, function()
+			armoryRemote:FireClient(player, "open")
+		end)
 	elseif item.kind == "GasStation" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -3))
 		state.firePrompt = prompt(spot, "Encender zanjas", player, 0.5, function()
@@ -222,7 +221,6 @@ local function buy(player: Player, item)
 		WallService.SetLevel(player, Buildings.LevelOf(profile.owned, "wall"))
 	end
 	player:SetAttribute("Income", incomeOf(player, profile))
-	player:SetAttribute("WeaponLevel", Buildings.LevelOf(profile.owned, "weapon"))
 	notice:FireClient(player, string.format("Construiste: %s", item.name), "good")
 	refreshButtons(player)
 end
@@ -350,6 +348,20 @@ ignite = function(player: Player)
 	notice:FireClient(player, "¡Zanjas encendidas!", "great")
 end
 
+-- La enfermería cura al dueño si está cerca
+local function heal(state: State)
+	local character = state.owner.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local infirmary = state.plot.contents:FindFirstChild("Enfermeria")
+	if not root or not humanoid or humanoid.Health <= 0 or not infirmary or not infirmary:IsA("Model") then
+		return
+	end
+	if (root.Position - infirmary:GetPivot().Position).Magnitude < Waves.healRange then
+		humanoid.Health = math.min(humanoid.Health + Waves.heal, humanoid.MaxHealth)
+	end
+end
+
 -- Prepara el terreno de un jugador que acaba de llegar: caja fuerte, muro, lo que ya había
 -- construido (sin animación) y los botones
 function TycoonService.Setup(player: Player, plot: PlotService.Plot)
@@ -467,7 +479,6 @@ function TycoonService.LoseVault(player: Player): number
 end
 
 function TycoonService.Cleanup(player: Player)
-	JeepService.Remove(player)
 	WallService.Cleanup(player)
 	states[player] = nil
 	lastWarning[player] = nil
@@ -475,7 +486,6 @@ function TycoonService.Cleanup(player: Player)
 end
 
 function TycoonService.Start()
-	JeepService.Start()
 	DataService.MoneyChanged.Event:Connect(refreshButtons)
 	-- Cada segundo: la caja fuerte junta dinero, el taller repara y se actualizan los letreros
 	task.spawn(function()
@@ -486,13 +496,15 @@ function TycoonService.Start()
 				if profile then
 					local income = incomeOf(player, profile)
 					player:SetAttribute("Income", income) -- por si compró un pase
-					player:SetAttribute("WeaponLevel", Buildings.LevelOf(profile.owned, "weapon"))
 					if player:GetAttribute("Pass_AutoCobrar") then
 						DataService.AddMoney(player, income) -- con el pase, directo a su cuenta
 					else
 						profile.vault += income
 					end
 					state.vaultText.Text = Format.Money(profile.vault)
+					if hasEffect(profile, "heal") then
+						heal(state)
+					end
 					if hasEffect(profile, "repair") then
 						WallService.RepairShare(player, Waves.workshopRepair)
 					end
