@@ -5,6 +5,7 @@
 -- ruedas, dos restricciones de física empujan el chasis. LinearVelocity lo lleva hacia
 -- delante o atrás sin derrapar y AngularVelocity lo hace girar y lo mantiene derecho.
 
+local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 
 local JeepService = {}
@@ -12,6 +13,8 @@ local JeepService = {}
 local MAX_SPEED = 50 -- studs por segundo hacia delante
 local REVERSE_SPEED = 20 -- en reversa
 local TURN_RATE = 2.4 -- radianes por segundo al girar
+local RUN_OVER_SPEED = 15 -- a partir de esta velocidad, el jeep atropella enemigos...
+local RUN_OVER_DAMAGE = 150 -- ...y les quita esto de vida
 
 local OLIVE = Color3.fromRGB(85, 92, 60)
 local OLIVE_DARK = Color3.fromRGB(64, 70, 46)
@@ -48,6 +51,18 @@ local function build(cframe: CFrame, golden: boolean): Model
 	chassis.CFrame = cframe
 	chassis.RootPriority = 1
 	chassis.Parent = model
+	-- Atropellar enemigos de las olas (las ruedas y la carrocería van soldadas al chasis)
+	chassis.Touched:Connect(function(hit)
+		local enemy = hit:FindFirstAncestorOfClass("Model")
+		if not enemy or not CollectionService:HasTag(enemy, "Enemy") then
+			return
+		end
+		local humanoid = enemy:FindFirstChildOfClass("Humanoid")
+		local speed = chassis.AssemblyLinearVelocity.Magnitude
+		if humanoid and humanoid.Health > 0 and speed >= RUN_OVER_SPEED then
+			humanoid:TakeDamage(RUN_OVER_DAMAGE)
+		end
+	end)
 	model.PrimaryPart = chassis
 
 	-- Ruedas: cilindros soldados que tocan el suelo un poco por debajo del chasis
