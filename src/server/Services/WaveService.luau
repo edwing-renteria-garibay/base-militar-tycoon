@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Format)
+local Settings = require(ReplicatedStorage.Shared.Config.Settings)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Effects = require(script.Parent.Parent.Effects)
 local DataService = require(script.Parent.DataService)
@@ -25,6 +26,8 @@ local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 -- El camino de los enemigos dentro del terreno (x, z): la calle, el portón y la caja fuerte
 local PATH = { { 0, -80 }, { 0, -60 }, { -45, -54 } }
 local SPAWN_SPREAD = 14 -- aparecen repartidos a lo ancho de la calle
+-- En modo de prueba las olas llegan cada 30 segundos, para no esperar
+local INTERVAL = if Settings.Testing.enabled then 30 else Waves.interval
 
 local WaveService = {}
 
@@ -195,7 +198,7 @@ local function finishWave(player: Player, state: State)
 	local total = #state.enemies
 	state.active = false
 	state.enemies = {}
-	state.nextWave = os.clock() + Waves.interval
+	state.nextWave = os.clock() + INTERVAL
 	player:SetAttribute("WaveEnemies", nil)
 	if total > 0 and killed == total then
 		local reward = rewardOf(player, Waves.waveSeconds)
@@ -239,7 +242,7 @@ local function tick(player: Player, state: State)
 	local profile = DataService.Get(player)
 	if not profile or not profile.owned[Waves.startAfter] or not TycoonService.GetPlot(player) then
 		player:SetAttribute("WaveIn", nil)
-		state.nextWave = os.clock() + Waves.interval -- la cuenta empieza cuando ya hay base
+		state.nextWave = os.clock() + INTERVAL -- la cuenta empieza cuando ya hay base
 		return
 	end
 	if not state.active then
@@ -266,7 +269,7 @@ end
 function WaveService.Start()
 	local function onPlayer(player: Player)
 		states[player] = {
-			nextWave = os.clock() + Waves.interval,
+			nextWave = os.clock() + INTERVAL,
 			enemies = {},
 			active = false,
 			spawning = false,
