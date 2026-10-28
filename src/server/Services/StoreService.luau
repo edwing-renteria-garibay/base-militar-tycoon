@@ -5,7 +5,7 @@
 -- demás del juego solo lee esos atributos (TycoonService para el dinero, WeaponService para
 -- la munición x2).
 --
--- Paquetes (la bolsa de dinero): Roblox llama a processReceipt y solo da por buena la compra
+-- Paquetes (la bolsa de dinero y las defensas premium): Roblox llama a processReceipt y solo da por buena la compra
 -- si devolvemos PurchaseGranted. Si algo falla devolvemos NotProcessedYet y Roblox lo
 -- reintenta después, así el jugador nunca pierde sus Robux.
 
@@ -102,19 +102,34 @@ local function processReceipt(receipt)
 		warn("[Tienda] Producto desconocido", receipt.ProductId)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	local amount = math.max(product.minimum, TycoonService.IncomeOf(player) * product.seconds)
-	DataService.AddMoney(player, amount)
+	-- Lo que da: dinero, o una defensa premium para colocar
+	local amount = 0
+	if product.kind == "defense" then
+		profile.premium[product.key] = (profile.premium[product.key] or 0) + 1
+	else
+		amount = math.max(product.minimum, TycoonService.IncomeOf(player) * product.seconds)
+		DataService.AddMoney(player, amount)
+	end
 	table.insert(profile.receipts, purchaseId)
 	if #profile.receipts > MAX_RECEIPTS then
 		table.remove(profile.receipts, 1)
 	end
 	if not DataService.SaveNow(player) then
 		-- No se guardó: se deshace y Roblox lo reintenta después
-		DataService.Spend(player, amount)
+		if product.kind == "defense" then
+			profile.premium[product.key] -= 1
+		else
+			DataService.Spend(player, amount)
+		end
 		table.remove(profile.receipts)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	notice:FireClient(player, string.format("¡Gracias! +%s", Format.Money(amount)), "great")
+	if product.kind == "defense" then
+		player:SetAttribute("Premium_" .. product.key, profile.premium[product.key])
+		notice:FireClient(player, string.format("¡Gracias! Coloca tu %s con el botón COLOCAR", product.name), "great")
+	else
+		notice:FireClient(player, string.format("¡Gracias! +%s", Format.Money(amount)), "great")
+	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 

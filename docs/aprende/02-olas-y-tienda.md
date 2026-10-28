@@ -56,14 +56,24 @@ El botón **TIENDA** abajo a la izquierda abre la lista. Todo está en
 | VIP | Pase | 249 | +20% y estrellas en tu letrero |
 | Munición x2 | Pase | 149 | Los paquetes de munición traen el doble |
 | Bolsa de dinero | Producto | 49 | 10 minutos de lo que junta tu caja fuerte (mínimo $2,000) |
+| Torreta pesada | Producto | 99 | Una torreta que dispara a todos lados; la colocas donde quieras |
+| Barricada de acero | Producto | 49 | Una barricada de 3,000 de vida; la colocas donde quieras |
+
+### Defensas premium
+
+Lo que compras con Robux (`Config/Premium.luau`) no tiene lugar marcado: con el botón
+**COLOCAR** (abajo a la izquierda) sale una vista previa. Verde = se puede, rojo = no. **R** o
+"Girar" la gira y clic o "Colocar" la pone. No se puede encimar en los lugares marcados de lo
+que se compra con dinero del juego, ni en el muro, ni en otra defensa
+(`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una sin pagar.
 
 ### Cómo crearlos (cuando ya publiques el juego)
 
 1. [create.roblox.com](https://create.roblox.com) > **Creaciones** > Base Militar Tycoon.
 2. **Pases:** menú **Monetización > Pases** > **Crear un pase**. Sube una imagen, ponle el
    nombre, guárdalo, entra a **Ventas**, actívalo y ponle el precio. Copia su **ID**.
-3. **Bolsa de dinero:** menú **Monetización > Productos de desarrollador** > **Crear**.
-   Nombre "Bolsa de dinero", precio 49. Copia su **ID**.
+3. **Bolsa de dinero y defensas premium:** menú **Monetización > Productos de desarrollador**
+   > **Crear**. Uno por cada producto de la tabla, con su nombre y precio. Copia su **ID**.
 4. Pásale los ID a Claude, o ponlos en `Store.luau` en lugar de los `id = 0`.
 
 ## Premio diario

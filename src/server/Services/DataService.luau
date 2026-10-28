@@ -10,6 +10,8 @@
 --   weapons  = las armas que compró en la armería: { Escopeta = true, ... }
 --   ammo     = sus balas: { Escopeta = 24, ... }
 --   snipers  = las torres que tienen francotirador contratado: { Torre1 = true, ... }
+--   premium  = defensas premium compradas y sin colocar: { TorretaPesada = 1, ... }
+--   placed   = las defensas premium ya colocadas: { { key, x, z, rot }, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
 --
@@ -19,6 +21,7 @@
 local DataStoreService = game:GetService("DataStoreService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Settings = require(ReplicatedStorage.Shared.Config.Settings)
 
 local DataService = {}
@@ -32,6 +35,8 @@ export type Profile = {
 	weapons: { [string]: boolean },
 	ammo: { [string]: number },
 	snipers: { [string]: boolean },
+	premium: { [string]: number },
+	placed: { { key: string, x: number, z: number, rot: number } },
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -103,6 +108,8 @@ function DataService.Load(player: Player): Profile
 		weapons = {},
 		ammo = {},
 		snipers = {},
+		premium = {},
+		placed = {},
 		daily = { last = 0, streak = 0 },
 		receipts = {},
 	}
@@ -119,6 +126,8 @@ function DataService.Load(player: Player): Profile
 			profile.weapons = if type(data.weapons) == "table" then data.weapons else {}
 			profile.ammo = if type(data.ammo) == "table" then data.ammo else {}
 			profile.snipers = if type(data.snipers) == "table" then data.snipers else {}
+			profile.premium = if type(data.premium) == "table" then data.premium else {}
+			profile.placed = if type(data.placed) == "table" then data.placed else {}
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0
@@ -126,6 +135,12 @@ function DataService.Load(player: Player): Profile
 			profile.receipts = if type(data.receipts) == "table" then data.receipts else {}
 		elseif not ok then
 			warn("[Datos] No se pudo cargar a", player.Name, data)
+		end
+	end
+	if testing then
+		-- Para probar a colocar defensas premium sin pagar Robux
+		for _, item in Premium.list do
+			profile.premium[item.key] = Settings.Testing.premium
 		end
 	end
 	profiles[player] = profile

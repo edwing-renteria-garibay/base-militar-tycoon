@@ -28,14 +28,33 @@ Store.passes = {
 
 Store.vipBonus = 0.2 -- el VIP genera 20% más
 
+-- kind = "money": da dinero. kind = "defense": da una defensa premium (Config/Premium, misma
+-- key) que el jugador coloca donde quiera
 Store.products = {
 	{
 		key = "Bolsa",
+		kind = "money",
 		id = 0,
 		name = "Bolsa de dinero",
 		robux = 49,
 		seconds = 600, -- da lo que genera tu base en 10 minutos...
 		minimum = 2000, -- ...y nunca menos de esto
+	},
+	{
+		key = "TorretaPesada",
+		kind = "defense",
+		id = 0,
+		name = "Torreta pesada",
+		robux = 99,
+		description = "Dispara a todos lados. La pones donde quieras",
+	},
+	{
+		key = "BarricadaAcero",
+		kind = "defense",
+		id = 0,
+		name = "Barricada de acero",
+		robux = 49,
+		description = "Aguanta 3,000 golpes. La pones donde quieras",
 	},
 }
 

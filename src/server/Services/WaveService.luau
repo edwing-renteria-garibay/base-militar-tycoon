@@ -573,16 +573,14 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 	if not plot or not profile then
 		return
 	end
-	for id in profile.owned do
-		local item = Buildings.byId[id]
-		local stats = item and item.defense
-		local building = stats and TycoonService.ModelOf(player, id)
+	for _, defender in TycoonService.Defenders(player) do
+		local id, item, building = defender.id, defender.item, defender.model
+		local stats = item.defense
 		-- Las torres solo disparan con francotirador, y nada roto dispara
-		local sniper = if item and item.kind == "SniperTower" then TycoonService.SniperOf(player, id) else nil
-		local manned = item ~= nil and (item.kind ~= "SniperTower" or sniper ~= nil)
+		local sniper = if item.kind == "SniperTower" then TycoonService.SniperOf(player, id) else nil
+		local manned = item.kind ~= "SniperTower" or sniper ~= nil
 		if
-			building
-			and manned
+			manned
 			and TycoonService.IsWorking(player, id)
 			and now - (state.lastShot[id] or 0) >= stats.cooldown
 		then

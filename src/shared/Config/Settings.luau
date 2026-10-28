@@ -6,6 +6,7 @@ local Settings = {}
 Settings.Testing = {
 	enabled = false,
 	startMoney = 10000000, -- alcanza para toda la base
+	premium = 2, -- de cada defensa premium, para probar a colocarlas sin pagar Robux
 }
 
 Settings.startMoney = 0 -- con lo que empieza un jugador nuevo

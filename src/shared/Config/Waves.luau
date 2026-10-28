@@ -77,6 +77,8 @@ Waves.buildingHealth = {
 	Barricade = 800,
 	SniperTower = 1500,
 	Turret = 800,
+	HeavyTurret = 2000, -- las premium (Config/Premium)
+	SteelBarricade = 3000,
 	default = 1000,
 }
 

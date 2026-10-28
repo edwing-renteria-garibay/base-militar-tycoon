@@ -19,6 +19,9 @@
         },
         "Armory": {
           "$className": "RemoteEvent"
+        },
+        "Place": {
+          "$className": "RemoteEvent"
         }
       }
     },

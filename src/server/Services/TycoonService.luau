@@ -17,6 +17,8 @@
 --      radar                los zombis se ven a través de las paredes (WaveService)
 --    Las torres y torretas ("defense") las hace disparar WaveService.
 -- 4. Mantén E junto a la caja fuerte para reparar el muro y las barricadas con dinero.
+-- 5. Las defensas premium (Config/Premium, se compran con Robux) las coloca el jugador donde
+--    quiera con la pantalla de colocar (RemoteEvent "Place"), si Placement.Check lo permite.
 --
 -- Solo el dueño del terreno puede usar sus botones y letreros.
 
@@ -27,6 +29,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
+local Premium = require(ReplicatedStorage.Shared.Config.Premium)
+local Placement = require(ReplicatedStorage.Shared.Placement)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -37,6 +41,7 @@ local WallService = require(script.Parent.WallService)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 local armoryRemote = ReplicatedStorage.Remotes.Armory :: RemoteEvent
+local placeRemote = ReplicatedStorage.Remotes.Place :: RemoteEvent
 
 local AFFORD = Color3.fromRGB(60, 200, 90) -- botón: te alcanza
 local TOO_EXPENSIVE = Color3.fromRGB(170, 60, 60) -- botón: todavía no te alcanza
@@ -56,6 +61,7 @@ type State = {
 	fireUntil: number, -- os.clock() hasta el que arden las zanjas
 	fireReady: number, -- os.clock() desde el que se pueden volver a encender
 	models: { [string]: Model }, -- lo construido, por id
+	items: { [string]: any }, -- y qué es cada cosa (de Config/Buildings o Config/Premium)
 	snipers: { [string]: Model }, -- el francotirador de cada torre (si tiene)
 	hirePrompts: { [string]: ProximityPrompt },
 }
@@ -156,6 +162,8 @@ local function moveOutOfTheWay(player: Player, model: Model)
 end
 
 local ignite: (Player) -> ()
+local premiumItem: (any, number) -> any
+local publishPremium: (Player, DataService.Profile) -> ()
 
 -- El francotirador: un soldado parado arriba de su torre. Es quien dispara (WaveService)
 local sniperTemplate: Model? = nil
@@ -255,6 +263,7 @@ local function build(state: State, item, animate: boolean)
 	local model = Builder.Build(item.kind, o)
 	model.Name = item.id
 	state.models[item.id] = model
+	state.items[item.id] = item
 	if isBreakable(item) then
 		-- La pone en la carpeta "Rompibles", con su vida
 		WallService.Add(player, model, Waves.buildingHealth[item.kind] or Waves.buildingHealth.default)
@@ -478,6 +487,65 @@ local function heal(state: State)
 	end
 end
 
+-- Defensas premium ----------------------------------------------------------------------------
+
+-- Una defensa premium colocada, como si fuera una cosa más de Config/Buildings
+premiumItem = function(entry, index: number)
+	local base = Premium.byKey[entry.key]
+	if not base then
+		return nil
+	end
+	return {
+		id = "Premium" .. index,
+		name = base.name,
+		kind = base.kind,
+		at = { entry.x, entry.z },
+		rot = entry.rot,
+		defense = base.defense,
+		effect = base.effect,
+	}
+end
+
+-- Cuántas tiene sin colocar (lo lee la pantalla de colocar)
+publishPremium = function(player: Player, profile: DataService.Profile)
+	for _, item in Premium.list do
+		player:SetAttribute("Premium_" .. item.key, profile.premium[item.key] or 0)
+	end
+end
+
+local function radiusOf(key: string): number
+	local item = Premium.byKey[key]
+	return if item then item.radius else 5
+end
+
+-- Coloca una defensa premium en (x, z) del terreno, girada rot grados, si se puede
+local function place(player: Player, key: any, x: any, z: any, rot: any)
+	local state = states[player]
+	local profile = DataService.Get(player)
+	local base = Premium.byKey[key]
+	if not state or not profile or not base or type(x) ~= "number" or type(z) ~= "number" or type(rot) ~= "number" then
+		return
+	end
+	if (profile.premium[key] or 0) <= 0 then
+		return
+	end
+	x, z, rot = math.floor(x * 10) / 10, math.floor(z * 10) / 10, (math.floor(rot / 90) * 90) % 360
+	local ok, reason = Placement.Check(x, z, base.radius, profile.placed, radiusOf)
+	if not ok then
+		notice:FireClient(player, "No se puede ahí: " .. (reason or ""), "bad")
+		return
+	end
+	profile.premium[key] -= 1
+	local entry = { key = key, x = x, z = z, rot = rot }
+	table.insert(profile.placed, entry)
+	local item = premiumItem(entry, #profile.placed)
+	if item then
+		build(state, item, true)
+	end
+	publishPremium(player, profile)
+	notice:FireClient(player, "Colocaste: " .. base.name, "great")
+end
+
 -- Prepara el terreno de un jugador que acaba de llegar: caja fuerte, muro, lo que ya había
 -- construido (sin animación) y los botones
 function TycoonService.Setup(player: Player, plot: PlotService.Plot)
@@ -506,16 +574,25 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		fireUntil = 0,
 		fireReady = 0,
 		models = {},
+		items = {},
 		snipers = {},
 		hirePrompts = {},
 	}
 	states[player] = state
+	player:SetAttribute("PlotCenter", plot.cframe) -- para la pantalla de colocar
 	WallService.Setup(player, plot, Buildings.LevelOf(profile.owned, "wall"))
 	for _, item in Buildings.list do
 		if profile.owned[item.id] then
 			build(state, item, false)
 		end
 	end
+	for index, entry in profile.placed do
+		local item = premiumItem(entry, index)
+		if item then
+			build(state, item, false)
+		end
+	end
+	publishPremium(player, profile)
 	vaultText.Text = Format.Money(profile.vault)
 	vaultHealthChanged(state)
 	player:SetAttribute("Income", incomeOf(player, profile))
@@ -627,14 +704,29 @@ function TycoonService.Targets(player: Player, category: string): { { id: string
 		return list
 	end
 	for id, model in state.models do
-		local item = Buildings.byId[id]
+		local item = state.items[id]
 		if item and isBreakable(item) and working(model) and item.effect ~= "barricade" then
-			local defense = item.kind == "SniperTower" or item.kind == "Turret"
+			local defense = item.defense ~= nil
 			local fits = if category == "tower"
 				then item.kind == "SniperTower"
 				elseif category == "defense" then defense
 				else not defense
 			if fits then
+				table.insert(list, { id = id, model = model, item = item })
+			end
+		end
+	end
+	return list
+end
+
+-- Todo lo que dispara solo (torres, torretas y torretas premium): { id, item, model }
+function TycoonService.Defenders(player: Player): { { id: string, model: Model, item: any } }
+	local state = states[player]
+	local list = {}
+	if state then
+		for id, model in state.models do
+			local item = state.items[id]
+			if item and item.defense then
 				table.insert(list, { id = id, model = model, item = item })
 			end
 		end
@@ -651,6 +743,7 @@ end
 
 function TycoonService.Start()
 	DataService.MoneyChanged.Event:Connect(refreshButtons)
+	placeRemote.OnServerEvent:Connect(place)
 	-- Cada segundo: la caja fuerte junta dinero, el taller repara y se actualizan los letreros
 	task.spawn(function()
 		while true do

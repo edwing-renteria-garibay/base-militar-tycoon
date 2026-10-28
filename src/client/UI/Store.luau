@@ -91,9 +91,12 @@ local function redraw()
 		end
 	end
 	for i, product in Store.products do
-		local income = player:GetAttribute("Income") or 0
-		local amount = math.max(product.minimum, income * product.seconds)
-		local description = string.format("Recibes %s ahora mismo", Format.Money(amount))
+		local description = product.description
+		if product.kind == "money" then
+			local income = player:GetAttribute("Income") or 0
+			local amount = math.max(product.minimum, income * product.seconds)
+			description = string.format("Recibes %s ahora mismo", Format.Money(amount))
+		end
 		if product.id == 0 then
 			row(100 + i, product.name, description, "Próximamente", OWNED, nil)
 		else

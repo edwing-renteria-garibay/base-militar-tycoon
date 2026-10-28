@@ -539,6 +539,40 @@ function Builder.kinds.Lab(m: Model, o: CFrame)
 	part(m, o, Vector3.new(3, 0.3, 3), at(5, 14, 3), METAL, Enum.Material.Metal)
 end
 
+-- Defensas premium (Config/Premium) ---------------------------------------------------------
+
+-- Torreta pesada: dispara a todos lados. Su "Cabeza" la gira el servidor (WaveService)
+function Builder.kinds.HeavyTurret(m: Model, o: CFrame)
+	part(m, o, Vector3.new(9, 0.8, 9), at(0, 0.4, 0), DARK_METAL, Enum.Material.DiamondPlate)
+	for _, x in { -3.6, 3.6 } do
+		part(m, o, Vector3.new(0.8, 0.5, 8), at(x, 1, 0), YELLOW, Enum.Material.Metal)
+	end
+	part(m, o, Vector3.new(4, 6, 6), at(0, 3.5, 0) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local head = Instance.new("Model")
+	head.Name = "Cabeza"
+	head.Parent = m
+	part(head, o, Vector3.new(5.5, 3, 6), at(0, 7, 0), RED, Enum.Material.Metal)
+	part(head, o, Vector3.new(5.7, 0.4, 6.2), at(0, 8.6, 0), DARK_METAL, Enum.Material.Metal)
+	for _, x in { -1.2, 0, 1.2 } do
+		part(head, o, Vector3.new(7, 0.6, 0.6), at(x, 7.2, -6.3) * FACING, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	end
+	local lamp = part(head, o, Vector3.new(0.6, 0.6, 0.6), at(0, 9.1, 0), YELLOW, Enum.Material.Neon)
+	light(lamp, YELLOW, 8)
+	head.WorldPivot = o * at(0, 7, 0)
+end
+
+-- Barricada de acero: como la de concreto, pero más larga y aguanta mucho más
+function Builder.kinds.SteelBarricade(m: Model, o: CFrame)
+	part(m, o, Vector3.new(14, 1.2, 3.4), at(0, 0.6, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(14, 4.4, 1.2), at(0, 3.4, 0), METAL, Enum.Material.DiamondPlate)
+	for _, x in { -6, -2, 2, 6 } do
+		part(m, o, Vector3.new(0.6, 5.4, 2.4), at(x, 3, 0), DARK_METAL, Enum.Material.Metal)
+	end
+	for _, x in { -4, 0, 4 } do
+		part(m, o, Vector3.new(1.6, 0.5, 0.1), at(x, 4.5, -0.65), YELLOW, Enum.Material.SmoothPlastic)
+	end
+end
+
 -- Defensas de afuera del muro ----------------------------------------------------------------
 -- Sus medidas tienen que coincidir con las zonas que revisa WaveService (alambre y zanja)
 
