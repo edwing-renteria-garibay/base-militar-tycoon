@@ -89,7 +89,10 @@ Waves.sniper = { price = 500, health = 150 }
 -- Zombis especiales: a partir de la ola "from", uno de cada "every" zombis es de ese tipo.
 --   health, speed, dps  multiplican la vida, la velocidad y el daño de un zombi normal
 --   target              a qué va: "tower" (torres y su francotirador; además trepa el muro),
---                       "building" (edificios) o "defense" (torres y torretas)
+--                       "building" (edificios) o "defense" (torres y torretas). Sin target
+--                       va a la caja fuerte, como uno normal
+--   explode             explota al llegar al muro, a algo que le tape el paso, a la caja o a
+--                       un jugador: daño a lo que esté en radius (y playerDamage a jugadores)
 Waves.special = {
 	{
 		key = "Trepador",
@@ -126,6 +129,18 @@ Waves.special = {
 		target = "defense",
 		shirt = Color3.fromRGB(200, 190, 40),
 		scale = 1,
+	},
+	{
+		key = "Explosivo",
+		name = "explosivo",
+		from = 6,
+		every = 8,
+		health = 0.8,
+		speed = 1.2,
+		dps = 1,
+		shirt = Color3.fromRGB(170, 30, 30),
+		scale = 1.1,
+		explode = { damage = 400, radius = 12, playerDamage = 50 },
 	},
 }
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre

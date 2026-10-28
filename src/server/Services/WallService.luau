@@ -189,6 +189,20 @@ function WallService.Missing(player: Player): number
 	return missing
 end
 
+-- Cuánta vida le queda al muro completo: de 0 a 1 (lo muestra la pantalla)
+function WallService.WallShare(player: Player): number
+	local state = states[player]
+	if not state then
+		return 1
+	end
+	local health, max = 0, 0
+	for _, segment in state.segments do
+		health += segment:GetAttribute("Health") or 0
+		max += segment:GetAttribute("MaxHealth") or 0
+	end
+	return if max > 0 then health / max else 1
+end
+
 -- Repara hasta "points" puntos de vida, empezando por lo más dañado. Devuelve cuántos usó
 function WallService.Repair(player: Player, points: number): number
 	local state = states[player]

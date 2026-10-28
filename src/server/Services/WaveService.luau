@@ -60,6 +60,7 @@ type Zombie = {
 	targetId: string?, -- la construcción a la que va (zombis especiales)
 	climbing: boolean, -- trepando: lo mueve climb(), no piensa
 	onTower: string?, -- el trepador ya está arriba de esta torre
+	exploded: boolean, -- el explosivo ya explotó (no da premio)
 }
 type State = {
 	nextWave: number, -- os.clock() en que empieza la siguiente ola
@@ -102,6 +103,28 @@ local function getTemplate(special): Model?
 		return nil
 	end
 	model.Name = "Zombi"
+	-- El explosivo trae una bomba roja que brilla en el pecho
+	local torso = model:FindFirstChild("UpperTorso") :: BasePart?
+	if special and special.explode and torso then
+		local bomb = Instance.new("Part")
+		bomb.Name = "Bomba"
+		bomb.Shape = Enum.PartType.Ball
+		bomb.Size = Vector3.new(1.2, 1.2, 1.2)
+		bomb.Color = Color3.fromRGB(255, 60, 40)
+		bomb.Material = Enum.Material.Neon
+		bomb.CanCollide = false
+		bomb.Massless = true
+		bomb.CFrame = torso.CFrame * CFrame.new(0, 0, -0.7)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = torso
+		weld.Part1 = bomb
+		weld.Parent = bomb
+		bomb.Parent = model
+		local glow = Instance.new("PointLight")
+		glow.Color = bomb.Color
+		glow.Range = 8
+		glow.Parent = bomb
+	end
 	templates[key] = model
 	return model
 end
@@ -172,9 +195,14 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		targetId = nil,
 		climbing = false,
 		onTower = nil,
+		exploded = false,
 	}
 	table.insert(state.zombies, zombie)
 	humanoid.Died:Connect(function()
+		if zombie.exploded then
+			Debris:AddItem(model, 0.5)
+			return
+		end
 		local reward = Waves.KillReward(n)
 		DataService.AddMoney(player, reward)
 		notice:FireClient(player, "Zombi eliminado: +" .. Format.Money(reward), "money")
@@ -214,24 +242,7 @@ end
 local function startWave(player: Player, state: State, n: number)
 	local count = Waves.CountOf(n)
 	local sides, sideText = pickSides(Waves.SidesOf(n))
-	-- Cuántos especiales trae, para avisar: "(2 trepadores, 1 demoledor)"
-	local counts = {}
-	for i = 1, count do
-		local special = specialOf(i, n)
-		if special then
-			counts[special] = (counts[special] or 0) + 1
-		end
-	end
-	local extras = {}
-	for _, special in Waves.special do
-		local amount = counts[special]
-		if amount then
-			table.insert(extras, string.format("%d %s%s", amount, special.name, if amount > 1 then "es" else ""))
-		end
-	end
-	if #extras > 0 then
-		sideText ..= " (" .. table.concat(extras, ", ") .. ")"
-	end
+	-- No se avisa qué tipos de zombis vienen: hay que fijarse en quién te ataca
 	state.active = true
 	state.spawning = true
 	state.zombies = {}
@@ -379,7 +390,7 @@ end
 -- La construcción a la que va un zombi especial (nil si ya no queda ninguna: va a la caja)
 local function targetOf(player: Player, zombie: Zombie): Model?
 	local special = zombie.special
-	if not special then
+	if not special or not special.target then
 		return nil
 	end
 	if zombie.targetId and TycoonService.IsWorking(player, zombie.targetId) then
@@ -442,6 +453,52 @@ local function swing(zombie: Zombie, point: Vector3, now: number)
 	end
 end
 
+-- ¿Hay un jugador junto a él?
+local function nearPlayer(zombie: Zombie): boolean
+	for _, other in Players:GetPlayers() do
+		local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root and (root.Position - zombie.root.Position).Magnitude < REACH + 1 then
+			return true
+		end
+	end
+	return false
+end
+
+-- El zombi explosivo explota: daña lo que se rompe, a los jugadores y a la caja fuerte que
+-- estén cerca, y se muere. Devuelve true si destruyó la caja fuerte
+local function explode(player: Player, zombie: Zombie, center: Vector3): boolean
+	local blast = zombie.special.explode
+	local position = zombie.root.Position
+	zombie.exploded = true
+	Effects.Explosion(position, blast.radius)
+	local folder = WallService.Folder(player)
+	if folder then
+		local params = OverlapParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { folder }
+		local done = {}
+		for _, piece in workspace:GetPartBoundsInRadius(position, blast.radius, params) do
+			local target = WallService.TargetOf(piece)
+			if target and not done[target] then
+				done[target] = true
+				WallService.Damage(target, blast.damage)
+			end
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		local root = other.Character and other.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local humanoid = other.Character and other.Character:FindFirstChildOfClass("Humanoid")
+		if root and humanoid and (root.Position - position).Magnitude < blast.radius then
+			humanoid:TakeDamage(blast.playerDamage)
+		end
+	end
+	zombie.humanoid.Health = 0
+	if flat(position - center).Magnitude < blast.radius then
+		return TycoonService.DamageVault(player, blast.damage) <= 0
+	end
+	return false
+end
+
 -- Un zombi piensa: ¿a quién golpeo?, si no, ¿hacia dónde camino?
 -- Devuelve true si destruyó la caja fuerte
 local function think(player: Player, zombie: Zombie, center: Vector3, params: RaycastParams, now: number): boolean
@@ -455,12 +512,19 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 		return false
 	end
 	local position = zombie.root.Position
+	local explosive = special ~= nil and special.explode ~= nil
+	if explosive and nearPlayer(zombie) then
+		return explode(player, zombie, center)
+	end
 	if hitPlayers(zombie, now) then
 		return false
 	end
 	local target = targetOf(player, zombie)
 	-- Ya llegó a lo que busca: la caja fuerte o su construcción
 	if not target and flat(position - center).Magnitude < VAULT_REACH then
+		if explosive then
+			return explode(player, zombie, center)
+		end
 		zombie.humanoid:MoveTo(position)
 		swing(zombie, center + Vector3.new(0, 3, 0), now)
 		return TycoonService.DamageVault(player, damage) <= 0
@@ -494,6 +558,9 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 	end
 	direction = direction.Unit
 	local blocker = blockerAhead(zombie, direction, params)
+	if blocker and explosive then
+		return explode(player, zombie, center)
+	end
 	if blocker then
 		zombie.humanoid:MoveTo(position)
 		zombie.stuckSince = now

@@ -1,6 +1,6 @@
 -- La pantalla: arriba al centro tu dinero y cuánto junta tu caja fuerte por segundo; debajo,
--- la ola (cuánto falta o cuántos zombis quedan) y la vida de tu caja fuerte; en medio, los
--- avisos que manda el servidor ("Construiste: Mina", "+$120", "Te faltan $300"...).
+-- la ola (cuánto falta o cuántos zombis quedan) y la vida de tu caja fuerte, tu muro y tu
+-- personaje; en medio, los avisos que manda el servidor ("Construiste: Mina", "+$120"...).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +28,7 @@ local waveLabel: TextLabel
 local vaultBar: Frame
 local vaultFill: Frame
 local vaultLabel: TextLabel
+local bars: Frame
 local ammoLabel: TextLabel
 local notices: Frame
 
@@ -71,6 +72,30 @@ local function updateWave()
 	end
 end
 
+-- Una barra con texto: verde, amarilla o roja según lo que le queda (share de 0 a 1)
+local function makeBar(order: number): (Frame, Frame, TextLabel)
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.fromOffset(240, 18)
+	bar.BackgroundColor3 = Color3.fromRGB(24, 26, 22)
+	bar.BackgroundTransparency = 0.25
+	bar.LayoutOrder = order
+	bar.Parent = bars
+	local fill = Instance.new("Frame")
+	fill.BorderSizePixel = 0
+	fill.Parent = bar
+	local label = newLabel(bar, UDim2.fromScale(1, 1), 13)
+	label.Font = Enum.Font.GothamBold
+	return bar, fill, label
+end
+
+local function paint(fill: Frame, share: number)
+	fill.Size = UDim2.fromScale(math.clamp(share, 0, 1), 1)
+	fill.BackgroundColor3 = if share > 0.5
+		then Color3.fromRGB(80, 200, 100)
+		elseif share > 0.25 then Color3.fromRGB(230, 180, 50)
+		else Color3.fromRGB(220, 70, 60)
+end
+
 -- La vida de la caja fuerte: una barra que se pone roja cuando le queda poca
 local function updateVault()
 	local health = player:GetAttribute("VaultHealth")
@@ -79,13 +104,8 @@ local function updateVault()
 		vaultBar.Visible = false
 		return
 	end
-	local share = math.clamp(health / max, 0, 1)
 	vaultBar.Visible = true
-	vaultFill.Size = UDim2.fromScale(share, 1)
-	vaultFill.BackgroundColor3 = if share > 0.5
-		then Color3.fromRGB(80, 200, 100)
-		elseif share > 0.25 then Color3.fromRGB(230, 180, 50)
-		else Color3.fromRGB(220, 70, 60)
+	paint(vaultFill, health / max)
 	vaultLabel.Text = string.format("Caja fuerte %d / %d", health, max)
 end
 
@@ -149,19 +169,50 @@ function HUD.Start()
 	waveLabel.Position = UDim2.new(0.5, 0, 0, 78)
 	waveLabel.Visible = false
 
-	vaultBar = Instance.new("Frame")
-	vaultBar.AnchorPoint = Vector2.new(0.5, 0)
-	vaultBar.Position = UDim2.new(0.5, 0, 0, 104)
-	vaultBar.Size = UDim2.fromOffset(240, 18)
-	vaultBar.BackgroundColor3 = Color3.fromRGB(24, 26, 22)
-	vaultBar.BackgroundTransparency = 0.25
+	-- Debajo de la ola: la caja fuerte, el muro y tu vida
+	bars = Instance.new("Frame")
+	bars.AnchorPoint = Vector2.new(0.5, 0)
+	bars.Position = UDim2.new(0.5, 0, 0, 104)
+	bars.Size = UDim2.fromOffset(240, 62)
+	bars.BackgroundTransparency = 1
+	bars.Parent = gui
+	local list = Instance.new("UIListLayout")
+	list.Padding = UDim.new(0, 4)
+	list.SortOrder = Enum.SortOrder.LayoutOrder
+	list.Parent = bars
+	vaultBar, vaultFill, vaultLabel = makeBar(1)
 	vaultBar.Visible = false
-	vaultBar.Parent = gui
-	vaultFill = Instance.new("Frame")
-	vaultFill.BorderSizePixel = 0
-	vaultFill.Parent = vaultBar
-	vaultLabel = newLabel(vaultBar, UDim2.fromScale(1, 1), 13)
-	vaultLabel.Font = Enum.Font.GothamBold
+	local wallBar, wallFill, wallLabel = makeBar(2)
+	wallBar.Visible = false
+	local function updateWall()
+		local share = player:GetAttribute("WallHealth")
+		wallBar.Visible = share ~= nil
+		if share then
+			paint(wallFill, share / 100)
+			wallLabel.Text = string.format("Muro %d%%", share)
+		end
+	end
+	updateWall()
+	player:GetAttributeChangedSignal("WallHealth"):Connect(updateWall)
+	local lifeBar, lifeFill, lifeLabel = makeBar(3)
+	lifeBar.Visible = false
+	local function watchLife(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+		if not humanoid then
+			return
+		end
+		local function updateLife()
+			lifeBar.Visible = true
+			paint(lifeFill, humanoid.Health / humanoid.MaxHealth)
+			lifeLabel.Text = string.format("Tu vida %d / %d", math.ceil(humanoid.Health), humanoid.MaxHealth)
+		end
+		updateLife()
+		humanoid.HealthChanged:Connect(updateLife)
+	end
+	player.CharacterAdded:Connect(watchLife)
+	if player.Character then
+		task.spawn(watchLife, player.Character)
+	end
 
 	ammoLabel = newLabel(gui, UDim2.fromOffset(300, 30), 22)
 	ammoLabel.AnchorPoint = Vector2.new(0, 1)
@@ -177,7 +228,7 @@ function HUD.Start()
 
 	notices = Instance.new("Frame")
 	notices.AnchorPoint = Vector2.new(0.5, 0)
-	notices.Position = UDim2.new(0.5, 0, 0.25, 0)
+	notices.Position = UDim2.new(0.5, 0, 0, 180) -- debajo de las barras
 	notices.Size = UDim2.new(0.95, 0, 0, 200) -- en celular no cabían 500 de ancho
 	notices.BackgroundTransparency = 1
 	notices.Parent = gui

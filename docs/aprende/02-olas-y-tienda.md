@@ -25,7 +25,9 @@ se pierde.
 - **Torretas:** disparan solas, pero solo hacia su frente (45°). Las rayas amarillas del piso marcan hasta dónde alcanzan.
 - **Zombis especiales** (`Waves.special`): desde la ola 3 salen trepadores (se saltan el muro
   y suben a las torres por el francotirador), desde la 4 demoledores (grandes y lentos, van
-  por tus edificios) y desde la 5 saboteadores (van por tus torres y torretas).
+  por tus edificios), desde la 5 saboteadores (van por tus torres y torretas) y desde la 6
+  explosivos (traen una bomba roja en el pecho: explotan al llegar al muro o a ti). El aviso
+  de la ola no dice cuáles vienen: fíjate en quién te ataca.
 - **Todo se rompe:** los edificios y las defensas tienen vida. Rotos se ven oscuros y
   transparentes, y no funcionan hasta que los reparas.
 - **Alambre:** frena a los zombis y los lastima mientras lo cruzan.

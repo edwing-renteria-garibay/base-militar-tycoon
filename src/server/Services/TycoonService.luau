@@ -791,6 +791,7 @@ function TycoonService.Start()
 							WallService.RepairShare(player, Waves.workshopRepair)
 						end
 					end
+					player:SetAttribute("WallHealth", math.floor(WallService.WallShare(player) * 100))
 					local missing = WallService.Missing(player)
 					state.repairPrompt.ObjectText = if missing >= 1
 						then "Cuesta " .. Format.Money(math.ceil(missing * Waves.repairCost))
