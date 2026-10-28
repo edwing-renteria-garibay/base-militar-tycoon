@@ -1,7 +1,7 @@
 -- Las armas del jugador. El Rifle lo tiene todo el mundo y no se le acaban las balas; las
 -- demás se compran en la Armería (y ahí mismo su munición).
 --
---   damage    daño por bala (el Laboratorio lo multiplica, ver Waves.labBonus)
+--   damage    daño por bala (lo sube lo investigado en el Laboratorio, Config/Research)
 --   pellets   balas por disparo (la escopeta); spread = qué tanto se abren, en grados
 --   cooldown  segundos entre disparos (mantén el clic para disparar seguido)
 --   range     alcance en studs

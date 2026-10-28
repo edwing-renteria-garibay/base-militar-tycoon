@@ -17,7 +17,7 @@
 --   defense  si dispara sola a los zombis: { damage, range, cooldown, sound } (opcional)
 --   oneUse   se gasta al usarse (las minas): al explotar, su botón vuelve a salir
 --   effect   para qué sirve (lo leen los servicios): "vault", "wall", "armory", "heal",
---            "damage", "repair", "radar", "fire", "wire", "mine", "barricade"
+--            "lab", "repair", "radar", "fire", "wire", "mine", "barricade"
 
 local Buildings = {}
 
@@ -75,34 +75,8 @@ add({ id = "Enfermeria", name = "Enfermería (te cura)", price = 2500, kind = "I
 add({ id = "Taller", name = "Taller (repara el muro solo)", price = 4000, kind = "Workshop", at = { -38, 30 }, effect = "repair" })
 add({ id = "Radar", name = "Radar (ves a los zombis)", price = 6000, kind = "Radar", at = { 38, 30 }, effect = "radar" })
 
--- Laboratorio: más daño para todo (Waves.labBonus). Las mejoras salen junto a él
-add({
-	id = "Laboratorio",
-	name = "Laboratorio (+25% de daño)",
-	price = 5000,
-	kind = "Lab",
-	at = { 38, 2 },
-	effect = "damage",
-	level = 2,
-})
-add({
-	id = "Lab3",
-	name = "Investigación (+50% de daño)",
-	price = 15000,
-	at = { 24, 2 },
-	requires = "Laboratorio",
-	effect = "damage",
-	level = 3,
-})
-add({
-	id = "Lab4",
-	name = "Investigación avanzada (x2 daño)",
-	price = 40000,
-	at = { 24, 2 },
-	requires = "Lab3",
-	effect = "damage",
-	level = 4,
-})
+-- Laboratorio: ahí se investiga más daño para tus armas, torretas y trampas (Config/Research)
+add({ id = "Laboratorio", name = "Laboratorio (investiga más daño)", price = 5000, kind = "Lab", at = { 38, 2 }, effect = "lab" })
 
 -- Torres de francotirador, una en cada esquina
 local towerPrices = { 1500, 3000, 5000, 8000 }
@@ -203,7 +177,7 @@ for _, item in Buildings.list do
 	Buildings.byId[item.id] = item
 end
 
--- El nivel de algo (caja fuerte, muro, laboratorio) según las mejoras que tiene: 1 si ninguna
+-- El nivel de algo (caja fuerte, muro) según las mejoras que tiene: 1 si ninguna
 function Buildings.LevelOf(owned: { [string]: boolean }, effect: string): number
 	local level = 1
 	for id in owned do

@@ -347,8 +347,8 @@ function Builder.kinds.Bunker(m: Model, o: CFrame)
 	end
 end
 
--- La torreta solo dispara hacia su frente (Waves.turretArc): las rayas del piso marcan su
--- vista. Su "Cabeza" la gira el servidor hacia el zombi al que dispara (WaveService)
+-- La torreta solo dispara hacia su frente (Waves.turretArc; su alcance lo marca RangeMarks).
+-- Su "Cabeza" la gira el servidor hacia el zombi al que dispara (WaveService)
 function Builder.kinds.Turret(m: Model, o: CFrame)
 	part(m, o, Vector3.new(7, 0.6, 7), at(0, 0.3, 0), CONCRETE, Enum.Material.Concrete)
 	part(m, o, Vector3.new(3, 5, 5), at(0, 2.1, 0) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
@@ -360,13 +360,6 @@ function Builder.kinds.Turret(m: Model, o: CFrame)
 		part(head, o, Vector3.new(6, 0.5, 0.5), at(x, 5, -5) * FACING, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
 	head.WorldPivot = o * at(0, 4.8, 0)
-	for _, side in { -1, 1 } do
-		local angle = CFrame.Angles(0, math.rad(side * 22.5), 0)
-		local line = part(m, o, Vector3.new(0.4, 0.05, 14), at(0, 0.62, 0) * angle * at(0, 0, -11), YELLOW, Enum.Material.Neon)
-		line.Transparency = 0.5
-		line.CanCollide = false
-		line.CanQuery = false
-	end
 end
 
 function Builder.kinds.Radar(m: Model, o: CFrame)
@@ -709,6 +702,45 @@ function Builder.WallSegment(o: CFrame, width: number, level: number): Part
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	return p
+end
+
+-- Rayas amarillas en el piso que marcan hasta dónde dispara una torreta: un arco de "arc"
+-- grados hacia su frente (con sus dos orillas), o un círculo si arc es 360. plot es el centro
+-- del terreno: afuera de él el pasto está 1 stud más abajo
+function Builder.RangeMarks(plot: CFrame, o: CFrame, range: number, arc: number): Model
+	local m = Instance.new("Model")
+	local function groundAt(point: Vector3): Vector3
+		local here = plot:PointToObjectSpace(point)
+		local outside = math.abs(here.X) > 100 or math.abs(here.Z) > 100
+		return (plot * CFrame.new(here.X, if outside then -0.9 else 0.12, here.Z)).Position
+	end
+	local function line(from: Vector3, to: Vector3)
+		local a, b = groundAt(from), groundAt(to)
+		local length = (b - a).Magnitude
+		if length < 0.1 then
+			return
+		end
+		local p = part(m, CFrame.lookAt(a, b), Vector3.new(0.35, 0.05, length), at(0, 0, -length / 2), YELLOW, Enum.Material.Neon)
+		p.Transparency = 0.55
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+	end
+	local function pointAt(angle: number, distance: number): Vector3
+		return (o * CFrame.Angles(0, math.rad(angle), 0) * CFrame.new(0, 0, -distance)).Position
+	end
+	local steps = math.max(math.ceil(arc / 6), 4)
+	for i = 0, steps - 1 do
+		local a1 = -arc / 2 + arc * i / steps
+		local a2 = -arc / 2 + arc * (i + 1) / steps
+		line(pointAt(a1, range), pointAt(a2, range))
+	end
+	if arc < 360 then
+		line(pointAt(-arc / 2, 4), pointAt(-arc / 2, range))
+		line(pointAt(arc / 2, 4), pointAt(arc / 2, range))
+	end
+	return m
 end
 
 -- Arma una construcción y la devuelve (sin ponerla en el mundo)

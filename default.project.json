@@ -22,6 +22,9 @@
         },
         "Place": {
           "$className": "RemoteEvent"
+        },
+        "Research": {
+          "$className": "RemoteEvent"
         }
       }
     },

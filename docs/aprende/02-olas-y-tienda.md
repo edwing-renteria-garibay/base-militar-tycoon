@@ -15,11 +15,14 @@ se pierde.
 - **Armas:** el Rifle (tecla **1**) tiene balas infinitas. En la Armería (mantén **E** en su
   entrada) compras escopeta, ametralladora y rifle de francotirador, y su munición. Mantén
   el clic, o el dedo en celular, para disparar seguido. Todo está en `Config/Weapons.luau`.
-- **Laboratorio:** sube el daño de todo: +25%, +50% y x2 con sus mejoras.
+- **Laboratorio:** mantén **E** en su entrada para investigar. Hay 3 líneas con 3 niveles
+  cada una: balas (tus armas), torretas (torres y torretas) y explosivos (minas, zanjas y
+  alambre). Cada nivel cuesta dinero y tarda un rato; se investiga una a la vez y encima del
+  laboratorio ves cuánto falta. Todo está en `Config/Research.luau`.
 - **Enfermería:** si estás cerca, te cura 20 de vida por segundo.
 - **Torres:** solo disparan si contratas un francotirador (mantén **E** al pie de la torre).
   Si un zombi lo mata, o tú le disparas por error, hay que contratar otro.
-- **Torretas:** disparan solas, pero solo hacia su frente (45°, las rayas amarillas del piso).
+- **Torretas:** disparan solas, pero solo hacia su frente (45°). Las rayas amarillas del piso marcan hasta dónde alcanzan.
 - **Zombis especiales** (`Waves.special`): desde la ola 3 salen trepadores (se saltan el muro
   y suben a las torres por el francotirador), desde la 4 demoledores (grandes y lentos, van
   por tus edificios) y desde la 5 saboteadores (van por tus torres y torretas).

@@ -10,6 +10,8 @@
 --   weapons  = las armas que compró en la armería: { Escopeta = true, ... }
 --   ammo     = sus balas: { Escopeta = 24, ... }
 --   snipers  = las torres que tienen francotirador contratado: { Torre1 = true, ... }
+--   research = lo investigado en el laboratorio: { Balas = 2, ... }, y lo que se está
+--              investigando: researching = { key, finish } (finish = os.time() al terminar)
 --   premium  = defensas premium compradas y sin colocar: { TorretaPesada = 1, ... }
 --   placed   = las defensas premium ya colocadas: { { key, x, z, rot }, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
@@ -35,6 +37,8 @@ export type Profile = {
 	weapons: { [string]: boolean },
 	ammo: { [string]: number },
 	snipers: { [string]: boolean },
+	research: { [string]: number },
+	researching: { key: string, finish: number }?,
 	premium: { [string]: number },
 	placed: { { key: string, x: number, z: number, rot: number } },
 	daily: { last: number, streak: number },
@@ -108,6 +112,8 @@ function DataService.Load(player: Player): Profile
 		weapons = {},
 		ammo = {},
 		snipers = {},
+		research = {},
+		researching = nil,
 		premium = {},
 		placed = {},
 		daily = { last = 0, streak = 0 },
@@ -126,6 +132,8 @@ function DataService.Load(player: Player): Profile
 			profile.weapons = if type(data.weapons) == "table" then data.weapons else {}
 			profile.ammo = if type(data.ammo) == "table" then data.ammo else {}
 			profile.snipers = if type(data.snipers) == "table" then data.snipers else {}
+			profile.research = if type(data.research) == "table" then data.research else {}
+			profile.researching = if type(data.researching) == "table" then data.researching else nil
 			profile.premium = if type(data.premium) == "table" then data.premium else {}
 			profile.placed = if type(data.placed) == "table" then data.placed else {}
 			if type(data.daily) == "table" then

@@ -14,9 +14,8 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Format = require(ReplicatedStorage.Shared.Format)
-local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
 local DataService = require(script.Parent.DataService)
@@ -109,13 +108,13 @@ local function targetOf(part: BasePart): (Humanoid?, boolean)
 	return nil, false
 end
 
--- Cuánto multiplica el daño su Laboratorio
+-- Cuánto multiplica el daño de sus armas lo investigado en el Laboratorio
 function WeaponService.DamageBonus(player: Player): number
 	local profile = DataService.Get(player)
 	if not profile then
 		return 1
 	end
-	return Waves.labBonus[Buildings.LevelOf(profile.owned, "damage")] or 1
+	return Research.Bonus(profile.research, "Balas")
 end
 
 local function onShoot(player: Player, target: any)

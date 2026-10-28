@@ -59,10 +59,6 @@ function Waves.WaveReward(n: number): number -- por pasar la ola n
 	return 100 * n
 end
 
--- El Laboratorio multiplica el daño de tus armas, torres, torretas, minas y zanjas según su
--- nivel (1 = sin laboratorio)
-Waves.labBonus = { 1, 1.25, 1.5, 2 }
-
 -- Las torretas solo disparan hacia su frente: este es su ángulo de vista, en grados (45 = 22.5
 -- a cada lado)
 Waves.turretArc = 45

@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Settings = require(ReplicatedStorage.Shared.Config.Settings)
+local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Effects = require(script.Parent.Parent.Effects)
 local DataService = require(script.Parent.DataService)
@@ -672,9 +673,9 @@ local function tick(player: Player, state: State)
 			return
 		end
 	end
-	local bonus = Waves.labBonus[Buildings.LevelOf(profile.owned, "damage")] or 1
-	applyTraps(player, state, trapsOf(player), bonus)
-	defend(player, state, now, bonus)
+	-- Lo investigado en el Laboratorio (Config/Research)
+	applyTraps(player, state, trapsOf(player), Research.Bonus(profile.research, "Explosivos"))
+	defend(player, state, now, Research.Bonus(profile.research, "Torretas"))
 
 	local alive = aliveCount(state)
 	player:SetAttribute("WaveEnemies", if state.spawning then math.max(alive, 1) else alive)

@@ -12,7 +12,8 @@
 --      fire                 la gasolinera tiene un letrero para encender las zanjas
 --      armory               la armería tiene un letrero que abre su tienda (WeaponService)
 --      heal                 la enfermería te cura si estás cerca
---      damage               el laboratorio sube el daño de todo (Waves.labBonus)
+--      lab                  el laboratorio tiene un letrero que abre lo que se investiga
+--                           (ResearchService)
 --      repair               el taller repara el muro solo, poco a poco
 --      radar                los zombis se ven a través de las paredes (WaveService)
 --    Las torres y torretas ("defense") las hace disparar WaveService.
@@ -42,6 +43,7 @@ local WallService = require(script.Parent.WallService)
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 local armoryRemote = ReplicatedStorage.Remotes.Armory :: RemoteEvent
 local placeRemote = ReplicatedStorage.Remotes.Place :: RemoteEvent
+local researchRemote = ReplicatedStorage.Remotes.Research :: RemoteEvent
 
 local AFFORD = Color3.fromRGB(60, 200, 90) -- botón: te alcanza
 local TOO_EXPENSIVE = Color3.fromRGB(170, 60, 60) -- botón: todavía no te alcanza
@@ -264,6 +266,16 @@ local function build(state: State, item, animate: boolean)
 	model.Name = item.id
 	state.models[item.id] = model
 	state.items[item.id] = item
+	-- Las torretas marcan en el piso hasta dónde disparan (las torres alcanzan todo el terreno)
+	if item.defense and item.kind ~= "SniperTower" then
+		local arc = if item.kind == "Turret" then Waves.turretArc else 360
+		local marks = Builder.RangeMarks(state.plot.cframe, o, item.defense.range, arc)
+		marks.Name = "Alcance_" .. item.id
+		marks.Parent = state.plot.contents
+		model.Destroying:Connect(function()
+			marks:Destroy()
+		end)
+	end
 	if isBreakable(item) then
 		-- La pone en la carpeta "Rompibles", con su vida
 		WallService.Add(player, model, Waves.buildingHealth[item.kind] or Waves.buildingHealth.default)
@@ -275,6 +287,11 @@ local function build(state: State, item, animate: boolean)
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -8))
 		prompt(spot, "Abrir armería", player, 0, function()
 			armoryRemote:FireClient(player, "open")
+		end)
+	elseif item.effect == "lab" then
+		local spot = promptSpot(model, o * CFrame.new(0, 3, -7.5))
+		prompt(spot, "Investigar", player, 0, function()
+			researchRemote:FireClient(player, "open")
 		end)
 	elseif item.kind == "SniperTower" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -4))

@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local Services = script.Services
 local DataService = require(Services.DataService)
 local PlotService = require(Services.PlotService)
+local ResearchService = require(Services.ResearchService)
 local StoreService = require(Services.StoreService)
 local TycoonService = require(Services.TycoonService)
 local WaveService = require(Services.WaveService)
@@ -20,6 +21,7 @@ TycoonService.Start()
 StoreService.Start()
 WeaponService.Start()
 WaveService.Start()
+ResearchService.Start()
 
 local function onPlayerAdded(player: Player)
 	DataService.Load(player)
@@ -35,6 +37,7 @@ local function onPlayerAdded(player: Player)
 	StoreService.CheckPasses(player) -- antes de armar la base: los pases cambian lo que genera
 	TycoonService.Setup(player, plot)
 	task.spawn(WeaponService.Give, player)
+	ResearchService.Publish(player)
 	StoreService.GiveDaily(player)
 end
 
