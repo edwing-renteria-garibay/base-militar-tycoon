@@ -92,6 +92,11 @@ function Fx.Start()
 	fx.OnClientEvent:Connect(function(kind: string, ...)
 		if kind == "shot" then
 			onShot(...)
+		elseif kind == "hit" then
+			local position = ...
+			drawImpact(position, "concrete")
+			drawImpact(position + Vector3.new(0, 1, 0), "concrete")
+			Sfx.PlayAt(Sounds.impact.concrete, position, 0.8)
 		elseif kind == "explosion" then
 			local position = ...
 			Sfx.PlayAt(Sounds.explosion, position, 1)

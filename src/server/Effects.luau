@@ -37,6 +37,11 @@ function Effects.Shot(from: Vector3, to: Vector3, sound: string?, surface: strin
 	fx:FireAllClients("shot", from, to, sound, surface)
 end
 
+-- Un zombi golpea algo (muro, edificio, caja fuerte): polvo y ruido en ese punto
+function Effects.Hit(position: Vector3)
+	fx:FireAllClients("hit", position)
+end
+
 -- Una explosión que solo se ve y se oye: no empuja ni rompe nada (el daño lo pone quien la llama)
 function Effects.Explosion(position: Vector3, radius: number)
 	local explosion = Instance.new("Explosion")

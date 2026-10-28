@@ -770,7 +770,9 @@ function TycoonService.Start()
 						end
 					end
 					if hasEffect(state, profile, "repair") then
-						WallService.RepairShare(player, Waves.workshopRepair)
+						if player:GetAttribute("WaveEnemies") == nil then -- solo entre olas
+							WallService.RepairShare(player, Waves.workshopRepair)
+						end
 					end
 					local missing = WallService.Missing(player)
 					state.repairPrompt.ObjectText = if missing >= 1

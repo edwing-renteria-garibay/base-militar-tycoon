@@ -39,7 +39,11 @@ Waves.spawnSpread = 50 -- se reparten a lo ancho: de -50 a 50
 Waves.spawnEvery = 1 -- segundos entre un zombi y el siguiente
 
 -- Lo que hacen los zombis
-Waves.zombieDps = 20 -- daño por segundo a muros, barricadas y la caja fuerte
+-- Daño por segundo de un zombi a muros, construcciones y la caja fuerte en la ola n (sube
+-- con cada ola; los especiales lo multiplican)
+function Waves.DpsOf(n: number): number
+	return 15 + 5 * n
+end
 Waves.playerHit = 15 -- daño por golpe a un jugador (un golpe por segundo)
 
 -- La caja fuerte
@@ -130,9 +134,9 @@ Waves.special = {
 }
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre
 
--- Reparar: el taller repara solo esta parte de la vida cada segundo; a mano cuesta esto por
--- cada punto de vida
-Waves.workshopRepair = 0.03
+-- Reparar: el taller repara solo esta parte de la vida cada segundo, pero solo en el descanso
+-- entre olas; a mano cuesta esto por cada punto de vida
+Waves.workshopRepair = 0.02
 Waves.repairCost = 0.5
 
 -- Defensas de afuera del muro

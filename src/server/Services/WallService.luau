@@ -55,8 +55,41 @@ local function show(target: Instance)
 		p.Color = (p:GetAttribute("BaseColor") :: Color3):Lerp(DAMAGED, wear * 0.6)
 		p.Transparency = if broken then math.max(baseTransparency, 0.85) else baseTransparency
 		p.CanCollide = p:GetAttribute("BaseCollide") == true and not broken
-		p.CanQuery = p:GetAttribute("BaseQuery") == true and not broken -- roto, ni los zombis ni las balas lo "ven""
+		p.CanQuery = p:GetAttribute("BaseQuery") == true and not broken -- roto, ni los zombis ni las balas lo ven
 	end
+	-- Una barrita de vida encima mientras está dañado (para ver que lo están rompiendo)
+	local bar = target:FindFirstChild("Vida") :: BillboardGui?
+	if not bar then
+		local parts = partsOf(target)
+		if #parts == 0 then
+			return
+		end
+		local newBar = Instance.new("BillboardGui")
+		newBar.Name = "Vida"
+		newBar.Adornee = parts[1]
+		newBar.Size = UDim2.fromOffset(70, 8)
+		newBar.StudsOffsetWorldSpace = Vector3.new(0, parts[1].Size.Y / 2 + 2, 0)
+		newBar.MaxDistance = 120
+		local back = Instance.new("Frame")
+		back.Size = UDim2.fromScale(1, 1)
+		back.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+		back.BorderSizePixel = 0
+		back.Parent = newBar
+		local fill = Instance.new("Frame")
+		fill.Name = "Relleno"
+		fill.BorderSizePixel = 0
+		fill.Parent = back
+		newBar.Parent = target
+		bar = newBar
+	end
+	local share = 1 - wear
+	local fill = (bar :: BillboardGui):FindFirstChild("Relleno", true) :: Frame
+	fill.Size = UDim2.fromScale(share, 1)
+	fill.BackgroundColor3 = if share > 0.5
+		then Color3.fromRGB(80, 200, 100)
+		elseif share > 0.25 then Color3.fromRGB(230, 180, 50)
+		else Color3.fromRGB(220, 70, 60)
+	;(bar :: BillboardGui).Enabled = health > 0 and health < max
 end
 
 local function setHealth(target: Instance, health: number)

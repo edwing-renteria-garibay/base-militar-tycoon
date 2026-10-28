@@ -49,6 +49,8 @@ type Zombie = {
 	lane: number, -- su "carril": la x por la que camina derecho hacia el muro
 	speed: number,
 	lastHit: number,
+	lastSwing: number, -- último golpe que se vio (el efecto sale uno por segundo)
+	dps: number, -- su daño por segundo
 	lastPosition: Vector3,
 	stuckSince: number,
 	detour: Vector3?,
@@ -159,6 +161,8 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		lane = lane,
 		speed = speed,
 		lastHit = 0,
+		lastSwing = 0,
+		dps = Waves.DpsOf(n) * (if special then special.dps else 1),
 		lastPosition = root.Position,
 		stuckSince = os.clock(),
 		detour = nil,
@@ -429,6 +433,14 @@ local function attackTower(player: Player, zombie: Zombie, damage: number)
 	end
 end
 
+-- Se ve y se oye cuando un zombi golpea algo (uno por segundo)
+local function swing(zombie: Zombie, point: Vector3, now: number)
+	if now - zombie.lastSwing >= 1 then
+		zombie.lastSwing = now
+		Effects.Hit(point)
+	end
+end
+
 -- Un zombi piensa: ¿a quién golpeo?, si no, ¿hacia dónde camino?
 -- Devuelve true si destruyó la caja fuerte
 local function think(player: Player, zombie: Zombie, center: Vector3, params: RaycastParams, now: number): boolean
@@ -436,7 +448,7 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 		return false
 	end
 	local special = zombie.special
-	local damage = Waves.zombieDps * TICK * (if special then special.dps else 1)
+	local damage = zombie.dps * TICK
 	if zombie.onTower then
 		attackTower(player, zombie, damage)
 		return false
@@ -449,6 +461,7 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 	-- Ya llegó a lo que busca: la caja fuerte o su construcción
 	if not target and flat(position - center).Magnitude < VAULT_REACH then
 		zombie.humanoid:MoveTo(position)
+		swing(zombie, center + Vector3.new(0, 3, 0), now)
 		return TycoonService.DamageVault(player, damage) <= 0
 	end
 	if target and reached(zombie, target) then
@@ -462,6 +475,7 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 			zombie.onTower = zombie.targetId
 			climb(zombie, { position + Vector3.new(0, 24.5, 0), platform }, true)
 		else
+			swing(zombie, position + flat((target:GetBoundingBox()).Position - position).Unit * 2, now)
 			WallService.Damage(target, damage)
 		end
 		return false
@@ -487,6 +501,7 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 			local height = Vector3.new(0, blocker.Size.Y, 0)
 			climb(zombie, { position + height, position + height + direction * 6, position + direction * 6 }, false)
 		else
+			swing(zombie, position + direction * 2, now)
 			WallService.Damage(blocker, damage)
 		end
 		return false
