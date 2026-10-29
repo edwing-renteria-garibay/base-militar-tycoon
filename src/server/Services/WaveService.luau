@@ -510,7 +510,8 @@ local function reached(zombie: Zombie, target: Model): boolean
 	return flat(box.Position - zombie.root.Position).Magnitude < math.max(size.X, size.Z) / 2 + REACH
 end
 
--- El trepador arriba de una torre: golpea al francotirador y, sin él, a la torre
+-- El trepador arriba de una torre: golpea al francotirador y, sin él, a la torre (más rápido:
+-- nadie lo detiene, Waves.emptyTowerDamage)
 local function attackTower(player: Player, zombie: Zombie, damage: number)
 	local id = zombie.onTower :: string
 	local tower = TycoonService.ModelOf(player, id)
@@ -525,7 +526,7 @@ local function attackTower(player: Player, zombie: Zombie, damage: number)
 	if humanoid then
 		humanoid:TakeDamage(damage)
 	else
-		WallService.Damage(tower, damage)
+		WallService.Damage(tower, damage * Waves.emptyTowerDamage)
 	end
 end
 

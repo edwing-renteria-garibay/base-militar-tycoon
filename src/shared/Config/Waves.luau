@@ -144,6 +144,7 @@ Waves.special = {
 	},
 }
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre
+Waves.emptyTowerDamage = 2 -- arriba de una torre sin francotirador, la rompe así de más rápido
 
 -- Reparar: el taller repara solo esta parte de la vida cada segundo, pero solo en el descanso
 -- entre olas; a mano cuesta esto por cada punto de vida
