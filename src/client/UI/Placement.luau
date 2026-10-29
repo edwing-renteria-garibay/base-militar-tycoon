@@ -5,6 +5,7 @@
 -- R o "Girar" la gira, clic o "Colocar" la pone. El servidor revisa todo otra vez
 -- (TycoonService).
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -15,6 +16,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Placement = require(ReplicatedStorage.Shared.Placement)
+local Menus = require(script.Parent.Parent.Menus)
 
 local placeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Place") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -238,8 +240,8 @@ function PlacementUI.Start()
 	-- Junto al botón de la tienda
 	openButton = Instance.new("TextButton")
 	openButton.AnchorPoint = Vector2.new(0, 1)
-	openButton.Position = UDim2.new(0, 142, 1, -12)
-	openButton.Size = UDim2.fromOffset(150, 44)
+	openButton.Position = UDim2.new(0, 152, 1, -12)
+	openButton.Size = UDim2.fromOffset(190, 44)
 	openButton.BackgroundColor3 = OK_COLOR
 	openButton.Font = Enum.Font.GothamBlack
 	openButton.TextSize = 18
@@ -283,6 +285,7 @@ function PlacementUI.Start()
 	menuClose.TextSize = 18
 	menuClose.TextColor3 = Color3.new(1, 1, 1)
 	menuClose.Parent = menu
+	Menus.Register(menuClose) -- en primera persona suelta el mouse mientras se ve el menú
 	local closeCorner = Instance.new("UICorner")
 	closeCorner.CornerRadius = UDim.new(0, 8)
 	closeCorner.Parent = menuClose
@@ -326,10 +329,11 @@ function PlacementUI.Start()
 	local turn = button(row, "Girar", Color3.fromRGB(80, 90, 110), 0.38)
 	local put = button(row, "Colocar", Color3.fromRGB(60, 160, 70), 0.63)
 	local cancel = button(row, "Cancelar", Color3.fromRGB(150, 50, 50), 0.88)
+	Menus.Register(cancel) -- al colocar, el mouse queda libre para escoger el lugar
 
 	local function refresh()
 		local total = totalCount()
-		openButton.Text = string.format("COLOCAR (%d)", total)
+		openButton.Text = string.format("COLOCAR (%d) · G", total)
 		if current then
 			if countOf(current) <= 0 then
 				stop()
@@ -347,12 +351,20 @@ function PlacementUI.Start()
 	refresh()
 
 	openButton.Visible = true
-	openButton.Activated:Connect(function()
+	local function toggleMenu()
 		menu.Visible = not menu.Visible
 		if menu.Visible then
 			redrawMenu()
 		end
-	end)
+	end
+	openButton.Activated:Connect(toggleMenu)
+	-- Con la tecla G también (en primera persona el mouse está fijo y no llega al botón)
+	ContextActionService:BindAction("PlacementMenu", function(_, state)
+		if state == Enum.UserInputState.Begin and not current then
+			toggleMenu()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.G)
 	change.Activated:Connect(function()
 		local item = nextItem(current)
 		if item and item ~= current then

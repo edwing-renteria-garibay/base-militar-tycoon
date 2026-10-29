@@ -3,13 +3,16 @@
 -- efectos de Escuadrón Cero.
 
 local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Sfx = require(script.Parent.Sfx)
+local ViewModel = require(script.Parent.ViewModel)
 
 local fx = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Fx") :: RemoteEvent
+local player = Players.LocalPlayer
 
 local Fx = {}
 
@@ -76,7 +79,11 @@ local function drawImpact(position: Vector3, surface: string)
 	Debris:AddItem(impact, 0.2)
 end
 
-local function onShot(from: Vector3, to: Vector3, sound: string?, surface: string?)
+local function onShot(from: Vector3, to: Vector3, sound: string?, surface: string?, shooter: Player?)
+	-- Tu propio disparo en primera persona sale del arma que ves, no de la de tu mano
+	if shooter == player then
+		from = ViewModel.GetMuzzle() or from
+	end
 	if sound then
 		drawMuzzleFlash(from)
 		Sfx.PlayAt(Sounds.fire[sound], from)
@@ -98,8 +105,8 @@ function Fx.Start()
 			drawImpact(position + Vector3.new(0, 1, 0), "concrete")
 			Sfx.PlayAt(Sounds.impact.concrete, position, 0.8)
 		elseif kind == "explosion" then
-			local position = ...
-			Sfx.PlayAt(Sounds.explosion, position, 1)
+			local position, sound = ...
+			Sfx.PlayAt(Sounds.explosion[sound] or Sounds.explosion.mine, position, 1)
 		end
 	end)
 end

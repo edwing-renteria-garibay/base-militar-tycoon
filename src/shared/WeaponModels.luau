@@ -4,7 +4,13 @@
 --   X = hacia la derecha · Y = hacia arriba · Z negativo = hacia el frente (hacia donde dispara)
 -- La primera pieza de cada arma es el cuerpo: se vuelve la Handle de la herramienta.
 -- muzzle: la boca del cañón (de ahí salen el fogonazo y la bala)
--- leftHand: dónde va la mano izquierda (ver TwoHands)
+-- leftHand: dónde va la mano izquierda (ver TwoHands en el servidor, y los brazos de
+--   src/client/ViewModel.luau en primera persona)
+-- view: dónde queda el arma en primera persona, medido desde la cámara
+-- kick, kickAngle: cuánto se va hacia atrás (studs) y cuánto sube (grados) al disparar
+--
+-- La usan el servidor (el arma que todos ven en tu mano) y el cliente (el arma en primera
+-- persona).
 
 local WeaponModels = {}
 
@@ -18,11 +24,14 @@ local OLIVE = { Color3.fromRGB(78, 82, 58), Enum.Material.SmoothPlastic }
 local OLIVE_DARK = { Color3.fromRGB(56, 60, 42), Enum.Material.Metal }
 local WOOD = { Color3.fromRGB(92, 60, 38), Enum.Material.Wood }
 local BRASS = { Color3.fromRGB(200, 160, 70), Enum.Material.Metal }
+local SHELL_RED = { Color3.fromRGB(170, 35, 30), Enum.Material.SmoothPlastic }
+local GLASS = { Color3.fromRGB(120, 160, 170), Enum.Material.Glass }
+local GLOW_RED = { Color3.fromRGB(255, 50, 50), Enum.Material.Neon }
 
 -- Un cilindro de Roblox es largo en X; girado 90° queda a lo largo de Z (como un cañón)
 local ALONG_Z = CFrame.Angles(0, rad(90), 0)
 
-type Piece = {
+export type Piece = {
 	name: string,
 	size: Vector3,
 	cframe: CFrame,
@@ -31,7 +40,14 @@ type Piece = {
 	cylinder: boolean?,
 }
 
-type Spec = { pieces: { Piece }, muzzle: CFrame, leftHand: CFrame }
+export type Spec = {
+	pieces: { Piece },
+	muzzle: CFrame,
+	leftHand: CFrame,
+	view: CFrame,
+	kick: number,
+	kickAngle: number,
+}
 
 local function box(name: string, size: Vector3, cframe: CFrame, look): Piece
 	return { name = name, size = size, cframe = cframe, color = look[1], material = look[2] }
@@ -53,7 +69,7 @@ local V = Vector3.new
 local C = CFrame.new
 
 -- Una por cada arma de Config/Weapons (mismo id)
-local SPECS: { [string]: Spec } = {
+WeaponModels.Specs = {
 	-- Rifle de asalto, estilo militar con riel arriba
 	Rifle = {
 		pieces = {
@@ -69,9 +85,19 @@ local SPECS: { [string]: Spec } = {
 			box("Trigger", V(0.05, 0.14, 0.05), C(0, 0.06, -0.15), STEEL),
 			box("Stock", V(0.24, 0.32, 0.9), C(0, 0.27, 0.85), OLIVE),
 			box("ButtPad", V(0.26, 0.5, 0.12), C(0, 0.2, 1.32), POLYMER),
+			-- Mira de punto rojo sobre el riel
+			box("SightBase", V(0.2, 0.08, 0.34), C(0, 0.63, -0.3), BLACK),
+			box("SightTop", V(0.24, 0.04, 0.3), C(0, 0.92, -0.3), BLACK),
+			box("SightLeft", V(0.03, 0.26, 0.3), C(-0.105, 0.8, -0.3), BLACK),
+			box("SightRight", V(0.03, 0.26, 0.3), C(0.105, 0.8, -0.3), BLACK),
+			box("RedDot", V(0.03, 0.03, 0.02), C(0, 0.8, -0.4), GLOW_RED),
+			box("Sling", V(0.04, 0.12, 0.12), C(-0.16, 0.2, 1.1), STEEL),
 		},
 		muzzle = C(0, 0.33, -3.0),
 		leftHand = C(0, 0.15, -1.45),
+		view = C(0.62, -0.78, -1.3) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.1,
+		kickAngle = 1.2,
 	},
 	-- Escopeta de corredera, con madera
 	Escopeta = {
@@ -83,9 +109,18 @@ local SPECS: { [string]: Spec } = {
 			box("Stock", V(0.24, 0.36, 1.1), C(0, 0.18, 0.75) * CFrame.Angles(rad(8), 0, 0), WOOD),
 			box("Grip", V(0.2, 0.42, 0.24), C(0, -0.05, 0.08) * CFrame.Angles(rad(-20), 0, 0), BLACK),
 			box("Bead", V(0.05, 0.06, 0.05), C(0, 0.53, -2.8), STEEL),
+			-- Cartuchos de repuesto en el costado
+			box("ShellHolder", V(0.04, 0.24, 0.62), C(-0.17, 0.3, -0.3), BLACK),
+			box("Shell1", V(0.08, 0.18, 0.1), C(-0.21, 0.3, -0.52), SHELL_RED),
+			box("Shell2", V(0.08, 0.18, 0.1), C(-0.21, 0.3, -0.37), SHELL_RED),
+			box("Shell3", V(0.08, 0.18, 0.1), C(-0.21, 0.3, -0.22), SHELL_RED),
+			box("Shell4", V(0.08, 0.18, 0.1), C(-0.21, 0.3, -0.07), SHELL_RED),
 		},
 		muzzle = C(0, 0.42, -2.9),
 		leftHand = C(0, 0.1, -1.6),
+		view = C(0.6, -0.8, -1.3) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.3,
+		kickAngle = 8,
 	},
 	-- Ametralladora ligera: cañón grueso con agujeros, caja de balas, cinta y bípode
 	Ametralladora = {
@@ -109,6 +144,9 @@ local SPECS: { [string]: Spec } = {
 		},
 		muzzle = C(0, 0.34, -3.35),
 		leftHand = C(0, 0.15, -1.4),
+		view = C(0.62, -0.82, -1.3) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.06,
+		kickAngle = 0.8,
 	},
 	-- Francotirador: cañón largo y mira telescópica
 	Francotirador = {
@@ -125,11 +163,19 @@ local SPECS: { [string]: Spec } = {
 			box("Cheek", V(0.22, 0.12, 0.6), C(0, 0.46, 0.85), OLIVE),
 			box("Magazine", V(0.2, 0.36, 0.3), C(0, 0.0, -0.45), POLYMER),
 			box("Grip", V(0.2, 0.45, 0.24), C(0, -0.05, 0.08) * CFrame.Angles(rad(-18), 0, 0), POLYMER),
+			-- El cerrojo (la palanca para cargar) y la lente de la mira
+			box("Bolt", V(0.26, 0.06, 0.06), C(0.2, 0.4, 0.15), STEEL),
+			box("BoltKnob", V(0.12, 0.12, 0.12), C(0.36, 0.38, 0.15), BLACK),
+			box("ScopeLens", V(0.24, 0.24, 0.02), C(0, 0.78, -1.07), GLASS),
 		},
 		muzzle = C(0, 0.36, -3.85),
 		leftHand = C(0, 0.15, -1.3),
+		view = C(0.6, -0.8, -1.2) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.35,
+		kickAngle = 9,
 	},
-}
+} :: { [string]: Spec }
+local SPECS = WeaponModels.Specs
 
 local function makePart(piece: Piece): Part
 	local part = Instance.new("Part")
@@ -180,6 +226,21 @@ function WeaponModels.MakeTool(weapon): Tool
 	leftGrip.Position = (body.cframe:Inverse() * spec.leftHand).Position
 	leftGrip.Parent = handle
 	return tool
+end
+
+-- Cliente: las piezas sueltas (sin soldar) para moverlas cada fotograma en primera persona.
+-- Devuelve las piezas y dónde va cada una, medido desde la mano.
+function WeaponModels.BuildLoose(id: string): ({ BasePart }, { CFrame })
+	local spec = SPECS[id] or SPECS.Rifle
+	local parts, offsets = {}, {}
+	for _, piece in spec.pieces do
+		local part = makePart(piece)
+		part.Anchored = true
+		part.CastShadow = false
+		table.insert(parts, part)
+		table.insert(offsets, piece.cframe)
+	end
+	return parts, offsets
 end
 
 return WeaponModels

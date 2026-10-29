@@ -19,12 +19,13 @@ local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
 local TwoHands = require(script.Parent.Parent.TwoHands)
-local WeaponModels = require(script.Parent.Parent.WeaponModels)
+local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local DataService = require(script.Parent.DataService)
 local TycoonService = require(script.Parent.TycoonService)
 
 local shootRemote = ReplicatedStorage.Remotes.Shoot :: RemoteEvent
 local armoryRemote = ReplicatedStorage.Remotes.Armory :: RemoteEvent
+local hitRemote = ReplicatedStorage.Remotes.Hit :: RemoteEvent
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
 local WeaponService = {}
@@ -149,6 +150,9 @@ local function onShoot(player: Player, target: any)
 				surface = "flesh"
 				if victim.Health > 0 then
 					victim:TakeDamage(damage)
+					if not ally then
+						hitRemote:FireClient(player) -- la mira se pone roja y suena el aviso
+					end
 					if ally and now - (lastEmpty[player] or 0) > 3 then
 						lastEmpty[player] = now
 						notice:FireClient(player, "¡Cuidado! Le diste a tu francotirador", "bad")
@@ -159,7 +163,7 @@ local function onShoot(player: Player, target: any)
 			end
 		end
 		-- Solo la primera bala suena (la escopeta dispara 6 a la vez)
-		Effects.Shot(muzzle, hitPoint, if i == 1 then weapon.sound else nil, surface)
+		Effects.Shot(muzzle, hitPoint, if i == 1 then weapon.sound else nil, surface, player)
 	end
 end
 

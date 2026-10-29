@@ -32,9 +32,10 @@ function Effects.SurfaceOf(part: BasePart?): string?
 end
 
 -- Un disparo de from a to. sound: su sonido en Config/Sounds (nil = sin sonido, por ejemplo
--- las otras balas de la escopeta). surface: qué tocó ("flesh" = un zombi o una persona)
-function Effects.Shot(from: Vector3, to: Vector3, sound: string?, surface: string?)
-	fx:FireAllClients("shot", from, to, sound, surface)
+-- las otras balas de la escopeta). surface: qué tocó ("flesh" = un zombi o una persona).
+-- shooter: el jugador que disparó (en su pantalla la bala sale del arma en primera persona)
+function Effects.Shot(from: Vector3, to: Vector3, sound: string?, surface: string?, shooter: Player?)
+	fx:FireAllClients("shot", from, to, sound, surface, shooter)
 end
 
 -- Un zombi golpea algo (muro, edificio, caja fuerte): polvo y ruido en ese punto
@@ -42,15 +43,16 @@ function Effects.Hit(position: Vector3)
 	fx:FireAllClients("hit", position)
 end
 
--- Una explosión que solo se ve y se oye: no empuja ni rompe nada (el daño lo pone quien la llama)
-function Effects.Explosion(position: Vector3, radius: number)
+-- Una explosión que solo se ve y se oye: no empuja ni rompe nada (el daño lo pone quien la llama).
+-- sound: cuál de Config/Sounds explosion ("mine" o "zombie")
+function Effects.Explosion(position: Vector3, radius: number, sound: string)
 	local explosion = Instance.new("Explosion")
 	explosion.Position = position
 	explosion.BlastRadius = radius
 	explosion.BlastPressure = 0
 	explosion.DestroyJointPercent = 0
 	explosion.Parent = workspace
-	fx:FireAllClients("explosion", position)
+	fx:FireAllClients("explosion", position, sound)
 end
 
 return Effects

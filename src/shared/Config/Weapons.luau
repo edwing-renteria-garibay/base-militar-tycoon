@@ -6,9 +6,11 @@
 --   cooldown  segundos entre disparos (mantén el clic para disparar seguido)
 --   range     alcance en studs
 --   sound     su sonido de disparo (Config/Sounds, fire)
+--   recoil    grados que sube la mira al disparar (escopeta y francotirador)
+--   zoom      campo de visión al apuntar con clic derecho (el normal es 70)
 --   ammo      la munición: cuántas balas trae cada paquete y cuánto cuesta. Sin ammo = infinita
 --
--- Su forma (las piezas) está en src/server/WeaponModels.luau, con el mismo id.
+-- Su forma (las piezas) está en src/shared/WeaponModels.luau, con el mismo id.
 --
 -- No cambies el id de un arma después de publicar: así se guarda quién la compró.
 
@@ -36,6 +38,7 @@ Weapons.list = {
 		cooldown = 0.8,
 		range = 90,
 		sound = "Shotgun",
+		recoil = 6,
 		ammo = { amount = 24, price = 150 },
 	},
 	{
@@ -58,6 +61,8 @@ Weapons.list = {
 		cooldown = 1.3,
 		range = 700,
 		sound = "Sniper",
+		recoil = 7,
+		zoom = 18,
 		ammo = { amount = 15, price = 200 },
 	},
 }

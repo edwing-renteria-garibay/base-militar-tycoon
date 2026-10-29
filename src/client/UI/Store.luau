@@ -3,11 +3,13 @@
 -- compra, el servidor da lo comprado (StoreService).
 
 local MarketplaceService = game:GetService("MarketplaceService")
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
+local Menus = require(script.Parent.Parent.Menus)
 
 local player = Players.LocalPlayer
 
@@ -118,10 +120,10 @@ function StoreUI.Start()
 	local open = Instance.new("TextButton")
 	open.AnchorPoint = Vector2.new(0, 1)
 	open.Position = UDim2.new(0, 12, 1, -12)
-	open.Size = UDim2.fromOffset(120, 44)
+	open.Size = UDim2.fromOffset(130, 44)
 	open.BackgroundColor3 = GOLD
 	open.Font = Enum.Font.GothamBlack
-	open.Text = "TIENDA"
+	open.Text = "TIENDA (B)"
 	open.TextSize = 20
 	open.TextColor3 = Color3.fromRGB(30, 30, 30)
 	open.Parent = gui
@@ -150,6 +152,7 @@ function StoreUI.Start()
 	close.TextSize = 18
 	close.TextColor3 = Color3.new(1, 1, 1)
 	close.Parent = panel
+	Menus.Register(close) -- en primera persona suelta el mouse mientras se ve el menú
 	corner(close, 8)
 
 	list = Instance.new("ScrollingFrame")
@@ -166,12 +169,20 @@ function StoreUI.Start()
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Parent = list
 
-	open.Activated:Connect(function()
+	local function toggle()
 		panel.Visible = not panel.Visible
 		if panel.Visible then
 			redraw()
 		end
-	end)
+	end
+	open.Activated:Connect(toggle)
+	-- Con la tecla B también (en primera persona el mouse está fijo y no llega al botón)
+	ContextActionService:BindAction("Store", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			toggle()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.B, Enum.KeyCode.DPadDown)
 	close.Activated:Connect(function()
 		panel.Visible = false
 	end)

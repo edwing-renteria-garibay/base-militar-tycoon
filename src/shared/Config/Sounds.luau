@@ -16,7 +16,18 @@ return {
 		metal = "rbxassetid://98609496290942",
 		wood = "rbxassetid://131036980739699",
 	},
-	explosion = "rbxassetid://87630300241395", -- las minas (el de la granada)
+	-- Explosiones: la mina suena como la granada y el zombi explosivo como el cohete
+	explosion = {
+		mine = "rbxassetid://87630300241395",
+		zombie = "rbxassetid://134201956270955",
+	},
+	-- Aviso de acierto: solo lo oye quien dispara, cuando le da a un zombi
+	hit = "rbxasset://sounds/electronicpingshort.wav",
 	empty = "rbxassetid://136205387185309", -- clic al disparar sin balas
+	-- Sin balas, para las armas con su propio clic (las demás usan empty)
+	emptyBy = {
+		Escopeta = "rbxassetid://136205387185309",
+		Francotirador = "rbxassetid://122836641692660",
+	},
 	buy = "rbxasset://sounds/electronicpingshort.wav", -- al comprar en la armería
 }

@@ -470,7 +470,7 @@ local function explode(player: Player, zombie: Zombie, center: Vector3): boolean
 	local blast = zombie.special.explode
 	local position = zombie.root.Position
 	zombie.exploded = true
-	Effects.Explosion(position, blast.radius)
+	Effects.Explosion(position, blast.radius, "zombie")
 	local folder = WallService.Folder(player)
 	if folder then
 		local params = OverlapParams.new()
@@ -627,7 +627,7 @@ local function applyTraps(player: Player, state: State, traps: Traps, bonus: num
 			end
 		end
 		if triggered then
-			Effects.Explosion(mine.position, Waves.mine.radius)
+			Effects.Explosion(mine.position, Waves.mine.radius, "mine")
 			for _, zombie in state.zombies do
 				if isAlive(zombie) and (zombie.root.Position - mine.position).Magnitude < Waves.mine.radius then
 					zombie.humanoid:TakeDamage(Waves.mine.damage * bonus)

@@ -15,6 +15,10 @@ se pierde.
 - **Armas:** el Rifle (tecla **1**) tiene balas infinitas. En la Armería (mantén **E** en su
   entrada) compras escopeta, ametralladora y rifle de francotirador, y su munición. Mantén
   el clic, o el dedo en celular, para disparar seguido. Todo está en `Config/Weapons.luau`.
+- **Cámara:** como en Escuadrón Cero, juegas en primera persona y con **V** cambias a tercera.
+  El mouse queda fijo en la mira; para usar la tienda o colocar defensas usa **B** y **G** (o
+  los botones), y mientras el menú está abierto el mouse se suelta. Eso lo hace
+  `src/client/Menus.luau`: cada menú registra su botón X con `Modal = true`.
 - **Laboratorio:** mantén **E** en su entrada para investigar. Hay 3 líneas con 3 niveles
   cada una: balas (tus armas), torretas (torres y torretas) y explosivos (minas, zanjas y
   alambre). Cada nivel cuesta dinero y tarda un rato; se investiga una a la vez y encima del

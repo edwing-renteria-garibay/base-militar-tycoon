@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Format = require(ReplicatedStorage.Shared.Format)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Menus = require(script.Parent.Parent.Menus)
 local Sfx = require(script.Parent.Parent.Sfx)
 
 local researchRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Research") :: RemoteEvent
@@ -141,6 +142,7 @@ function LabUI.Start()
 	close.TextSize = 18
 	close.TextColor3 = Color3.new(1, 1, 1)
 	close.Parent = panel
+	Menus.Register(close) -- en primera persona suelta el mouse mientras se ve el menú
 	corner(close, 8)
 
 	list = Instance.new("ScrollingFrame")
