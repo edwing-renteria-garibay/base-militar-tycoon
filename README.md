@@ -16,12 +16,13 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - Los edificios y defensas también tienen vida: rotos dejan de funcionar hasta que los reparas
 - **Defensas** en lugares marcados (sus botones están adentro, junto al muro):
   - torre en cada esquina donde contratas un francotirador (mantén **E** al pie; si muere, contratas otro; ¡tus balas también le pegan!) y una torreta por lado (dispara sola)
-  - barricadas de concreto (se rompen y se reparan), alambre de púas (frena y lastima)
+  - alambre de púas (frena y lastima)
   - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina
 - **Edificios con función:** gasolinera (enciende las zanjas), armería (compra armas y munición), enfermería (te cura si estás cerca), laboratorio (mantén **E** para investigar más daño de armas, torretas o explosivos; tarda un rato y se ve encima), taller (repara el muro solo) y radar (ves a los zombis a través de las paredes)
 - **Armas** (Config/Weapons): rifle con balas infinitas, y en la armería escopeta, ametralladora y rifle de francotirador. Mantén el clic para disparar seguido. Mismos modelos, sonidos y efectos de Escuadrón Cero (`src/shared/WeaponModels.luau`), y se agarran con las dos manos
 - **Cámara como Escuadrón Cero:** primera persona con el arma y los brazos en pantalla (`src/client/ViewModel.luau`), **V** cambia a tercera persona sobre el hombro, mira en el centro que se pone roja al acertar, retroceso, y **clic derecho** con el francotirador hace zoom. **B** abre la tienda y **G** el menú de colocar; con un menú abierto el mouse queda libre (`src/client/Menus.luau`)
 - **Torretas** que solo disparan hacia su frente (45°); su alcance se marca en el piso con rayas amarillas
+- **Barricadas de concreto** (botón **BARRICADAS** o tecla **H**): las pones donde quieras en hileras de 1 a 3 pedazos, clic donde empieza y clic donde termina; si la punta queda cerca de otra barricada se unen, así armas la forma que quieras. Se rompen y se reparan como el muro (`Config/Barricades.luau`)
 - **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, bolsa de dinero y **defensas premium** (torreta pesada y barricada de acero)
 - **Defensas premium:** las compradas con Robux las colocas donde quieras con el botón **COLOCAR**, menos en los lugares marcados (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una gratis
 - **Premio diario** que sube si entras días seguidos

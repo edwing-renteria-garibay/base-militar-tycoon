@@ -61,6 +61,7 @@ type Zombie = {
 	climbing: boolean, -- trepando: lo mueve climb(), no piensa
 	onTower: string?, -- el trepador ya está arriba de esta torre
 	exploded: boolean, -- el explosivo ya explotó (no da premio)
+	weapon: Weld?, -- lo que trae en la mano (tubo, palo o pico): se mueve al golpear
 }
 type State = {
 	nextWave: number, -- os.clock() en que empieza la siguiente ola
@@ -127,6 +128,86 @@ local function getTemplate(special): Model?
 	end
 	templates[key] = model
 	return model
+end
+
+-- Lo que traen en la mano para golpear. Cada pieza: tamaño, dónde va (medido desde la mano,
+-- -Z = hacia el frente), color y material
+local ZOMBIE_WEAPONS = {
+	-- Tubo de metal oxidado
+	{
+		{ Vector3.new(0.35, 0.35, 4.2), CFrame.new(0, 0, -1.4), Color3.fromRGB(105, 95, 85), Enum.Material.CorrodedMetal },
+		{ Vector3.new(0.5, 0.5, 0.4), CFrame.new(0, 0, -3.4), Color3.fromRGB(80, 75, 70), Enum.Material.Metal },
+	},
+	-- Palo con clavos
+	{
+		{ Vector3.new(0.45, 0.45, 4), CFrame.new(0, 0, -1.3), Color3.fromRGB(110, 75, 45), Enum.Material.Wood },
+		{ Vector3.new(0.9, 0.08, 0.08), CFrame.new(0, 0.1, -2.7), Color3.fromRGB(160, 160, 165), Enum.Material.Metal },
+		{ Vector3.new(0.08, 0.9, 0.08), CFrame.new(0, 0, -2.9), Color3.fromRGB(160, 160, 165), Enum.Material.Metal },
+		{ Vector3.new(0.9, 0.08, 0.08), CFrame.new(0, -0.1, -3.1), Color3.fromRGB(160, 160, 165), Enum.Material.Metal },
+	},
+	-- Pico de minero
+	{
+		{ Vector3.new(0.3, 0.3, 4), CFrame.new(0, 0, -1.3), Color3.fromRGB(120, 85, 50), Enum.Material.Wood },
+		{ Vector3.new(0.3, 3, 0.4), CFrame.new(0, 0, -3.2), Color3.fromRGB(85, 88, 92), Enum.Material.Metal },
+		{ Vector3.new(0.2, 0.5, 0.3), CFrame.new(0, 1.65, -3.1), Color3.fromRGB(85, 88, 92), Enum.Material.Metal },
+		{ Vector3.new(0.2, 0.5, 0.3), CFrame.new(0, -1.65, -3.1), Color3.fromRGB(85, 88, 92), Enum.Material.Metal },
+	},
+}
+
+-- Le pone en la mano derecha un tubo, un palo o un pico (al azar). Devuelve la Weld que lo
+-- sostiene, para moverlo al golpear (swing)
+local function giveWeapon(model: Model): Weld?
+	local hand = model:FindFirstChild("RightHand") :: BasePart?
+	if not hand then
+		return nil
+	end
+	local pieces = ZOMBIE_WEAPONS[math.random(#ZOMBIE_WEAPONS)]
+	local handle: BasePart? = nil
+	for _, piece in pieces do
+		local p = Instance.new("Part")
+		p.Name = "ArmaZombi"
+		p.Size = piece[1]
+		p.Color = piece[3]
+		p.Material = piece[4]
+		p.CanCollide = false
+		p.CanQuery = false -- las balas lo atraviesan
+		p.CanTouch = false
+		p.Massless = true
+		if handle then
+			local weld = Instance.new("Weld")
+			weld.Part0 = handle
+			weld.Part1 = p
+			weld.C0 = (pieces[1][2] :: CFrame):Inverse() * piece[2]
+			weld.Parent = p
+		else
+			handle = p
+		end
+		p.Parent = model
+	end
+	local grip = Instance.new("Weld")
+	grip.Name = "AgarreArma"
+	grip.Part0 = hand
+	grip.Part1 = handle
+	grip.C0 = CFrame.new(0, -0.2, 0) * pieces[1][2]
+	grip.Parent = handle
+	return grip
+end
+
+-- El zombi levanta su arma y la deja caer
+local function swingWeapon(zombie: Zombie)
+	local grip = zombie.weapon
+	if not grip or not grip.Parent then
+		return
+	end
+	local rest = grip:GetAttribute("Rest") or grip.C0
+	grip:SetAttribute("Rest", rest)
+	grip.C0 = CFrame.Angles(math.rad(70), 0, 0) * rest -- arriba
+	task.delay(0.15, function()
+		grip.C0 = CFrame.Angles(math.rad(-40), 0, 0) * rest -- el golpe
+		task.delay(0.15, function()
+			grip.C0 = rest
+		end)
+	end)
 end
 
 local function flat(v: Vector3): Vector3
@@ -196,6 +277,8 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		climbing = false,
 		onTower = nil,
 		exploded = false,
+		-- El explosivo no trae nada: sostiene su bomba
+		weapon = if special and special.explode then nil else giveWeapon(model),
 	}
 	table.insert(state.zombies, zombie)
 	humanoid.Died:Connect(function()
@@ -354,6 +437,7 @@ local function hitPlayers(zombie: Zombie, now: number): boolean
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and humanoid.Health > 0 and (root.Position - zombie.root.Position).Magnitude < REACH + 1 then
 			zombie.lastHit = now
+			swingWeapon(zombie)
 			humanoid:TakeDamage(Waves.playerHit)
 			return true
 		end
@@ -449,6 +533,7 @@ end
 local function swing(zombie: Zombie, point: Vector3, now: number)
 	if now - zombie.lastSwing >= 1 then
 		zombie.lastSwing = now
+		swingWeapon(zombie)
 		Effects.Hit(point)
 	end
 end

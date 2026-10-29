@@ -50,7 +50,7 @@ function Effects.Explosion(position: Vector3, radius: number, sound: string)
 	explosion.Position = position
 	explosion.BlastRadius = radius
 	explosion.BlastPressure = 0
-	explosion.DestroyJointPercent = 0
+	explosion.DestroyJointRadiusPercent = 0
 	explosion.Parent = workspace
 	fx:FireAllClients("explosion", position, sound)
 end

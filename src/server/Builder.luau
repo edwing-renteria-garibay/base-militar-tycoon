@@ -578,6 +578,23 @@ function Builder.kinds.Barricade(m: Model, o: CFrame)
 	end
 end
 
+-- Un pedazo de barricada de las que pones donde quieras (Config/Barricades): o es el centro de
+-- la barricada en el piso, mirando a lo largo de ella. Lleva un poste en cada punta: donde se
+-- juntan dos barricadas, sus postes quedan uno encima del otro y se ve unido
+function Builder.BarricadeSegment(o: CFrame, length: number): Model
+	local m = Instance.new("Model")
+	m.Name = "Barricada"
+	part(m, o, Vector3.new(3.4, 1.6, length), at(0, 0.8, 0), CONCRETE, Enum.Material.Concrete)
+	part(m, o, Vector3.new(1.8, 2.6, length), at(0, 2.9, 0), CONCRETE, Enum.Material.Concrete)
+	for _, z in { -length / 2, length / 2 } do
+		part(m, o, Vector3.new(2.6, 4.8, 2.6), at(0, 2.4, z), STONE, Enum.Material.Concrete)
+	end
+	for _, x in { -0.95, 0.95 } do
+		part(m, o, Vector3.new(0.1, 0.5, math.max(length - 3, 0.5)), at(x, 3.4, 0), YELLOW, Enum.Material.SmoothPlastic)
+	end
+	return m
+end
+
 -- Alambre de púas: 16 de ancho. No tapa el paso (se puede atravesar), pero frena y lastima
 function Builder.kinds.Wire(m: Model, o: CFrame)
 	for x = -8, 8, 4 do

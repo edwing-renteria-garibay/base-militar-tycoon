@@ -148,9 +148,9 @@ function HUD.Start()
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
+	-- Todo en la esquina de arriba a la izquierda, para que no tape el centro de la pantalla
 	local top = Instance.new("Frame")
-	top.AnchorPoint = Vector2.new(0.5, 0)
-	top.Position = UDim2.new(0.5, 0, 0, 8)
+	top.Position = UDim2.fromOffset(12, 8)
 	top.Size = UDim2.fromOffset(260, 64)
 	top.BackgroundColor3 = Color3.fromRGB(24, 26, 22)
 	top.BackgroundTransparency = 0.25
@@ -165,14 +165,13 @@ function HUD.Start()
 	incomeLabel.Font = Enum.Font.GothamBold
 
 	waveLabel = newLabel(gui, UDim2.fromOffset(360, 24), 18)
-	waveLabel.AnchorPoint = Vector2.new(0.5, 0)
-	waveLabel.Position = UDim2.new(0.5, 0, 0, 78)
+	waveLabel.Position = UDim2.fromOffset(12, 76)
+	waveLabel.TextXAlignment = Enum.TextXAlignment.Left
 	waveLabel.Visible = false
 
 	-- Debajo de la ola: la caja fuerte, el muro y tu vida
 	bars = Instance.new("Frame")
-	bars.AnchorPoint = Vector2.new(0.5, 0)
-	bars.Position = UDim2.new(0.5, 0, 0, 104)
+	bars.Position = UDim2.fromOffset(22, 102)
 	bars.Size = UDim2.fromOffset(240, 62)
 	bars.BackgroundTransparency = 1
 	bars.Parent = gui
@@ -228,7 +227,7 @@ function HUD.Start()
 
 	notices = Instance.new("Frame")
 	notices.AnchorPoint = Vector2.new(0.5, 0)
-	notices.Position = UDim2.new(0.5, 0, 0, 180) -- debajo de las barras
+	notices.Position = UDim2.new(0.5, 0, 0, 8) -- arriba en medio
 	notices.Size = UDim2.new(0.95, 0, 0, 200) -- en celular no cabían 500 de ancho
 	notices.BackgroundTransparency = 1
 	notices.Parent = gui

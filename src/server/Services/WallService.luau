@@ -152,6 +152,16 @@ function WallService.Add(player: Player, target: Instance, maxHealth: number)
 	table.insert(state.targets, target)
 end
 
+-- Quita algo que se podía romper (y lo borra)
+function WallService.Remove(player: Player, target: Instance)
+	local state = states[player]
+	local index = state and table.find(state.targets, target)
+	if state and index then
+		table.remove(state.targets, index)
+	end
+	target:Destroy()
+end
+
 -- La carpeta donde están las cosas que se rompen (para que los zombis las busquen)
 function WallService.Folder(player: Player): Folder?
 	local state = states[player]

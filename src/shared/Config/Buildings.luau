@@ -121,18 +121,7 @@ for i, side in Buildings.sides do
 		rot = side.rot,
 		defense = { damage = 15, range = 90, cooldown = 0.6, sound = "AssaultRifle" },
 	})
-	for j, x in { -40, 40 } do
-		add({
-			id = "Barricada_" .. side.key .. j,
-			name = "Barricada de concreto",
-			price = 500,
-			kind = "Barricade",
-			at = place(x, -77),
-			rot = side.rot,
-			button = place(x, -64),
-			effect = "barricade",
-		})
-	end
+	-- (las barricadas de concreto ya no van aquí: las pones donde quieras, Config/Barricades)
 	for j, x in { -20, 20 } do
 		add({
 			id = "Alambre_" .. side.key .. j,

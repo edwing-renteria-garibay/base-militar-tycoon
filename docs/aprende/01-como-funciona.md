@@ -23,8 +23,10 @@ la misma lista sirve para los 6 terrenos.
 
 - La caja fuerte está en `{ 0, 0 }`.
 - El muro está a 70 del centro por los 4 lados (`Waves.wallInset`).
-- Afuera del muro, en cada lado, van de adentro hacia afuera: barricadas (z = -77), alambre
-  (-83), zanja (-89) y minas (-95). Sus botones están adentro, en z = -64.
+- Afuera del muro, en cada lado, van de adentro hacia afuera: alambre (z = -83), zanja (-89) y
+  minas (-95). Sus botones están adentro, en z = -64.
+- Las barricadas de concreto no tienen lugar marcado: las pones tú donde quieras
+  (`Config/Barricades.luau`).
 - `Buildings.sides` gira esas mismas posiciones para los otros 3 lados.
 
 ## El ciclo

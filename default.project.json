@@ -17,6 +17,9 @@
         "Hit": {
           "$className": "RemoteEvent"
         },
+        "Barricade": {
+          "$className": "RemoteEvent"
+        },
         "Fx": {
           "$className": "RemoteEvent"
         },

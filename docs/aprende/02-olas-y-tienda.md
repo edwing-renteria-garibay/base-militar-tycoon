@@ -77,6 +77,16 @@ para colocarla o comprar más. Al elegir "Colocar" sale una vista previa. Verde 
 que se compra con dinero del juego, ni en el muro, ni en otra defensa
 (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una sin pagar.
 
+**Ojo:** las defensas premium solo duran hasta que destruyen tu caja fuerte. Si pasa, se
+pierden y hay que comprar otras.
+
+### Barricadas
+
+Las barricadas de concreto se compran con dinero del juego, pero no tienen lugar marcado: con
+**BARRICADAS** (o **H**) haces clic donde empieza una hilera y otra vez donde termina (de 1 a 3
+pedazos). La siguiente sigue desde ahí, así dibujas la forma que quieras. Si la punta queda
+cerca de otra barricada, se pegan. Precio, vida y cuántas puedes tener: `Config/Barricades.luau`.
+
 ### Cómo crearlos (cuando ya publiques el juego)
 
 1. [create.roblox.com](https://create.roblox.com) > **Creaciones** > Base Militar Tycoon.

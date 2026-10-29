@@ -6,6 +6,7 @@
 -- (TycoonService).
 
 local ContextActionService = game:GetService("ContextActionService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -133,6 +134,17 @@ local function nextItem(after): any
 	return nil
 end
 
+-- Las que ya están colocadas (las publica el servidor), para no encimarlas
+local function placedList(): { any }
+	local ok, list = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("PremiumPlaced") or "[]")
+	return if ok and type(list) == "table" then list else {}
+end
+
+local function radiusOf(key: string): number
+	local item = Premium.byKey[key]
+	return if item then item.radius else 5
+end
+
 local function confirm()
 	if current and spot and valid then
 		placeRemote:FireServer(current.key, spot.X, spot.Y, rotation)
@@ -149,7 +161,7 @@ local function update()
 	mouse.TargetFilter = ghost
 	local here = center:PointToObjectSpace(mouse.Hit.Position)
 	spot = Vector2.new(math.floor(here.X + 0.5), math.floor(here.Z + 0.5))
-	valid = Placement.Check(spot.X, spot.Y, current.radius)
+	valid = Placement.Check(spot.X, spot.Y, current.radius, placedList(), radiusOf)
 	local place = center * CFrame.new(spot.X, 0.3, spot.Y) * CFrame.Angles(0, math.rad(rotation), 0)
 	local disc = ghost:FindFirstChild("Disco") :: BasePart
 	local arrow = ghost:FindFirstChild("Flecha") :: BasePart

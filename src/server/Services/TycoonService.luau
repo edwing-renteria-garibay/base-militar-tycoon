@@ -25,10 +25,12 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Barricades = require(ReplicatedStorage.Shared.Config.Barricades)
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Placement = require(ReplicatedStorage.Shared.Placement)
@@ -47,6 +49,7 @@ local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 local armoryRemote = ReplicatedStorage.Remotes.Armory :: RemoteEvent
 local placeRemote = ReplicatedStorage.Remotes.Place :: RemoteEvent
 local researchRemote = ReplicatedStorage.Remotes.Research :: RemoteEvent
+local barricadeRemote = ReplicatedStorage.Remotes.Barricade :: RemoteEvent
 
 local AFFORD = Color3.fromRGB(60, 200, 90) -- botón: te alcanza
 local TOO_EXPENSIVE = Color3.fromRGB(170, 60, 60) -- botón: todavía no te alcanza
@@ -114,18 +117,31 @@ local function hasEffect(state: State, profile: DataService.Profile, effect: str
 	return false
 end
 
--- Un letrero que se activa manteniendo E (o tocándolo en celular). Solo lo puede usar el dueño
+-- Un letrero que se activa manteniendo E (o tocándolo en celular). Solo lo puede usar el dueño.
+-- Si la construcción donde está se rompe, el letrero dice "Destruido" y no hace nada hasta que
+-- la reparas
 local function prompt(parent: Instance, action: string, owner: Player, hold: number, onUse: () -> ()): ProximityPrompt
 	local p = Instance.new("ProximityPrompt")
 	p.ActionText = action
 	p.HoldDuration = hold
 	p.MaxActivationDistance = 18
 	p.RequiresLineOfSight = false
+	local building = parent:FindFirstAncestorOfClass("Model")
 	p.Triggered:Connect(function(who)
-		if who == owner then
-			onUse()
+		if who ~= owner then
+			return
 		end
+		if building and not working(building) then
+			notice:FireClient(owner, "Está destruido: repáralo en la caja fuerte", "bad")
+			return
+		end
+		onUse()
 	end)
+	if building then
+		building:GetAttributeChangedSignal("Health"):Connect(function()
+			p.ActionText = if working(building) then action else "Destruido"
+		end)
+	end
 	p.Parent = parent
 	return p
 end
@@ -545,11 +561,13 @@ premiumItem = function(entry, index: number)
 	}
 end
 
--- Cuántas tiene sin colocar (lo lee la pantalla de colocar)
+-- Cuántas tiene sin colocar y dónde están las colocadas (lo lee la pantalla de colocar, para
+-- avisar antes de que el servidor diga "Ya hay otra defensa")
 publishPremium = function(player: Player, profile: DataService.Profile)
 	for _, item in Premium.list do
 		player:SetAttribute("Premium_" .. item.key, profile.premium[item.key] or 0)
 	end
+	player:SetAttribute("PremiumPlaced", HttpService:JSONEncode(profile.placed))
 end
 
 local function radiusOf(key: string): number
@@ -583,6 +601,74 @@ local function place(player: Player, key: any, x: any, z: any, rot: any)
 	end
 	publishPremium(player, profile)
 	notice:FireClient(player, "Colocaste: " .. base.name, "great")
+end
+
+-- Barricadas (Config/Barricades) -------------------------------------------------------------
+
+-- Dónde están las hileras (lo lee la pantalla de barricadas, para unirse a sus puntas)
+local function publishBarricades(player: Player, profile: DataService.Profile)
+	player:SetAttribute("Barricades", HttpService:JSONEncode(profile.barricades))
+end
+
+local function barricadeCount(profile: DataService.Profile): number
+	local count = 0
+	for _, row in profile.barricades do
+		count += row[5]
+	end
+	return count
+end
+
+-- Dibuja una hilera: sus pedazos, cada uno con su vida
+local function buildRow(state: State, row: { number })
+	local a, b, count = Vector2.new(row[1], row[2]), Vector2.new(row[3], row[4]), row[5]
+	for i = 1, count do
+		local from, to = a:Lerp(b, (i - 1) / count), a:Lerp(b, i / count)
+		local length = (to - from).Magnitude
+		local o = state.plot.cframe
+			* CFrame.lookAt(Vector3.new(from.X, 0, from.Y), Vector3.new(to.X, 0, to.Y))
+			* CFrame.new(0, 0, -length / 2)
+		WallService.Add(state.owner, Builder.BarricadeSegment(o, length), Barricades.health)
+	end
+end
+
+-- Pone una hilera de barricadas de (ax, az) a (bx, bz), si se puede y le alcanza
+local function onBarricade(player: Player, ax: any, az: any, bx: any, bz: any)
+	local state = states[player]
+	local profile = DataService.Get(player)
+	for _, n in { ax, az, bx, bz } do
+		if type(n) ~= "number" or n ~= n then
+			return
+		end
+	end
+	if not state or not profile then
+		return
+	end
+	local points = Placement.RowPoints(profile.barricades)
+	local a, b, count = Placement.Row(Vector2.new(ax, az), Vector2.new(bx, bz), points)
+	if count <= 0 then
+		return
+	end
+	if barricadeCount(profile) + count > Barricades.max then
+		notice:FireClient(player, string.format("Ya tienes el máximo de barricadas (%d)", Barricades.max), "bad")
+		return
+	end
+	local ok, reason = Placement.CheckRow(a, b, profile.placed, radiusOf)
+	if not ok then
+		notice:FireClient(player, "No se puede ahí: " .. (reason or ""), "bad")
+		return
+	end
+	local price = count * Barricades.price
+	if not DataService.Spend(player, price) then
+		notice:FireClient(player, "Te faltan " .. Format.Money(price - profile.money), "bad")
+		return
+	end
+	local function round(n: number): number
+		return math.floor(n * 100 + 0.5) / 100
+	end
+	local row = { round(a.X), round(a.Y), round(b.X), round(b.Y), count }
+	table.insert(profile.barricades, row)
+	buildRow(state, row)
+	publishBarricades(player, profile)
 end
 
 -- Prepara el terreno de un jugador que acaba de llegar: caja fuerte, muro, lo que ya había
@@ -631,6 +717,10 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 			build(state, item, false)
 		end
 	end
+	for _, row in profile.barricades do
+		buildRow(state, row)
+	end
+	publishBarricades(player, profile)
 	publishPremium(player, profile)
 	vaultText.Text = Format.Money(profile.vault)
 	vaultHealthChanged(state)
@@ -711,6 +801,19 @@ function TycoonService.LoseVault(player: Player): number
 	state.vaultText.Text = Format.Money(profile.vault)
 	state.vaultHealth = Waves.vaultHealth
 	vaultHealthChanged(state)
+	-- Las defensas premium (de Robux) solo duran hasta que destruyen la caja fuerte
+	if #profile.placed > 0 then
+		for id, model in state.models do
+			if string.sub(id, 1, 7) == "Premium" then
+				WallService.Remove(player, model)
+				state.models[id] = nil
+				state.items[id] = nil
+			end
+		end
+		profile.placed = {}
+		publishPremium(player, profile)
+		notice:FireClient(player, "Se perdieron tus defensas premium", "bad")
+	end
 	WallService.RepairAll(player)
 	return lost
 end
@@ -783,6 +886,7 @@ end
 function TycoonService.Start()
 	DataService.MoneyChanged.Event:Connect(refreshButtons)
 	placeRemote.OnServerEvent:Connect(place)
+	barricadeRemote.OnServerEvent:Connect(onBarricade)
 	-- Cada segundo: la caja fuerte junta dinero, el taller repara y se actualizan los letreros
 	task.spawn(function()
 		while true do

@@ -13,7 +13,9 @@
 --   research = lo investigado en el laboratorio: { Balas = 2, ... }, y lo que se está
 --              investigando: researching = { key, finish } (finish = os.time() al terminar)
 --   premium  = defensas premium compradas y sin colocar: { TorretaPesada = 1, ... }
---   placed   = las defensas premium ya colocadas: { { key, x, z, rot }, ... }
+--   placed   = las defensas premium ya colocadas: { { key, x, z, rot }, ... }. Se pierden si
+--              destruyen tu caja fuerte
+--   barricades = las hileras de barricadas: { { ax, az, bx, bz, pedazos }, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
 --
@@ -41,6 +43,7 @@ export type Profile = {
 	researching: { key: string, finish: number }?,
 	premium: { [string]: number },
 	placed: { { key: string, x: number, z: number, rot: number } },
+	barricades: { { number } },
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -116,6 +119,7 @@ function DataService.Load(player: Player): Profile
 		researching = nil,
 		premium = {},
 		placed = {},
+		barricades = {},
 		daily = { last = 0, streak = 0 },
 		receipts = {},
 	}
@@ -136,6 +140,7 @@ function DataService.Load(player: Player): Profile
 			profile.researching = if type(data.researching) == "table" then data.researching else nil
 			profile.premium = if type(data.premium) == "table" then data.premium else {}
 			profile.placed = if type(data.placed) == "table" then data.placed else {}
+			profile.barricades = if type(data.barricades) == "table" then data.barricades else {}
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0
