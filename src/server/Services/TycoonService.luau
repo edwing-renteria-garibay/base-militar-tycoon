@@ -145,8 +145,9 @@ local function isAvailable(profile: DataService.Profile, item): boolean
 	return not profile.owned[item.id] and (item.requires == nil or profile.owned[item.requires] == true)
 end
 
--- Si el jugador está parado donde va a salir la construcción, lo mueve enfrente de ella
--- (si no, las piezas lo empujan y lo tiran)
+-- Si el jugador está parado donde va a salir la construcción, lo mueve a un lado de ella (si
+-- no, las piezas lo empujan y lo tiran). Lo pone del lado de la caja fuerte, para no sacarlo
+-- del muro (las torretas miran hacia afuera)
 local function moveOutOfTheWay(player: Player, model: Model)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -157,8 +158,23 @@ local function moveOutOfTheWay(player: Player, model: Model)
 	local here = box:PointToObjectSpace(root.Position)
 	local margin = 2
 	if math.abs(here.X) < size.X / 2 + margin and math.abs(here.Z) < size.Z / 2 + margin then
-		local front = box * CFrame.new(here.X, 0, -size.Z / 2 - 5)
-		local spot = Vector3.new(front.Position.X, root.Position.Y, front.Position.Z)
+		-- Los 4 lados de la construcción; se queda con el más cercano al centro del terreno
+		local sides = {
+			(box * CFrame.new(here.X, 0, -size.Z / 2 - 5)).Position,
+			(box * CFrame.new(here.X, 0, size.Z / 2 + 5)).Position,
+			(box * CFrame.new(-size.X / 2 - 5, 0, here.Z)).Position,
+			(box * CFrame.new(size.X / 2 + 5, 0, here.Z)).Position,
+		}
+		local center = player:GetAttribute("PlotCenter")
+		local side = sides[1]
+		if typeof(center) == "CFrame" then
+			for _, option in sides do
+				if (option - center.Position).Magnitude < (side - center.Position).Magnitude then
+					side = option
+				end
+			end
+		end
+		local spot = Vector3.new(side.X, root.Position.Y, side.Z)
 		character:PivotTo(CFrame.lookAt(spot, Vector3.new(box.Position.X, spot.Y, box.Position.Z)))
 	end
 end
