@@ -34,8 +34,11 @@ local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Placement = require(ReplicatedStorage.Shared.Placement)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.Builder)
+local TwoHands = require(script.Parent.Parent.TwoHands)
+local WeaponModels = require(script.Parent.Parent.WeaponModels)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local WallService = require(script.Parent.WallService)
@@ -229,6 +232,9 @@ local function spawnSniper(state: State, item)
 	model:PivotTo(CFrame.lookAt(top, top + outward))
 	root.Anchored = true -- no se cae de la torre
 	model.Parent = state.plot.contents
+	-- Con su rifle de francotirador en las manos (el mismo que venden en la Armería)
+	TwoHands.Setup(model)
+	humanoid:EquipTool(WeaponModels.MakeTool(Weapons.byId.Francotirador))
 	state.snipers[item.id] = model
 	local hire = state.hirePrompts[item.id]
 	if hire then

@@ -19,7 +19,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
   - barricadas de concreto (se rompen y se reparan), alambre de púas (frena y lastima)
   - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina
 - **Edificios con función:** gasolinera (enciende las zanjas), armería (compra armas y munición), enfermería (te cura si estás cerca), laboratorio (mantén **E** para investigar más daño de armas, torretas o explosivos; tarda un rato y se ve encima), taller (repara el muro solo) y radar (ves a los zombis a través de las paredes)
-- **Armas** (Config/Weapons): rifle con balas infinitas, y en la armería escopeta, ametralladora y rifle de francotirador. Mantén el clic para disparar seguido. Mismos sonidos y efectos de Escuadrón Cero
+- **Armas** (Config/Weapons): rifle con balas infinitas, y en la armería escopeta, ametralladora y rifle de francotirador. Mantén el clic para disparar seguido. Mismos modelos, sonidos y efectos de Escuadrón Cero (`src/server/WeaponModels.luau`), y se agarran con las dos manos
 - **Torretas** que solo disparan hacia su frente (45°); su alcance se marca en el piso con rayas amarillas
 - **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, bolsa de dinero y **defensas premium** (torreta pesada y barricada de acero)
 - **Defensas premium:** las compradas con Robux las colocas donde quieras con el botón **COLOCAR**, menos en los lugares marcados (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una gratis

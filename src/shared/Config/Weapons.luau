@@ -7,7 +7,8 @@
 --   range     alcance en studs
 --   sound     su sonido de disparo (Config/Sounds, fire)
 --   ammo      la munición: cuántas balas trae cada paquete y cuánto cuesta. Sin ammo = infinita
---   size      largo del arma (solo para dibujarla)
+--
+-- Su forma (las piezas) está en src/server/WeaponModels.luau, con el mismo id.
 --
 -- No cambies el id de un arma después de publicar: así se guarda quién la compró.
 
@@ -23,7 +24,6 @@ Weapons.list = {
 		cooldown = 0.3,
 		range = 300,
 		sound = "AssaultRifle",
-		size = 3,
 	},
 	{
 		id = "Escopeta",
@@ -37,7 +37,6 @@ Weapons.list = {
 		range = 90,
 		sound = "Shotgun",
 		ammo = { amount = 24, price = 150 },
-		size = 3.4,
 	},
 	{
 		id = "Ametralladora",
@@ -49,7 +48,6 @@ Weapons.list = {
 		range = 250,
 		sound = "AssaultRifle",
 		ammo = { amount = 200, price = 300 },
-		size = 4,
 	},
 	{
 		id = "Francotirador",
@@ -61,7 +59,6 @@ Weapons.list = {
 		range = 700,
 		sound = "Sniper",
 		ammo = { amount = 15, price = 200 },
-		size = 5,
 	},
 }
 

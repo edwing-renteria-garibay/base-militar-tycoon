@@ -693,6 +693,11 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 					-- El francotirador voltea hacia el zombi
 					local pivot = sniper:GetPivot().Position
 					sniper:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
+					-- y la bala sale de la boca de su rifle
+					local tip = sniper:FindFirstChild("Muzzle", true) :: Attachment?
+					if tip then
+						from = tip.WorldPosition
+					end
 				end
 				local head = building:FindFirstChild("Cabeza")
 				if head and head:IsA("Model") then

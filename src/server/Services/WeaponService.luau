@@ -18,6 +18,8 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
+local TwoHands = require(script.Parent.Parent.TwoHands)
+local WeaponModels = require(script.Parent.Parent.WeaponModels)
 local DataService = require(script.Parent.DataService)
 local TycoonService = require(script.Parent.TycoonService)
 
@@ -29,34 +31,6 @@ local WeaponService = {}
 
 local lastShot: { [Player]: number } = {}
 local lastEmpty: { [Player]: number } = {}
-
-local function makeTool(weapon): Tool
-	local tool = Instance.new("Tool")
-	tool.Name = weapon.id
-	tool.ToolTip = weapon.name
-	tool.CanBeDropped = false
-	tool.GripPos = Vector3.new(0, -0.2, weapon.size / 5)
-	local handle = Instance.new("Part")
-	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.4, 0.7, weapon.size)
-	handle.Color = Color3.fromRGB(40, 42, 40)
-	handle.Material = Enum.Material.Metal
-	handle.CanCollide = false
-	handle.Massless = true
-	handle.Parent = tool
-	local stock = Instance.new("Part")
-	stock.Size = Vector3.new(0.35, 0.8, 1)
-	stock.Color = Color3.fromRGB(86, 92, 62)
-	stock.CanCollide = false
-	stock.Massless = true
-	stock.CFrame = handle.CFrame * CFrame.new(0, -0.2, weapon.size / 2 + 0.3)
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = handle
-	weld.Part1 = stock
-	weld.Parent = stock
-	stock.Parent = tool
-	return tool
-end
 
 -- Pone en la pantalla qué armas tiene y cuántas balas le quedan
 local function publish(player: Player)
@@ -87,7 +61,7 @@ local function giveWeapons(player: Player)
 	for _, weapon in Weapons.list do
 		local has = backpack:FindFirstChild(weapon.id) or (character and character:FindFirstChild(weapon.id))
 		if owns(profile, weapon) and not has then
-			makeTool(weapon).Parent = backpack
+			WeaponModels.MakeTool(weapon).Parent = backpack
 		end
 	end
 	publish(player)
@@ -156,8 +130,9 @@ local function onShoot(player: Player, target: any)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
-	local handle = (tool :: Tool):FindFirstChild("Handle") :: BasePart?
-	local muzzle = if handle then (handle.CFrame * CFrame.new(0, 0, -weapon.size / 2)).Position else origin
+	local handle = (tool :: Tool):FindFirstChild("Handle")
+	local tip = handle and handle:FindFirstChild("Muzzle") :: Attachment?
+	local muzzle = if tip then tip.WorldPosition else origin
 	local damage = weapon.damage * WeaponService.DamageBonus(player)
 	for i = 1, weapon.pellets or 1 do
 		local direction = aim.LookVector
@@ -232,10 +207,12 @@ function WeaponService.Start()
 	shootRemote.OnServerEvent:Connect(onShoot)
 	armoryRemote.OnServerEvent:Connect(onArmory)
 	local function onPlayer(player: Player)
-		player.CharacterAdded:Connect(function()
+		player.CharacterAdded:Connect(function(character)
+			TwoHands.Setup(character)
 			giveWeapons(player)
 		end)
 		if player.Character then
+			task.spawn(TwoHands.Setup, player.Character)
 			task.spawn(giveWeapons, player)
 		end
 	end
