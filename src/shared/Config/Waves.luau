@@ -69,6 +69,10 @@ Waves.healRange = 16
 -- Botiquines: se compran en la enfermería (mantén E) y se usan desde la barra de abajo, donde
 -- sea. Cada uno cura "heal" de vida. Puedes cargar hasta "max"
 Waves.medkit = { price = 200, heal = 60, max = 5 }
+-- Infección (la del zombi corrosivo): te quita dps de vida por segundo hasta que usas un
+-- antídoto (se compran en la enfermería) o mueres. Los botiquines curan vida, no la infección
+Waves.infection = { dps = 2 }
+Waves.antidote = { price = 300, max = 3 }
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
 Waves.wallHealth = { 200, 600, 1500 }
@@ -95,7 +99,8 @@ Waves.sniper = { price = 500, health = 150 }
 --                       "building" (edificios) o "defense" (torres y torretas). Sin target
 --                       va a la caja fuerte, como uno normal
 --   explode             explota al llegar al muro, a algo que le tape el paso, a la caja o a
---                       un jugador: daño a lo que esté en radius (y playerDamage a jugadores)
+--                       un jugador: daño a lo que esté en radius (y playerDamage a jugadores).
+--                       Con infect, los jugadores que alcanza quedan infectados (Waves.infection)
 Waves.special = {
 	{
 		key = "Trepador",
@@ -134,16 +139,16 @@ Waves.special = {
 		scale = 1,
 	},
 	{
-		key = "Explosivo",
-		name = "explosivo",
+		key = "Explosivo", -- (no cambiar la key; en el juego se llama "corrosivo")
+		name = "corrosivo",
 		from = 6,
 		every = 8,
 		health = 0.8,
 		speed = 1.2,
 		dps = 1,
-		shirt = Color3.fromRGB(170, 30, 30),
+		shirt = Color3.fromRGB(90, 140, 40),
 		scale = 1.1,
-		explode = { damage = 400, radius = 12, playerDamage = 50 },
+		explode = { damage = 400, radius = 12, playerDamage = 50, infect = true },
 	},
 }
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre

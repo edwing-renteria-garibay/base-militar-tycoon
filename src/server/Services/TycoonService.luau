@@ -293,23 +293,25 @@ local function hireSniper(state: State, item)
 	notice:FireClient(player, "Contrataste un francotirador", "great")
 end
 
--- La enfermería vende botiquines (los usa WeaponService: salen en la barra de abajo)
-local function buyMedkit(player: Player)
-	local profile = DataService.Get(player)
+-- La enfermería vende botiquines y antídotos (los usa WeaponService: salen en la barra de
+-- abajo). field: dónde se guarda en el perfil; config: Waves.medkit o Waves.antidote
+local function buyItem(player: Player, field: string, attribute: string, config, name: string)
+	local profile = DataService.Get(player) :: any
 	if not profile then
 		return
 	end
-	if profile.medkits >= Waves.medkit.max then
-		notice:FireClient(player, string.format("Ya cargas el máximo de botiquines (%d)", Waves.medkit.max), "bad")
+	local count = profile[field] or 0
+	if count >= config.max then
+		notice:FireClient(player, string.format("Ya cargas el máximo (%d)", config.max), "bad")
 		return
 	end
-	if not DataService.Spend(player, Waves.medkit.price) then
-		notice:FireClient(player, "Te faltan " .. Format.Money(Waves.medkit.price - profile.money), "bad")
+	if not DataService.Spend(player, config.price) then
+		notice:FireClient(player, "Te faltan " .. Format.Money(config.price - profile.money), "bad")
 		return
 	end
-	profile.medkits += 1
-	player:SetAttribute("Medkits", profile.medkits)
-	notice:FireClient(player, string.format("Compraste un botiquín (tienes %d)", profile.medkits), "great")
+	profile[field] = count + 1
+	player:SetAttribute(attribute, count + 1)
+	notice:FireClient(player, string.format("Compraste %s (tienes %d)", name, count + 1), "great")
 end
 
 -- Pone una construcción en el terreno. Con animate, las piezas bajan del cielo y aparecen
@@ -348,9 +350,13 @@ local function build(state: State, item, animate: boolean)
 	elseif item.effect == "heal" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -6.5))
 		local buy = prompt(spot, "Comprar botiquín", player, 0, function()
-			buyMedkit(player)
+			buyItem(player, "medkits", "Medkits", Waves.medkit, "un botiquín")
 		end)
 		buy.ObjectText = Format.Money(Waves.medkit.price)
+		local cure = prompt(promptSpot(model, o * CFrame.new(4, 3, -6.5)), "Comprar antídoto", player, 0, function()
+			buyItem(player, "antidotes", "Antidotes", Waves.antidote, "un antídoto")
+		end)
+		cure.ObjectText = Format.Money(Waves.antidote.price)
 	elseif item.effect == "lab" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -7.5))
 		prompt(spot, "Investigar", player, 0, function()

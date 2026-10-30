@@ -48,6 +48,9 @@ for _, item in Buildings.list do
 	table.insert(circles, { x = button[1], z = button[2], r = BUTTON_RADIUS })
 end
 
+-- Para dibujarlos en el piso mientras colocas algo (src/client/ReservedMarks.luau)
+Placement.zones = { rects = rects, circles = circles }
+
 -- ¿Un círculo en (x, z) de radio r toca el rectángulo?
 local function touchesRect(rect: Rect, x: number, z: number, r: number): boolean
 	local angle = math.rad(rect.rot)

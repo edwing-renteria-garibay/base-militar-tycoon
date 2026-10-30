@@ -17,6 +17,7 @@ local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Placement = require(ReplicatedStorage.Shared.Placement)
 local Menus = require(script.Parent.Parent.Menus)
+local ReservedMarks = require(script.Parent.Parent.ReservedMarks)
 
 local barricadeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Barricade") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -71,6 +72,7 @@ local function hideGhost()
 end
 
 local function stop()
+	ReservedMarks.Show("Barricadas", false)
 	active = false
 	start, rowEnd = nil, nil
 	bar.Visible = false
@@ -78,6 +80,7 @@ local function stop()
 end
 
 local function begin()
+	ReservedMarks.Show("Barricadas", true)
 	active = true
 	start = nil
 	bar.Visible = true

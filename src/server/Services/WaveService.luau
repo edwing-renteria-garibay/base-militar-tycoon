@@ -104,14 +104,14 @@ local function getTemplate(special): Model?
 		return nil
 	end
 	model.Name = "Zombi"
-	-- El explosivo trae una bomba roja que brilla en el pecho
+	-- El corrosivo trae una bola de ácido verde que brilla en el pecho
 	local torso = model:FindFirstChild("UpperTorso") :: BasePart?
 	if special and special.explode and torso then
 		local bomb = Instance.new("Part")
 		bomb.Name = "Bomba"
 		bomb.Shape = Enum.PartType.Ball
 		bomb.Size = Vector3.new(1.2, 1.2, 1.2)
-		bomb.Color = Color3.fromRGB(255, 60, 40)
+		bomb.Color = Color3.fromRGB(120, 255, 60) -- verde: es ácido
 		bomb.Material = Enum.Material.Neon
 		bomb.CanCollide = false
 		bomb.Massless = true
@@ -576,6 +576,10 @@ local function explode(player: Player, zombie: Zombie, center: Vector3): boolean
 		local humanoid = other.Character and other.Character:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and (root.Position - position).Magnitude < blast.radius then
 			humanoid:TakeDamage(blast.playerDamage)
+			if blast.infect and humanoid.Health > 0 and not other:GetAttribute("Infected") then
+				other:SetAttribute("Infected", true) -- InfectionService le quita vida
+				notice:FireClient(other, "¡Te infectaron! Usa un antídoto (enfermería)", "bad")
+			end
 		end
 	end
 	zombie.humanoid.Health = 0

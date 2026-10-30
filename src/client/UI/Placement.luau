@@ -18,6 +18,7 @@ local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Placement = require(ReplicatedStorage.Shared.Placement)
 local Menus = require(script.Parent.Parent.Menus)
+local ReservedMarks = require(script.Parent.Parent.ReservedMarks)
 
 local placeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Place") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -96,6 +97,7 @@ local function makeGhost(item): Model
 end
 
 local function stop()
+	ReservedMarks.Show("Colocar", false)
 	if ghost then
 		ghost:Destroy()
 		ghost = nil
@@ -110,6 +112,7 @@ local function start(item)
 	stop()
 	current = item
 	rotation = 0
+	ReservedMarks.Show("Colocar", true)
 	ghost = makeGhost(item)
 	nameLabel.Text = string.format("%s (%d)", item.name, countOf(item))
 	bar.Visible = true

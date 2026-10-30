@@ -208,6 +208,16 @@ function HUD.Start()
 		updateLife()
 		humanoid.HealthChanged:Connect(updateLife)
 	end
+	-- Infectado por el zombi corrosivo: un aviso verde debajo de tu vida
+	local infected = newLabel(bars, UDim2.fromOffset(240, 20), 16)
+	infected.LayoutOrder = 4
+	infected.Text = "¡INFECTADO! Usa un antídoto"
+	infected.TextColor3 = Color3.fromRGB(120, 255, 60)
+	local function updateInfected()
+		infected.Visible = player:GetAttribute("Infected") == true
+	end
+	updateInfected()
+	player:GetAttributeChangedSignal("Infected"):Connect(updateInfected)
 	player.CharacterAdded:Connect(watchLife)
 	if player.Character then
 		task.spawn(watchLife, player.Character)

@@ -15,7 +15,7 @@
 --   premium  = defensas premium compradas y sin colocar: { TorretaPesada = 1, ... }
 --   placed   = las defensas premium ya colocadas: { { key, x, z, rot }, ... }. Se pierden si
 --              destruyen tu caja fuerte
---   medkits  = cuántos botiquines carga (Waves.medkit)
+--   medkits  = cuántos botiquines carga (Waves.medkit); antidotes = cuántos antídotos
 --   barricades = las hileras de barricadas: { { ax, az, bx, bz, pedazos }, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
@@ -46,6 +46,7 @@ export type Profile = {
 	placed: { { key: string, x: number, z: number, rot: number } },
 	barricades: { { number } },
 	medkits: number,
+	antidotes: number,
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -125,6 +126,7 @@ function DataService.Load(player: Player): Profile
 		daily = { last = 0, streak = 0 },
 		receipts = {},
 		medkits = 0,
+		antidotes = 0,
 	}
 	if store then
 		local ok, data = pcall(function()
@@ -145,6 +147,7 @@ function DataService.Load(player: Player): Profile
 			profile.placed = if type(data.placed) == "table" then data.placed else {}
 			profile.barricades = if type(data.barricades) == "table" then data.barricades else {}
 			profile.medkits = tonumber(data.medkits) or 0
+			profile.antidotes = tonumber(data.antidotes) or 0
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0

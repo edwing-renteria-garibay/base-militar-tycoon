@@ -47,81 +47,116 @@ local function publish(player: Player)
 		end
 	end
 	player:SetAttribute("Medkits", profile.medkits)
+	player:SetAttribute("Antidotes", profile.antidotes)
 end
 
--- Botiquín (se compran en la enfermería): una cajita blanca con cruz roja. Al usarla cura
--- Waves.medkit.heal y se gasta uno
-local MEDKIT = "Botiquin"
-local lastHeal: { [Player]: number } = {}
+-- Lo que se compra en la enfermería y se usa desde la barra de abajo:
+--   Botiquin: una cajita blanca con cruz roja; cura Waves.medkit.heal de vida
+--   Antidoto: un frasco verde; quita la infección del zombi corrosivo
+-- field: dónde se guarda cuántos tiene (perfil) y attribute: cómo lo lee la pantalla
+local ITEMS = {
+	{ id = "Botiquin", name = "Botiquín", field = "medkits", attribute = "Medkits" },
+	{ id = "Antidoto", name = "Antídoto", field = "antidotes", attribute = "Antidotes" },
+}
+local lastUse: { [Player]: number } = {}
 
-local function makeMedkit(player: Player): Tool
-	local tool = Instance.new("Tool")
-	tool.Name = MEDKIT
-	tool.CanBeDropped = false
-	tool.Grip = CFrame.new(0, 0, -0.3)
-	local handle = Instance.new("Part")
-	handle.Name = "Handle"
-	handle.Size = Vector3.new(1.2, 0.9, 0.5)
-	handle.Color = Color3.fromRGB(235, 235, 230)
-	handle.CanCollide = false
-	handle.Massless = true
-	handle.Parent = tool
-	for _, size in { Vector3.new(0.6, 0.18, 0.52), Vector3.new(0.18, 0.6, 0.52) } do
-		local bar = Instance.new("Part")
-		bar.Size = size
-		bar.Color = Color3.fromRGB(200, 30, 30)
-		bar.Material = Enum.Material.SmoothPlastic
-		bar.CanCollide = false
-		bar.Massless = true
-		bar.CFrame = handle.CFrame
+local function itemPart(tool: Tool, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material): Part
+	local handle = tool:FindFirstChild("Handle") :: BasePart?
+	local p = Instance.new("Part")
+	p.Size = size
+	p.Color = color
+	p.Material = material
+	p.CanCollide = false
+	p.Massless = true
+	if handle then
+		p.CFrame = handle.CFrame * offset
 		local weld = Instance.new("WeldConstraint")
 		weld.Part0 = handle
-		weld.Part1 = bar
-		weld.Parent = bar
-		bar.Parent = tool
+		weld.Part1 = p
+		weld.Parent = p
+	else
+		p.Name = "Handle"
+	end
+	p.Parent = tool
+	return p
+end
+
+-- Usarlo: devuelve el aviso si se usó, o nil si no hacía falta (y por qué)
+local function useItem(player: Player, item, humanoid: Humanoid): (boolean, string)
+	if item.id == "Botiquin" then
+		if humanoid.Health >= humanoid.MaxHealth then
+			return false, "Ya tienes toda tu vida"
+		end
+		humanoid.Health = math.min(humanoid.Health + Waves.medkit.heal, humanoid.MaxHealth)
+		return true, string.format("+%d de vida", Waves.medkit.heal)
+	end
+	if not player:GetAttribute("Infected") then
+		return false, "No estás infectado"
+	end
+	player:SetAttribute("Infected", nil)
+	return true, "Ya no estás infectado"
+end
+
+local function makeItem(player: Player, item): Tool
+	local tool = Instance.new("Tool")
+	tool.Name = item.id
+	tool.CanBeDropped = false
+	tool.Grip = CFrame.new(0, 0, -0.3)
+	if item.id == "Botiquin" then
+		itemPart(tool, Vector3.new(1.2, 0.9, 0.5), CFrame.new(), Color3.fromRGB(235, 235, 230), Enum.Material.SmoothPlastic)
+		for _, size in { Vector3.new(0.6, 0.18, 0.52), Vector3.new(0.18, 0.6, 0.52) } do
+			itemPart(tool, size, CFrame.new(), Color3.fromRGB(200, 30, 30), Enum.Material.SmoothPlastic)
+		end
+	else
+		itemPart(tool, Vector3.new(0.5, 0.9, 0.5), CFrame.new(), Color3.fromRGB(110, 255, 90), Enum.Material.Glass)
+		itemPart(tool, Vector3.new(0.3, 0.25, 0.3), CFrame.new(0, 0.55, 0), Color3.fromRGB(60, 60, 60), Enum.Material.SmoothPlastic)
 	end
 	tool.Activated:Connect(function()
-		local profile = DataService.Get(player)
+		local profile = DataService.Get(player) :: any
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		local now = os.clock()
-		if not profile or not humanoid or humanoid.Health <= 0 or now - (lastHeal[player] or 0) < 1 then
+		if not profile or not humanoid or humanoid.Health <= 0 or now - (lastUse[player] or 0) < 1 then
 			return
 		end
-		if humanoid.Health >= humanoid.MaxHealth then
-			notice:FireClient(player, "Ya tienes toda tu vida", "bad")
+		if (profile[item.field] or 0) <= 0 then
 			return
 		end
-		if profile.medkits <= 0 then
+		local used, message = useItem(player, item, humanoid)
+		if not used then
+			notice:FireClient(player, message, "bad")
 			return
 		end
-		lastHeal[player] = now
-		profile.medkits -= 1
-		player:SetAttribute("Medkits", profile.medkits)
-		humanoid.Health = math.min(humanoid.Health + Waves.medkit.heal, humanoid.MaxHealth)
-		notice:FireClient(player, string.format("+%d de vida (te quedan %d botiquines)", Waves.medkit.heal, profile.medkits), "good")
+		lastUse[player] = now
+		profile[item.field] -= 1
+		player:SetAttribute(item.attribute, profile[item.field])
+		notice:FireClient(player, string.format("%s (te quedan %d)", message, profile[item.field]), "good")
 	end)
 	return tool
 end
 
--- Pone o quita el botiquín de la barra según cuántos tiene
-local function updateMedkit(player: Player)
-	local profile = DataService.Get(player)
+-- Pone o quita el botiquín y el antídoto de la barra según cuántos tiene
+local function updateItems(player: Player)
+	local profile = DataService.Get(player) :: any
 	local backpack = player:FindFirstChildOfClass("Backpack")
 	if not profile or not backpack then
 		return
 	end
 	local character = player.Character
-	local tool = backpack:FindFirstChild(MEDKIT) or (character and character:FindFirstChild(MEDKIT))
-	if profile.medkits > 0 then
-		if not tool then
-			tool = makeMedkit(player)
-			tool.Parent = backpack
+	for _, item in ITEMS do
+		local count = profile[item.field] or 0
+		local tool = backpack:FindFirstChild(item.id) or (character and character:FindFirstChild(item.id))
+		if count > 0 then
+			if not tool then
+				tool = makeItem(player, item)
+				tool.Parent = backpack
+			end
+			(tool :: Tool).ToolTip = string.format("%s (%d)", item.name, count)
+		elseif tool then
+			tool:Destroy()
 		end
-		(tool :: Tool).ToolTip = string.format("Botiquín (%d)", profile.medkits)
-	elseif tool then
-		tool:Destroy()
 	end
 end
+
 
 local function owns(profile: DataService.Profile, weapon): boolean
 	return weapon.price == 0 or profile.weapons[weapon.id] == true
@@ -142,7 +177,7 @@ local function giveWeapons(player: Player)
 		end
 	end
 	publish(player)
-	updateMedkit(player)
+	updateItems(player)
 end
 
 -- ¿Le dio a alguien? Devuelve su Humanoid y si es aliado (un francotirador de las torres:
@@ -288,9 +323,11 @@ function WeaponService.Start()
 	shootRemote.OnServerEvent:Connect(onShoot)
 	armoryRemote.OnServerEvent:Connect(onArmory)
 	local function onPlayer(player: Player)
-		player:GetAttributeChangedSignal("Medkits"):Connect(function()
-			updateMedkit(player)
-		end)
+		for _, item in ITEMS do
+			player:GetAttributeChangedSignal(item.attribute):Connect(function()
+				updateItems(player)
+			end)
+		end
 		player.CharacterAdded:Connect(function(character)
 			TwoHands.Setup(character)
 			giveWeapons(player)
@@ -307,7 +344,7 @@ function WeaponService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
 		lastEmpty[player] = nil
-		lastHeal[player] = nil
+		lastUse[player] = nil
 	end)
 end
 
