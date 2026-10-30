@@ -8,13 +8,22 @@
 --
 -- Todos los objetivos de un jugador van en la carpeta "Rompibles" de su terreno: así los
 -- zombis (WaveService) solo buscan ahí lo que tienen enfrente.
+--
+-- En medio de cada lado hay una puerta: un pedazo de muro que los jugadores atraviesan y los
+-- zombis no (grupos de choque: "Puerta" no choca con "Jugadores"). Se rompe y se repara como
+-- cualquier pedazo del muro.
 
+local PhysicsService = game:GetService("PhysicsService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Builder = require(script.Parent.Parent.Builder)
 
 local SEGMENT = 10 -- ancho de cada pedazo del muro
+local DOOR_X = -5 -- el pedazo de en medio que es puerta (su x en el lado)
+local DOOR_GROUP = "Puerta"
+local PLAYER_GROUP = "Jugadores"
 local SIDE_ANGLES = { 0, -90, 180, 90 } -- frente, derecha, atrás e izquierda
 local DAMAGED = Color3.fromRGB(25, 25, 25) -- el color al que se acerca al perder vida
 
@@ -112,7 +121,11 @@ local function buildSegments(state: State, level: number)
 	for _, angle in SIDE_ANGLES do
 		local side = state.plot.cframe * CFrame.Angles(0, math.rad(angle), 0)
 		for x = -inset + SEGMENT / 2, inset - SEGMENT / 2, SEGMENT do
-			local segment = Builder.WallSegment(side * CFrame.new(x, 0, -inset), SEGMENT, level)
+			local door = x == DOOR_X
+			local segment = Builder.WallSegment(side * CFrame.new(x, 0, -inset), SEGMENT, level, door)
+			if door then
+				segment.CollisionGroup = DOOR_GROUP
+			end
 			segment:SetAttribute("MaxHealth", max)
 			segment.Parent = state.folder
 			setHealth(segment, max)
@@ -257,6 +270,34 @@ function WallService.RepairAll(player: Player)
 		for _, target in state.targets do
 			setHealth(target, target:GetAttribute("MaxHealth") or 0)
 		end
+	end
+end
+
+-- Los grupos de choque de la puerta, y los jugadores en el suyo (cada vez que aparecen)
+function WallService.Start()
+	PhysicsService:RegisterCollisionGroup(DOOR_GROUP)
+	PhysicsService:RegisterCollisionGroup(PLAYER_GROUP)
+	PhysicsService:CollisionGroupSetCollidable(DOOR_GROUP, PLAYER_GROUP, false)
+	local function setGroup(part: Instance)
+		if part:IsA("BasePart") then
+			part.CollisionGroup = PLAYER_GROUP
+		end
+	end
+	local function onCharacter(character: Model)
+		for _, part in character:GetDescendants() do
+			setGroup(part)
+		end
+		character.DescendantAdded:Connect(setGroup)
+	end
+	local function onPlayer(player: Player)
+		player.CharacterAdded:Connect(onCharacter)
+		if player.Character then
+			onCharacter(player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	for _, player in Players:GetPlayers() do
+		onPlayer(player)
 	end
 end
 

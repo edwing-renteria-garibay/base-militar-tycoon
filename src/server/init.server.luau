@@ -10,12 +10,14 @@ local PlotService = require(Services.PlotService)
 local ResearchService = require(Services.ResearchService)
 local StoreService = require(Services.StoreService)
 local TycoonService = require(Services.TycoonService)
+local WallService = require(Services.WallService)
 local WaveService = require(Services.WaveService)
 local WeaponService = require(Services.WeaponService)
 
 local notice = game:GetService("ReplicatedStorage").Remotes.Notice :: RemoteEvent
 
 PlotService.Start()
+WallService.Start() -- las puertas del muro
 DataService.Start()
 TycoonService.Start()
 StoreService.Start()

@@ -707,17 +707,38 @@ local WALL_LOOK = {
 	{ color = CONCRETE, material = Enum.Material.Concrete, height = 10 },
 	{ color = DARK_METAL, material = Enum.Material.DiamondPlate, height = 12 },
 }
-function Builder.WallSegment(o: CFrame, width: number, level: number): Part
+-- door = es la puerta de ese lado: verde militar, con letrero de los dos lados. WallService la
+-- pone en el grupo de choque "Puerta", que los jugadores atraviesan y los zombis no
+function Builder.WallSegment(o: CFrame, width: number, level: number, door: boolean?): Part
 	local look = WALL_LOOK[level] or WALL_LOOK[1]
 	local p = Instance.new("Part")
-	p.Name = "Muro"
+	p.Name = if door then "Puerta" else "Muro"
 	p.Anchored = true
 	p.Size = Vector3.new(width, look.height, 2)
 	p.CFrame = o * at(0, look.height / 2, 0)
-	p.Color = look.color
-	p.Material = look.material
+	p.Color = if door then OLIVE else look.color
+	p.Material = if door then Enum.Material.DiamondPlate else look.material
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
+	if door then
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local gui = Instance.new("SurfaceGui")
+			gui.Face = face
+			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+			gui.PixelsPerStud = 20
+			gui.Parent = p
+			local text = Instance.new("TextLabel")
+			text.AnchorPoint = Vector2.new(0.5, 0.5)
+			text.Position = UDim2.fromScale(0.5, 0.5)
+			text.Size = UDim2.fromScale(0.9, 0.25)
+			text.BackgroundTransparency = 1
+			text.Font = Enum.Font.GothamBlack
+			text.Text = "PUERTA"
+			text.TextScaled = true
+			text.TextColor3 = YELLOW
+			text.Parent = gui
+		end
+	end
 	return p
 end
 
