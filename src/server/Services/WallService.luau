@@ -277,21 +277,6 @@ function WallService.Repair(player: Player, points: number): number
 	return used
 end
 
--- El taller: cada cosa recupera esta parte de su vida (0.03 = 3%)
-function WallService.RepairShare(player: Player, share: number)
-	local state = states[player]
-	if not state then
-		return
-	end
-	for _, target in state.targets do
-		local health = target:GetAttribute("Health") or 0
-		local max = target:GetAttribute("MaxHealth") or 0
-		if health < max then
-			setHealth(target, health + max * share)
-		end
-	end
-end
-
 -- Todo como nuevo (después de perder la caja fuerte)
 function WallService.RepairAll(player: Player)
 	local state = states[player]

@@ -14,7 +14,7 @@
 --      heal                 la enfermería te cura si estás cerca
 --      lab                  el laboratorio tiene un letrero que abre lo que se investiga
 --                           (ResearchService)
---      repair               el taller repara el muro solo, poco a poco
+--      fuel                 el depósito guarda el combustible que genera la gasolinera
 --      radar                los zombis se ven a través de las paredes (WaveService)
 --    Las torres y torretas ("defense") las hace disparar WaveService.
 -- 4. Mantén E junto a la caja fuerte para reparar el muro y las barricadas con dinero.
@@ -67,7 +67,7 @@ type State = {
 	repairPrompt: ProximityPrompt,
 	firePrompt: ProximityPrompt?,
 	fireUntil: number, -- os.clock() hasta el que arden las zanjas
-	fireReady: number, -- os.clock() desde el que se pueden volver a encender
+	fuel: number, -- combustible guardado en el depósito (Waves.fuel)
 	models: { [string]: Model }, -- lo construido, por id
 	items: { [string]: any }, -- y qué es cada cosa (de Config/Buildings o Config/Premium)
 	snipers: { [string]: Model }, -- el francotirador de cada torre (si tiene)
@@ -93,7 +93,18 @@ local function incomeOf(player: Player, profile: DataService.Profile): number
 	if player:GetAttribute("Pass_VIP") then
 		multiplier *= 1 + Store.vipBonus
 	end
+	-- Mientras más lejos vas en las olas, más junta
+	multiplier *= 1 + Waves.incomePerWave * (profile.wave - 1)
 	return math.floor(Waves.vaultIncome[level] * multiplier)
+end
+
+-- El letrero de la caja fuerte: lo que tiene adentro y cuánto junta por segundo
+local function showVault(state: State, profile: DataService.Profile)
+	state.vaultText.Text = string.format(
+		"%s\n+%s por segundo",
+		Format.Money(profile.vault),
+		Format.Money(incomeOf(state.owner, profile))
+	)
 end
 
 -- ¿Funciona? Una construcción rota (vida 0, ver WallService) no funciona hasta repararla
@@ -484,7 +495,7 @@ local function collect(player: Player)
 	local amount = math.floor(profile.vault)
 	profile.vault -= amount
 	DataService.AddMoney(player, amount)
-	state.vaultText.Text = Format.Money(profile.vault)
+	showVault(state, profile)
 	notice:FireClient(player, "+" .. Format.Money(amount), "money")
 end
 
@@ -520,9 +531,23 @@ ignite = function(player: Player)
 		return
 	end
 	local now = os.clock()
-	if now < state.fireReady then
-		local text = string.format("La gasolina se recarga en %d s", math.ceil(state.fireReady - now))
+	if now < state.fireUntil then
+		return -- ya están ardiendo
+	end
+	if not working(state.models.Gasolinera) then
+		notice:FireClient(player, "La gasolinera está destruida: repárala", "bad")
+		return
+	end
+	if not working(state.models.Taller) then
+		local text = if profile.owned.Taller
+			then "El depósito de combustible está destruido: repáralo"
+			else "Compra el depósito de combustible para guardar gasolina"
 		notice:FireClient(player, text, "bad")
+		return
+	end
+	if state.fuel < Waves.fuel.cost then
+		local wait = math.ceil((Waves.fuel.cost - state.fuel) / Waves.fuel.perSecond)
+		notice:FireClient(player, string.format("Falta combustible: espera %d s", wait), "bad")
 		return
 	end
 	local trenches = {}
@@ -539,7 +564,7 @@ ignite = function(player: Player)
 		return
 	end
 	state.fireUntil = now + Waves.fire.duration
-	state.fireReady = now + Waves.fire.cooldown
+	state.fuel -= Waves.fuel.cost
 	for _, model in trenches do
 		for _, flame in model:GetChildren() do
 			if flame.Name == "Llama" then
@@ -728,7 +753,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		vaultHealth = Waves.vaultHealth,
 		repairPrompt = repairPrompt,
 		fireUntil = 0,
-		fireReady = 0,
+		fuel = 0,
 		models = {},
 		items = {},
 		snipers = {},
@@ -753,7 +778,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 	end
 	publishBarricades(player, profile)
 	publishPremium(player, profile)
-	vaultText.Text = Format.Money(profile.vault)
+	showVault(state, profile)
 	vaultHealthChanged(state)
 	player:SetAttribute("Income", incomeOf(player, profile))
 	refreshButtons(player)
@@ -829,7 +854,7 @@ function TycoonService.LoseVault(player: Player): number
 	end
 	local lost = math.floor(profile.vault * Waves.lossShare)
 	profile.vault -= lost
-	state.vaultText.Text = Format.Money(profile.vault)
+	showVault(state, profile)
 	state.vaultHealth = Waves.vaultHealth
 	vaultHealthChanged(state)
 	-- Las defensas premium (de Robux) solo duran hasta que destruyen la caja fuerte
@@ -918,7 +943,8 @@ function TycoonService.Start()
 	DataService.MoneyChanged.Event:Connect(refreshButtons)
 	placeRemote.OnServerEvent:Connect(place)
 	barricadeRemote.OnServerEvent:Connect(onBarricade)
-	-- Cada segundo: la caja fuerte junta dinero, el taller repara y se actualizan los letreros
+	-- Cada segundo: la caja fuerte junta dinero, la gasolinera genera combustible y se actualizan
+	-- los letreros
 	task.spawn(function()
 		while true do
 			task.wait(1)
@@ -932,7 +958,7 @@ function TycoonService.Start()
 					else
 						profile.vault += income
 					end
-					state.vaultText.Text = Format.Money(profile.vault)
+					showVault(state, profile)
 					if hasEffect(state, profile, "heal") then
 						heal(state)
 					end
@@ -943,10 +969,9 @@ function TycoonService.Start()
 							humanoid.Health = 0
 						end
 					end
-					if hasEffect(state, profile, "repair") then
-						if player:GetAttribute("WaveEnemies") == nil then -- solo entre olas
-							WallService.RepairShare(player, Waves.workshopRepair)
-						end
+					-- La gasolinera genera combustible y el depósito lo guarda
+					if working(state.models.Gasolinera) and working(state.models.Taller) then
+						state.fuel = math.min(state.fuel + Waves.fuel.perSecond, Waves.fuel.capacity)
 					end
 					player:SetAttribute("WallHealth", math.floor(WallService.WallShare(player) * 100))
 					local missing = WallService.Missing(player)
@@ -954,10 +979,12 @@ function TycoonService.Start()
 						then "Cuesta " .. Format.Money(math.ceil(missing * Waves.repairCost))
 						else "Todo en buen estado"
 					if state.firePrompt then
-						local wait = state.fireReady - os.clock()
-						state.firePrompt.ObjectText = if wait > 0
-							then string.format("Recargando: %d s", math.ceil(wait))
-							else "Lista"
+						state.firePrompt.ObjectText = string.format(
+							"Combustible %d / %d (gasta %d)",
+							state.fuel,
+							Waves.fuel.capacity,
+							Waves.fuel.cost
+						)
 					end
 				end
 			end

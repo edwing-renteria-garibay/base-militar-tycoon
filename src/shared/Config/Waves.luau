@@ -50,13 +50,15 @@ Waves.playerHit = 15 -- daño por golpe a un jugador (un golpe por segundo)
 Waves.vaultHealth = 2000
 Waves.lossShare = 0.25 -- si la destruyen, se llevan esta parte del dinero que tenía adentro
 Waves.vaultIncome = { 5, 15, 40, 100, 250 } -- dinero por segundo según su nivel (1 a 5)
+-- La caja junta más mientras más lejos vas: +10% por cada ola (en la ola 20, casi el triple)
+Waves.incomePerWave = 0.1
 
 -- Premios
 function Waves.KillReward(n: number): number -- por cada zombi en la ola n
-	return 4 + n
+	return 5 + 2 * n
 end
 function Waves.WaveReward(n: number): number -- por pasar la ola n
-	return 100 * n
+	return 150 * n
 end
 
 -- Las torretas solo disparan hacia su frente: este es su ángulo de vista, en grados (45 = 22.5
@@ -154,14 +156,16 @@ Waves.special = {
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre
 Waves.emptyTowerDamage = 2 -- arriba de una torre sin francotirador, la rompe así de más rápido
 
--- Reparar: el taller repara solo esta parte de la vida cada segundo, pero solo en el descanso
--- entre olas; a mano cuesta esto por cada punto de vida
-Waves.workshopRepair = 0.02
+-- Reparar a mano (en la caja fuerte) cuesta esto por cada punto de vida
 Waves.repairCost = 0.5
 
 -- Defensas de afuera del muro
 Waves.wire = { slow = 0.4, dps = 8 } -- el alambre frena (40% de su velocidad) y lastima
 Waves.mine = { damage = 200, radius = 12, trigger = 5 } -- explota al pisarla; se gasta
-Waves.fire = { dps = 40, duration = 10, cooldown = 60 } -- las zanjas de gasolina encendidas
+Waves.fire = { dps = 40, duration = 10 } -- las zanjas de gasolina encendidas
+-- El combustible: la gasolinera lo genera cada segundo y el depósito lo guarda (hasta
+-- capacity). Encender las zanjas gasta cost. Si la gasolinera o el depósito están rotos, no
+-- se puede encender nada (y la gasolinera rota no genera)
+Waves.fuel = { perSecond = 0.5, capacity = 100, cost = 20 }
 
 return Waves

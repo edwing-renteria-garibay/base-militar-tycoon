@@ -72,7 +72,16 @@ add({
 	effect = "fire",
 })
 add({ id = "Enfermeria", name = "Enfermería (te cura)", price = 2500, kind = "Infirmary", at = { 0, 40 }, effect = "heal" })
-add({ id = "Taller", name = "Taller (repara el muro solo)", price = 4000, kind = "Workshop", at = { -38, 30 }, effect = "repair" })
+-- (su id sigue siendo "Taller" para no perder lo que ya compraron los jugadores)
+add({
+	id = "Taller",
+	name = "Depósito de combustible",
+	price = 3000,
+	kind = "Workshop",
+	at = { -38, 30 },
+	requires = "Gasolinera",
+	effect = "fuel",
+})
 add({ id = "Radar", name = "Radar (ves a los zombis)", price = 6000, kind = "Radar", at = { 38, 30 }, effect = "radar" })
 
 -- Laboratorio: ahí se investiga más daño para tus armas, torretas y trampas (Config/Research)

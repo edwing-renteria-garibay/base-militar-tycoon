@@ -36,11 +36,12 @@ se pierde.
   transparentes, y no funcionan hasta que los reparas.
 - **Alambre:** frena a los zombis y los lastima mientras lo cruzan.
 - **Minas:** explotan cuando un zombi pasa cerca y se gastan; su botón vuelve a salir.
-- **Zanjas de gasolina:** mantén **E** en la gasolinera para encenderlas 10 segundos. Se
-  recargan en un minuto.
-- **Reparar:** mantén **E** junto a la caja fuerte. Cuesta $0.50 por punto de vida. Con el
-  taller, el muro se repara solo poco a poco.
-- **Premios:** cada zombi da $4 más el número de la ola, y pasar la ola n da $100 x n.
+- **Zanjas de gasolina:** mantén **E** en la gasolinera para encenderlas 10 segundos. Gasta 20
+  de combustible: la gasolinera genera 0.5 por segundo y el depósito de combustible lo guarda
+  (hasta 100). Si uno de los dos está roto, no se encienden (`Waves.fuel`).
+- **Reparar:** mantén **E** junto a la caja fuerte. Cuesta $0.50 por punto de vida.
+- **Premios:** cada zombi da $5 más 2 por el número de la ola, y pasar la ola n da $150 x n.
+  Además la caja fuerte junta 10% más por cada ola a la que llegas (`Waves.incomePerWave`).
 
 Todos los números están en `src/shared/Config/Waves.luau`.
 
