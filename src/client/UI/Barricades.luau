@@ -31,6 +31,7 @@ local active = false
 local start: Vector2? = nil -- donde empieza la hilera (dentro del terreno)
 local rowEnd: Vector2? = nil -- donde terminaría
 local valid = false
+local reason: string? = nil -- por qué no se puede (se muestra en la barra)
 local ghost: Folder
 local marker: Part
 local pieces: { Part } = {}
@@ -110,10 +111,25 @@ local function confirm()
 	end
 end
 
+-- ¿El mouse está encima de la barra de botones? (entonces no se mueve la vista previa: si no,
+-- al ir a "Poner" la hilera se iría hasta el piso que está detrás del botón)
+local function overBar(): boolean
+	local playerGui = player:FindFirstChildOfClass("PlayerGui")
+	if not playerGui then
+		return false
+	end
+	for _, gui in playerGui:GetGuiObjectsAtPosition(mouse.X, mouse.Y) do
+		if gui == bar or gui:IsDescendantOf(bar) then
+			return true
+		end
+	end
+	return false
+end
+
 -- Cada fotograma: dibuja la hilera que pondrías, de start hasta donde apunta el mouse
 local function update()
 	local center = player:GetAttribute("PlotCenter")
-	if not active or typeof(center) ~= "CFrame" then
+	if not active or typeof(center) ~= "CFrame" or overBar() then
 		return
 	end
 	local here = center:PointToObjectSpace(mouse.Hit.Position)
@@ -128,7 +144,10 @@ local function update()
 	marker.Color = OK_COLOR
 	marker.CFrame = center * CFrame.new(a.X, 2.5, a.Y)
 	rowEnd = if count > 0 then b else nil
-	valid = count > 0 and Placement.CheckRow(a, b, decode("PremiumPlaced"), radiusOf)
+	valid, reason = false, nil
+	if count > 0 then
+		valid, reason = Placement.CheckRow(a, b, decode("PremiumPlaced"), radiusOf)
+	end
 	for i, piece in pieces do
 		if i > count then
 			piece.Transparency = 1
@@ -143,10 +162,14 @@ local function update()
 			piece.Transparency = 0.5
 		end
 	end
+	infoLabel.TextColor3 = Color3.new(1, 1, 1)
 	if not start then
 		infoLabel.Text = "Clic donde empieza la hilera"
 	elseif count == 0 then
 		infoLabel.Text = "Clic donde termina (hasta 3 pedazos)"
+	elseif not valid then
+		infoLabel.Text = "Aquí no se puede: " .. (reason or "")
+		infoLabel.TextColor3 = BAD_COLOR
 	else
 		infoLabel.Text = string.format(
 			"%d pedazo%s: %s · clic para ponerla",
