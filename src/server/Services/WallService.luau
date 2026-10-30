@@ -29,7 +29,13 @@ local DAMAGED = Color3.fromRGB(25, 25, 25) -- el color al que se acerca al perde
 
 local WallService = {}
 
-type State = { plot: any, folder: Folder, segments: { BasePart }, targets: { Instance } }
+type State = {
+	plot: any,
+	folder: Folder,
+	segments: { BasePart },
+	targets: { Instance },
+	armor: number, -- cuánto multiplica la vida lo investigado (Research "Muros")
+}
 
 local states: { [Player]: State } = {}
 
@@ -107,6 +113,12 @@ local function setHealth(target: Instance, health: number)
 	show(target)
 end
 
+-- La vida máxima de algo: la suya (base) por el blindaje investigado
+local function setMax(state: State, target: Instance, base: number)
+	target:SetAttribute("BaseMaxHealth", base)
+	target:SetAttribute("MaxHealth", base * state.armor)
+end
+
 local function buildSegments(state: State, level: number)
 	for _, segment in state.segments do
 		local index = table.find(state.targets, segment)
@@ -116,7 +128,7 @@ local function buildSegments(state: State, level: number)
 		segment:Destroy()
 	end
 	state.segments = {}
-	local max = Waves.wallHealth[level] or Waves.wallHealth[1]
+	local base = Waves.wallHealth[level] or Waves.wallHealth[1]
 	local inset = Waves.wallInset
 	for _, angle in SIDE_ANGLES do
 		local side = state.plot.cframe * CFrame.Angles(0, math.rad(angle), 0)
@@ -126,9 +138,9 @@ local function buildSegments(state: State, level: number)
 			if door then
 				segment.CollisionGroup = DOOR_GROUP
 			end
-			segment:SetAttribute("MaxHealth", max)
+			setMax(state, segment, base)
 			segment.Parent = state.folder
-			setHealth(segment, max)
+			setHealth(segment, base * state.armor)
 			table.insert(state.segments, segment)
 			table.insert(state.targets, segment)
 		end
@@ -140,7 +152,7 @@ function WallService.Setup(player: Player, plot, level: number)
 	local folder = Instance.new("Folder")
 	folder.Name = "Rompibles"
 	folder.Parent = plot.contents
-	local state: State = { plot = plot, folder = folder, segments = {}, targets = {} }
+	local state: State = { plot = plot, folder = folder, segments = {}, targets = {}, armor = 1 }
 	states[player] = state
 	buildSegments(state, level)
 end
@@ -159,10 +171,27 @@ function WallService.Add(player: Player, target: Instance, maxHealth: number)
 	if not state then
 		return
 	end
-	target:SetAttribute("MaxHealth", maxHealth)
+	setMax(state, target, maxHealth)
 	target.Parent = state.folder
-	setHealth(target, maxHealth)
+	setHealth(target, maxHealth * state.armor)
 	table.insert(state.targets, target)
+end
+
+-- Lo investigado en "Muros blindados": todo lo que se rompe tiene más vida (y conserva la parte
+-- que le quedaba)
+function WallService.SetArmor(player: Player, armor: number)
+	local state = states[player]
+	if not state or state.armor == armor then
+		return
+	end
+	state.armor = armor
+	for _, target in state.targets do
+		local max = target:GetAttribute("MaxHealth") or 1
+		local share = (target:GetAttribute("Health") or 0) / max
+		local base = target:GetAttribute("BaseMaxHealth") or max
+		target:SetAttribute("MaxHealth", base * armor)
+		setHealth(target, base * armor * share)
+	end
 end
 
 -- Quita algo que se podía romper (y lo borra)

@@ -17,6 +17,7 @@ local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Settings = require(ReplicatedStorage.Shared.Config.Settings)
 local DataService = require(script.Parent.DataService)
 local TycoonService = require(script.Parent.TycoonService)
+local WallService = require(script.Parent.WallService)
 
 local researchRemote = ReplicatedStorage.Remotes.Research :: RemoteEvent
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
@@ -33,6 +34,8 @@ local function publish(player: Player)
 	for _, line in Research.lines do
 		player:SetAttribute("Research_" .. line.key, profile.research[line.key] or 0)
 	end
+	-- Lo que sube la vida del muro y lo demás que se rompe
+	WallService.SetArmor(player, Research.Bonus(profile.research, "Muros"))
 	local current = profile.researching
 	player:SetAttribute("ResearchKey", current and current.key)
 	player:SetAttribute("ResearchEnds", current and current.finish)

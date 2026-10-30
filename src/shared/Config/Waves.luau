@@ -66,6 +66,9 @@ Waves.turretArc = 45
 -- La enfermería cura esto por segundo si estás cerca (a menos de healRange studs)
 Waves.heal = 20
 Waves.healRange = 16
+-- Botiquines: se compran en la enfermería (mantén E) y se usan desde la barra de abajo, donde
+-- sea. Cada uno cura "heal" de vida. Puedes cargar hasta "max"
+Waves.medkit = { price = 200, heal = 60, max = 5 }
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
 Waves.wallHealth = { 200, 600, 1500 }

@@ -2,7 +2,7 @@
 -- y tarda un rato (solo se investiga una cosa a la vez). Al terminar, su bonus queda para
 -- siempre. En modo de prueba (Config/Settings) los tiempos son 5 veces más cortos.
 --
---   bonus  cuánto sube el daño por nivel (0.25 = +25% por nivel)
+--   bonus  cuánto sube por nivel (0.25 = +25% por nivel): el daño, o la vida en "Muros"
 --   levels el precio y los segundos de cada nivel
 --
 -- No cambies la key después de publicar: así se guarda lo que investigó cada jugador.
@@ -30,6 +30,13 @@ Research.lines = {
 		description = "+50% de daño de minas, zanjas y alambre por nivel",
 		bonus = 0.5,
 		levels = { { price = 2000, time = 30 }, { price = 8000, time = 60 }, { price = 25000, time = 120 } },
+	},
+	{
+		key = "Muros",
+		name = "Muros blindados",
+		description = "+25% de vida del muro, la puerta, las barricadas y los edificios por nivel",
+		bonus = 0.25,
+		levels = { { price = 3000, time = 30 }, { price = 10000, time = 60 }, { price = 30000, time = 120 } },
 	},
 }
 

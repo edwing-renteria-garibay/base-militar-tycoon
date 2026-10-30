@@ -293,6 +293,25 @@ local function hireSniper(state: State, item)
 	notice:FireClient(player, "Contrataste un francotirador", "great")
 end
 
+-- La enfermería vende botiquines (los usa WeaponService: salen en la barra de abajo)
+local function buyMedkit(player: Player)
+	local profile = DataService.Get(player)
+	if not profile then
+		return
+	end
+	if profile.medkits >= Waves.medkit.max then
+		notice:FireClient(player, string.format("Ya cargas el máximo de botiquines (%d)", Waves.medkit.max), "bad")
+		return
+	end
+	if not DataService.Spend(player, Waves.medkit.price) then
+		notice:FireClient(player, "Te faltan " .. Format.Money(Waves.medkit.price - profile.money), "bad")
+		return
+	end
+	profile.medkits += 1
+	player:SetAttribute("Medkits", profile.medkits)
+	notice:FireClient(player, string.format("Compraste un botiquín (tienes %d)", profile.medkits), "great")
+end
+
 -- Pone una construcción en el terreno. Con animate, las piezas bajan del cielo y aparecen
 local function build(state: State, item, animate: boolean)
 	if not item.kind then
@@ -326,6 +345,12 @@ local function build(state: State, item, animate: boolean)
 		prompt(spot, "Abrir armería", player, 0, function()
 			armoryRemote:FireClient(player, "open")
 		end)
+	elseif item.effect == "heal" then
+		local spot = promptSpot(model, o * CFrame.new(0, 3, -6.5))
+		local buy = prompt(spot, "Comprar botiquín", player, 0, function()
+			buyMedkit(player)
+		end)
+		buy.ObjectText = Format.Money(Waves.medkit.price)
 	elseif item.effect == "lab" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -7.5))
 		prompt(spot, "Investigar", player, 0, function()

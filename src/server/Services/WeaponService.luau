@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
+local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
 local TwoHands = require(script.Parent.Parent.TwoHands)
@@ -45,6 +46,81 @@ local function publish(player: Player)
 			player:SetAttribute("Ammo_" .. weapon.id, profile.ammo[weapon.id] or 0)
 		end
 	end
+	player:SetAttribute("Medkits", profile.medkits)
+end
+
+-- Botiquín (se compran en la enfermería): una cajita blanca con cruz roja. Al usarla cura
+-- Waves.medkit.heal y se gasta uno
+local MEDKIT = "Botiquin"
+local lastHeal: { [Player]: number } = {}
+
+local function makeMedkit(player: Player): Tool
+	local tool = Instance.new("Tool")
+	tool.Name = MEDKIT
+	tool.CanBeDropped = false
+	tool.Grip = CFrame.new(0, 0, -0.3)
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Size = Vector3.new(1.2, 0.9, 0.5)
+	handle.Color = Color3.fromRGB(235, 235, 230)
+	handle.CanCollide = false
+	handle.Massless = true
+	handle.Parent = tool
+	for _, size in { Vector3.new(0.6, 0.18, 0.52), Vector3.new(0.18, 0.6, 0.52) } do
+		local bar = Instance.new("Part")
+		bar.Size = size
+		bar.Color = Color3.fromRGB(200, 30, 30)
+		bar.Material = Enum.Material.SmoothPlastic
+		bar.CanCollide = false
+		bar.Massless = true
+		bar.CFrame = handle.CFrame
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = handle
+		weld.Part1 = bar
+		weld.Parent = bar
+		bar.Parent = tool
+	end
+	tool.Activated:Connect(function()
+		local profile = DataService.Get(player)
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		local now = os.clock()
+		if not profile or not humanoid or humanoid.Health <= 0 or now - (lastHeal[player] or 0) < 1 then
+			return
+		end
+		if humanoid.Health >= humanoid.MaxHealth then
+			notice:FireClient(player, "Ya tienes toda tu vida", "bad")
+			return
+		end
+		if profile.medkits <= 0 then
+			return
+		end
+		lastHeal[player] = now
+		profile.medkits -= 1
+		player:SetAttribute("Medkits", profile.medkits)
+		humanoid.Health = math.min(humanoid.Health + Waves.medkit.heal, humanoid.MaxHealth)
+		notice:FireClient(player, string.format("+%d de vida (te quedan %d botiquines)", Waves.medkit.heal, profile.medkits), "good")
+	end)
+	return tool
+end
+
+-- Pone o quita el botiquín de la barra según cuántos tiene
+local function updateMedkit(player: Player)
+	local profile = DataService.Get(player)
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if not profile or not backpack then
+		return
+	end
+	local character = player.Character
+	local tool = backpack:FindFirstChild(MEDKIT) or (character and character:FindFirstChild(MEDKIT))
+	if profile.medkits > 0 then
+		if not tool then
+			tool = makeMedkit(player)
+			tool.Parent = backpack
+		end
+		(tool :: Tool).ToolTip = string.format("Botiquín (%d)", profile.medkits)
+	elseif tool then
+		tool:Destroy()
+	end
 end
 
 local function owns(profile: DataService.Profile, weapon): boolean
@@ -66,6 +142,7 @@ local function giveWeapons(player: Player)
 		end
 	end
 	publish(player)
+	updateMedkit(player)
 end
 
 -- ¿Le dio a alguien? Devuelve su Humanoid y si es aliado (un francotirador de las torres:
@@ -211,6 +288,9 @@ function WeaponService.Start()
 	shootRemote.OnServerEvent:Connect(onShoot)
 	armoryRemote.OnServerEvent:Connect(onArmory)
 	local function onPlayer(player: Player)
+		player:GetAttributeChangedSignal("Medkits"):Connect(function()
+			updateMedkit(player)
+		end)
 		player.CharacterAdded:Connect(function(character)
 			TwoHands.Setup(character)
 			giveWeapons(player)
@@ -227,6 +307,7 @@ function WeaponService.Start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
 		lastEmpty[player] = nil
+		lastHeal[player] = nil
 	end)
 end
 
