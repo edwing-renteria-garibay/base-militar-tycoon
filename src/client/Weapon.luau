@@ -4,11 +4,13 @@
 -- Aquí también se mueve el arma y sube la mira al disparar (retroceso), como en Escuadrón Cero.
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Camera = require(script.Parent.Camera)
+local Menus = require(script.Parent.Menus)
 local Sfx = require(script.Parent.Sfx)
 local ViewModel = require(script.Parent.ViewModel)
 
@@ -28,6 +30,19 @@ local function aim(): Vector3
 	return if result then result.Position else ray.Origin + ray.Direction * 1000
 end
 
+-- ¿Sigue apretando el gatillo? Roblox a veces no avisa que soltaste el clic (por ejemplo si
+-- lo soltaste encima de un botón o con un menú abierto) y el arma se quedaba disparando sola:
+-- con mouse se revisa el botón directamente
+local function stillHolding(): boolean
+	if Menus.AnyOpen() then
+		return false
+	end
+	if UserInputService.MouseEnabled and not UserInputService.TouchEnabled then
+		return UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+	end
+	return true -- en celular, hasta que levantas el dedo (Deactivated)
+end
+
 local connected: { [Tool]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local lastShot = 0
 
@@ -44,7 +59,7 @@ local function hook(tool: Instance)
 			return
 		end
 		firing = true
-		while firing and tool.Parent == player.Character do
+		while firing and tool.Parent == player.Character and stillHolding() do
 			local now = os.clock()
 			if now - lastShot >= weapon.cooldown then
 				lastShot = now

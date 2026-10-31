@@ -9,9 +9,9 @@
 -- Todos los objetivos de un jugador van en la carpeta "Rompibles" de su terreno: así los
 -- zombis (WaveService) solo buscan ahí lo que tienen enfrente.
 --
--- En medio de cada lado hay una puerta: un pedazo de muro que los jugadores atraviesan y los
--- zombis no (grupos de choque: "Puerta" no choca con "Jugadores"). Se rompe y se repara como
--- cualquier pedazo del muro.
+-- En medio de cada lado hay una puerta con pluma (Builder.Door): los jugadores la atraviesan y
+-- los zombis no (grupos de choque: "Puerta" no choca con "Jugadores"), y la pluma se levanta
+-- cuando un jugador se acerca. Se rompe y se repara como cualquier pedazo del muro.
 
 local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
@@ -24,6 +24,7 @@ local SEGMENT = 10 -- ancho de cada pedazo del muro
 local DOOR_X = -5 -- el pedazo de en medio que es puerta (su x en el lado)
 local DOOR_GROUP = "Puerta"
 local PLAYER_GROUP = "Jugadores"
+local DOOR_RANGE = 14 -- a esta distancia de la puerta, la pluma se levanta
 local SIDE_ANGLES = { 0, -90, 180, 90 } -- frente, derecha, atrás e izquierda
 local DAMAGED = Color3.fromRGB(25, 25, 25) -- el color al que se acerca al perder vida
 
@@ -32,9 +33,10 @@ local WallService = {}
 type State = {
 	plot: any,
 	folder: Folder,
-	segments: { BasePart },
+	segments: { Instance },
 	targets: { Instance },
 	armor: number, -- cuánto multiplica la vida lo investigado (Research "Muros")
+	doors: { Model }, -- las puertas (plumas) de los 4 lados
 }
 
 local states: { [Player]: State } = {}
@@ -120,6 +122,7 @@ local function setMax(state: State, target: Instance, base: number)
 end
 
 local function buildSegments(state: State, level: number)
+	state.doors = {}
 	for _, segment in state.segments do
 		local index = table.find(state.targets, segment)
 		if index then
@@ -133,10 +136,15 @@ local function buildSegments(state: State, level: number)
 	for _, angle in SIDE_ANGLES do
 		local side = state.plot.cframe * CFrame.Angles(0, math.rad(angle), 0)
 		for x = -inset + SEGMENT / 2, inset - SEGMENT / 2, SEGMENT do
-			local door = x == DOOR_X
-			local segment = Builder.WallSegment(side * CFrame.new(x, 0, -inset), SEGMENT, level, door)
-			if door then
-				segment.CollisionGroup = DOOR_GROUP
+			local spot = side * CFrame.new(x, 0, -inset)
+			local segment: Instance
+			if x == DOOR_X then
+				segment = Builder.Door(spot, SEGMENT, level)
+				local block = segment:FindFirstChild("Bloqueo") :: BasePart
+				block.CollisionGroup = DOOR_GROUP
+				table.insert(state.doors, segment :: Model)
+			else
+				segment = Builder.WallSegment(spot, SEGMENT, level)
 			end
 			setMax(state, segment, base)
 			segment.Parent = state.folder
@@ -152,7 +160,7 @@ function WallService.Setup(player: Player, plot, level: number)
 	local folder = Instance.new("Folder")
 	folder.Name = "Rompibles"
 	folder.Parent = plot.contents
-	local state: State = { plot = plot, folder = folder, segments = {}, targets = {}, armor = 1 }
+	local state: State = { plot = plot, folder = folder, segments = {}, targets = {}, armor = 1, doors = {} }
 	states[player] = state
 	buildSegments(state, level)
 end
@@ -313,6 +321,41 @@ function WallService.Start()
 	for _, player in Players:GetPlayers() do
 		onPlayer(player)
 	end
+	-- Las plumas: suben poco a poco si hay un jugador cerca y bajan si no
+	task.spawn(function()
+		while true do
+			task.wait(0.05)
+			local roots = {}
+			for _, player in Players:GetPlayers() do
+				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+				if root then
+					table.insert(roots, root.Position)
+				end
+			end
+			for _, state in states do
+				for _, door in state.doors do
+					local arm = door:FindFirstChild("Pluma") :: Model?
+					local rest = arm and arm:GetAttribute("Rest") :: CFrame?
+					if arm and rest and (door:GetAttribute("Health") or 0) > 0 then
+						local near = false
+						for _, position in roots do
+							if (position - rest.Position).Magnitude < DOOR_RANGE then
+								near = true
+								break
+							end
+						end
+						local angle = arm:GetAttribute("Angle") or 0
+						local goal = if near then 80 else 0
+						if angle ~= goal then
+							angle = if goal > angle then math.min(angle + 8, goal) else math.max(angle - 8, goal)
+							arm:SetAttribute("Angle", angle)
+							arm:PivotTo(rest * CFrame.Angles(0, 0, math.rad(angle)))
+						end
+					end
+				end
+			end
+		end
+	end)
 end
 
 function WallService.Cleanup(player: Player)

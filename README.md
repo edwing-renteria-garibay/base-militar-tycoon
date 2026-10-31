@@ -14,7 +14,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Olas de zombis** numeradas: cada una trae más, con más vida y por más lados (frente, derecha, atrás, izquierda). Si destruyen tu caja fuerte se llevan parte de su dinero y vuelves a la ola 1
 - **Zombis especiales:** trepadores (se saltan el muro y suben a las torres por el francotirador), demoledores (grandes, van por tus edificios) saboteadores (van por tus torres y torretas) y corrosivos (verdes, explotan y te **infectan**: pierdes vida hasta que usas un antídoto de la enfermería)
 - Los edificios y defensas también tienen vida: rotos dejan de funcionar hasta que los reparas
-- **Puertas:** el muro tiene una en medio de cada lado (verde, dice PUERTA): tú pasas y los zombis no, aunque la pueden romper como el resto del muro
+- **Puertas:** el muro tiene una pluma en medio de cada lado, que se levanta cuando llegas: tú pasas y los zombis no, aunque la pueden romper como el resto del muro
 - **Defensas** en lugares marcados (sus botones están adentro, junto al muro):
   - torre en cada esquina donde contratas un francotirador (mantén **E** al pie; si muere, contratas otro; ¡tus balas también le pegan!) y una torreta por lado (dispara sola)
   - alambre de púas (frena y lastima)

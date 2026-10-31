@@ -124,7 +124,7 @@ local function updateAmmo()
 		ammoLabel.Text = string.format("%s: %d balas", weapon.name, ammo)
 		ammoLabel.TextColor3 = if ammo > 0 then Color3.new(1, 1, 1) else COLORS.bad
 	else
-		ammoLabel.Text = weapon.name .. ": ∞"
+		ammoLabel.Text = weapon.name .. ": balas infinitas"
 		ammoLabel.TextColor3 = Color3.new(1, 1, 1)
 	end
 end
@@ -223,10 +223,11 @@ function HUD.Start()
 		task.spawn(watchLife, player.Character)
 	end
 
-	ammoLabel = newLabel(gui, UDim2.fromOffset(300, 30), 22)
-	ammoLabel.AnchorPoint = Vector2.new(0, 1)
-	ammoLabel.Position = UDim2.new(0, 14, 1, -64) -- encima del botón de la tienda
-	ammoLabel.TextXAlignment = Enum.TextXAlignment.Left
+	-- Las balas, abajo a la derecha (como en los juegos de disparos)
+	ammoLabel = newLabel(gui, UDim2.fromOffset(320, 36), 28)
+	ammoLabel.AnchorPoint = Vector2.new(1, 1)
+	ammoLabel.Position = UDim2.new(1, -16, 1, -16)
+	ammoLabel.TextXAlignment = Enum.TextXAlignment.Right
 	ammoLabel.Visible = false
 	task.spawn(function()
 		while true do

@@ -707,39 +707,56 @@ local WALL_LOOK = {
 	{ color = CONCRETE, material = Enum.Material.Concrete, height = 10 },
 	{ color = DARK_METAL, material = Enum.Material.DiamondPlate, height = 12 },
 }
--- door = es la puerta de ese lado: verde militar, con letrero de los dos lados. WallService la
--- pone en el grupo de choque "Puerta", que los jugadores atraviesan y los zombis no
-function Builder.WallSegment(o: CFrame, width: number, level: number, door: boolean?): Part
+function Builder.WallSegment(o: CFrame, width: number, level: number): Part
 	local look = WALL_LOOK[level] or WALL_LOOK[1]
 	local p = Instance.new("Part")
-	p.Name = if door then "Puerta" else "Muro"
+	p.Name = "Muro"
 	p.Anchored = true
 	p.Size = Vector3.new(width, look.height, 2)
 	p.CFrame = o * at(0, look.height / 2, 0)
-	p.Color = if door then OLIVE else look.color
-	p.Material = if door then Enum.Material.DiamondPlate else look.material
+	p.Color = look.color
+	p.Material = look.material
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
-	if door then
-		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
-			local gui = Instance.new("SurfaceGui")
-			gui.Face = face
-			gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-			gui.PixelsPerStud = 20
-			gui.Parent = p
-			local text = Instance.new("TextLabel")
-			text.AnchorPoint = Vector2.new(0.5, 0.5)
-			text.Position = UDim2.fromScale(0.5, 0.5)
-			text.Size = UDim2.fromScale(0.9, 0.25)
-			text.BackgroundTransparency = 1
-			text.Font = Enum.Font.GothamBlack
-			text.Text = "PUERTA"
-			text.TextScaled = true
-			text.TextColor3 = YELLOW
-			text.Parent = gui
-		end
-	end
 	return p
+end
+
+-- La puerta del muro: una pluma (como las de los estacionamientos) entre dos postes. Lo que
+-- de verdad tapa el paso es "Bloqueo", una pieza invisible del alto del muro: WallService la
+-- pone en el grupo de choque que los jugadores atraviesan y los zombis no. La pluma ("Pluma",
+-- con su bisagra en WorldPivot) solo se ve: WallService la levanta cuando llegas
+function Builder.Door(o: CFrame, width: number, level: number): Model
+	local look = WALL_LOOK[level] or WALL_LOOK[1]
+	local m = Instance.new("Model")
+	m.Name = "Puerta"
+	local block = part(m, o, Vector3.new(width, look.height, 2), at(0, look.height / 2, 0), WHITE)
+	block.Name = "Bloqueo"
+	block.Transparency = 1
+	for _, x in { -width / 2 + 0.6, width / 2 - 0.6 } do
+		part(m, o, Vector3.new(1.2, 4.2, 1.2), at(x, 2.1, 0), YELLOW, Enum.Material.Metal)
+		part(m, o, Vector3.new(1.3, 0.4, 1.3), at(x, 2.8, 0), DARK_METAL, Enum.Material.Metal)
+	end
+	-- La pluma: rayas rojas y blancas, con la bisagra en el poste de la izquierda
+	local arm = Instance.new("Model")
+	arm.Name = "Pluma"
+	local hinge = o * at(-width / 2 + 0.6, 3.6, 0)
+	local length = width - 1.2
+	local stripes = 6
+	for i = 1, stripes do
+		local stripe = part(
+			arm,
+			hinge,
+			Vector3.new(length / stripes, 0.45, 0.45),
+			at((i - 0.5) * length / stripes, 0, 0),
+			if i % 2 == 0 then WHITE else RED,
+			Enum.Material.SmoothPlastic
+		)
+		stripe.CanCollide = false
+	end
+	arm.WorldPivot = hinge
+	arm:SetAttribute("Rest", hinge)
+	arm.Parent = m
+	return m
 end
 
 -- Rayas amarillas en el piso que marcan hasta dónde dispara una torreta: un arco de "arc"
