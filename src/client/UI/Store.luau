@@ -1,23 +1,28 @@
 -- La tienda de Robux: un botón "Tienda" arriba a la izquierda que abre la lista de pases y
 -- la bolsa de dinero (Config/Store). Las ventanas de compra son de Roblox; cuando termina la
--- compra, el servidor da lo comprado (StoreService).
+-- compra, el servidor da lo comprado (StoreService). En Studio, lo que aún no tiene ID sale
+-- con un botón "Probar" que lo da gratis, para probarlo antes de publicar.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Menus = require(script.Parent.Parent.Menus)
 
+local powerRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Power") :: RemoteEvent
 local player = Players.LocalPlayer
+local testing = RunService:IsStudio()
 
 local BACKGROUND = Color3.fromRGB(24, 26, 22)
 local CARD = Color3.fromRGB(42, 46, 38)
 local BUY = Color3.fromRGB(60, 160, 70)
 local OWNED = Color3.fromRGB(90, 90, 96)
 local GOLD = Color3.fromRGB(230, 180, 50)
+local TEST = Color3.fromRGB(200, 120, 40)
 
 local StoreUI = {}
 
@@ -99,7 +104,13 @@ local function redraw()
 			local amount = math.max(product.minimum, income * product.seconds)
 			description = string.format("Recibes %s ahora mismo", Format.Money(amount))
 		end
-		if product.id == 0 then
+		if product.once and player:GetAttribute("Starter") then
+			row(100 + i, product.name, description, "Ya lo tienes", OWNED, nil)
+		elseif product.id == 0 and testing then
+			row(100 + i, product.name, description, "Probar", TEST, function()
+				powerRemote:FireServer("test", product.key)
+			end)
+		elseif product.id == 0 then
 			row(100 + i, product.name, description, "Próximamente", OWNED, nil)
 		else
 			row(100 + i, product.name, description, product.robux .. " Robux", BUY, function()
@@ -186,14 +197,16 @@ function StoreUI.Start()
 	close.Activated:Connect(function()
 		panel.Visible = false
 	end)
-	-- Al comprar un pase se redibuja ("Ya lo tienes")
-	for _, pass in Store.passes do
-		player:GetAttributeChangedSignal("Pass_" .. pass.key):Connect(function()
-			if panel.Visible then
-				redraw()
-			end
-		end)
+	-- Al comprar un pase o el paquete inicial se redibuja ("Ya lo tienes")
+	local function refresh()
+		if panel.Visible then
+			redraw()
+		end
 	end
+	for _, pass in Store.passes do
+		player:GetAttributeChangedSignal("Pass_" .. pass.key):Connect(refresh)
+	end
+	player:GetAttributeChangedSignal("Starter"):Connect(refresh)
 end
 
 return StoreUI

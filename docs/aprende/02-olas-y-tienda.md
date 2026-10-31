@@ -68,6 +68,19 @@ El botón **TIENDA** abajo a la izquierda abre la lista. Todo está en
 | Bolsa de dinero | Producto | 49 | 10 minutos de lo que junta tu caja fuerte (mínimo $2,000) |
 | Torreta pesada | Producto | 99 | Una torreta que dispara a todos lados; la colocas donde quieras |
 | Barricada de acero | Producto | 49 | Una barricada de 3,000 de vida; la colocas donde quieras |
+| 3 minas | Producto | 39 | Las colocas donde quieras, también dentro de tu base; se gastan al explotar |
+| 3 antídotos | Producto | 25 | Quitan la infección del zombi corrosivo |
+| Bomba | Producto | 79 | Mata a todos los zombis de la ola (botón o **N**) |
+| Ataque aéreo | Producto | 35 | Bombardea el lado con más zombis (botón o **J**) |
+| Vida extra | Producto | 49 | Si destruyen tu caja fuerte, repites esa ola sin perder nada (se usa sola) |
+| Reparación total | Producto | 25 | Muro, barricadas, edificios y caja fuerte al 100% en seguida |
+| Refuerzos | Producto | 49 | 3 soldados junto a la caja fuerte disparan durante una ola |
+| Paquete inicial | Producto | 99 | $25,000 + torreta pesada + 3 botiquines; solo una vez |
+
+La bomba y el ataque aéreo se guardan hasta que los uses: sus botones salen a la derecha de la
+pantalla cuando hay zombis. Debajo dice cuántas vidas extra tienes. Si compras refuerzos sin ola,
+esperan a la siguiente. En Studio, lo que aún no tiene ID sale con un botón **Probar** que lo da
+gratis, para probarlo antes de publicar (y empiezas con 2 bombas, 2 ataques aéreos y 1 vida).
 
 ### Defensas premium
 
@@ -93,7 +106,7 @@ cerca de otra barricada, se pegan. Precio, vida y cuántas puedes tener: `Config
 1. [create.roblox.com](https://create.roblox.com) > **Creaciones** > Base Militar Tycoon.
 2. **Pases:** menú **Monetización > Pases** > **Crear un pase**. Sube una imagen, ponle el
    nombre, guárdalo, entra a **Ventas**, actívalo y ponle el precio. Copia su **ID**.
-3. **Bolsa de dinero y defensas premium:** menú **Monetización > Productos de desarrollador**
+3. **Paquetes (bolsa de dinero, defensas, bomba, vida extra...):** menú **Monetización > Productos de desarrollador**
    > **Crear**. Uno por cada producto de la tabla, con su nombre y precio. Copia su **ID**.
 4. Pásale los ID a Claude, o ponlos en `Store.luau` en lugar de los `id = 0`.
 

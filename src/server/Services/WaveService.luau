@@ -11,7 +11,11 @@
 -- 4. Zombis especiales (Waves.special): el trepador se salta el muro y sube a las torres por
 --    el francotirador, el demoledor va por los edificios y el saboteador por torres y torretas.
 -- 5. Si eliminas a todos, pasas la ola: premio, récord y descanso hasta la siguiente. Si
---    destruyen tu caja fuerte, se llevan parte de su dinero y vuelves a la ola 1.
+--    destruyen tu caja fuerte, se llevan parte de su dinero y vuelves a la ola 1 (con una vida
+--    extra, repites la ola y no pierdes nada).
+-- 6. Lo comprado con Robux (Config/Store): la bomba (mata a todos), el ataque aéreo (un lado) y
+--    los refuerzos (soldados que disparan solos durante una ola). La bomba y el ataque aéreo se
+--    usan con el RemoteEvent "Power" (botones de UI/Powers).
 -- Mientras hay ola, el atributo "WaveEnemies" dice cuántos zombis quedan (lo lee el HUD).
 
 local CollectionService = game:GetService("CollectionService")
@@ -22,6 +26,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Settings = require(ReplicatedStorage.Shared.Config.Settings)
+local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Effects = require(script.Parent.Parent.Effects)
@@ -30,6 +35,7 @@ local TycoonService = require(script.Parent.TycoonService)
 local WallService = require(script.Parent.WallService)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
+local powerRemote = ReplicatedStorage.Remotes.Power :: RemoteEvent
 
 local TICK = 0.25 -- cada cuánto piensan los zombis
 local testing = Settings.Testing.enabled
@@ -47,6 +53,7 @@ type Zombie = {
 	humanoid: Humanoid,
 	root: BasePart,
 	side: CFrame, -- el lado por el que llegó: su frente (-Z) mira hacia afuera
+	sideName: string, -- y su nombre (Buildings.sides): para el ataque aéreo
 	lane: number, -- su "carril": la x por la que camina derecho hacia el muro
 	speed: number,
 	lastHit: number,
@@ -70,7 +77,10 @@ type State = {
 	spawning: boolean,
 	waveId: number, -- cambia en cada ola, para que el que va saliendo sepa si ya acabó
 	lastShot: { [string]: number }, -- última vez que disparó cada torre o torreta
+	squad: { Soldier }, -- los refuerzos (Store.squad)
 }
+-- Un soldado de refuerzo: se va al terminar la ola forWave (el waveId de esa ola)
+type Soldier = { model: Model, forWave: number, lastShot: number }
 
 local states: { [Player]: State } = {}
 local templates: { [string]: Model } = {} -- un zombi de cada tipo, para clonarlo
@@ -263,6 +273,7 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		humanoid = humanoid,
 		root = root,
 		side = sideFrame,
+		sideName = side.name,
 		lane = lane,
 		speed = speed,
 		lastHit = 0,
@@ -336,8 +347,8 @@ local function startWave(player: Player, state: State, n: number)
 	notice:FireClient(player, string.format("¡Ola %d! %d zombis por %s", n, count, sideText), "bad")
 	task.spawn(function()
 		for i = 1, count do
-			if states[player] ~= state or state.waveId ~= waveId then
-				return -- el jugador se fue o perdió
+			if states[player] ~= state or state.waveId ~= waveId or not state.spawning then
+				return -- el jugador se fue, perdió o usó la bomba
 			end
 			spawnZombie(player, state, sides[(i - 1) % #sides + 1], n, specialOf(i, n))
 			task.wait(Waves.spawnEvery)
@@ -346,8 +357,20 @@ local function startWave(player: Player, state: State, n: number)
 	end)
 end
 
+-- Se van los refuerzos que venían para la ola que acaba de terminar
+local function dismissSquad(state: State)
+	for i = #state.squad, 1, -1 do
+		local soldier = state.squad[i]
+		if soldier.forWave <= state.waveId then
+			soldier.model:Destroy()
+			table.remove(state.squad, i)
+		end
+	end
+end
+
 local function finishWave(player: Player, state: State, n: number)
 	local profile = DataService.Get(player)
+	dismissSquad(state)
 	state.active = false
 	state.zombies = {}
 	state.nextWave = os.clock() + BREAK_TIME
@@ -362,8 +385,10 @@ local function finishWave(player: Player, state: State, n: number)
 	end
 end
 
--- Destruyeron la caja fuerte: se acaba la ola y vuelve a la 1
+-- Destruyeron la caja fuerte: se acaba la ola y vuelve a la 1. Con una vida extra (Robux) no
+-- pierde nada: todo queda como nuevo y repite la misma ola
 local function defeat(player: Player, state: State)
+	dismissSquad(state)
 	state.active = false
 	state.spawning = false
 	state.waveId += 1 -- deja de salir el resto de la ola
@@ -373,6 +398,15 @@ local function defeat(player: Player, state: State)
 	state.zombies = {}
 	state.nextWave = os.clock() + BREAK_TIME
 	player:SetAttribute("WaveEnemies", nil)
+	local profile = DataService.Get(player)
+	if profile and profile.lives > 0 then
+		profile.lives -= 1
+		player:SetAttribute("Lives", profile.lives)
+		TycoonService.RepairEverything(player)
+		local text = string.format("¡Usaste una vida extra! Repites la ola %d (te quedan %d)", profile.wave, profile.lives)
+		notice:FireClient(player, text, "great")
+		return
+	end
 	DataService.ResetWave(player)
 	local lost = TycoonService.LoseVault(player)
 	local text = string.format("¡Los zombis destruyeron tu caja fuerte y se llevaron %s! Vuelves a la ola 1", Format.Money(lost))
@@ -400,6 +434,10 @@ local function trapsOf(player: Player): Traps
 				table.insert(traps.mines, { id = id, position = place.Position })
 			end
 		end
+	end
+	-- y las minas de Robux, que se colocan donde quieras
+	for _, mine in TycoonService.PremiumMines(player) do
+		table.insert(traps.mines, mine)
 	end
 	return traps
 end
@@ -803,6 +841,36 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 	end
 end
 
+-- Los refuerzos disparan al zombi vivo más cercano
+local function squadFire(state: State, now: number)
+	local stats = Store.squad
+	for _, soldier in state.squad do
+		local head = soldier.model:FindFirstChild("Head") :: BasePart?
+		if head and now - soldier.lastShot >= stats.cooldown then
+			local best: Zombie? = nil
+			local bestDistance = stats.range
+			for _, zombie in state.zombies do
+				if isAlive(zombie) then
+					local distance = (zombie.root.Position - head.Position).Magnitude
+					if distance < bestDistance then
+						best, bestDistance = zombie, distance
+					end
+				end
+			end
+			if best then
+				soldier.lastShot = now
+				local target = best.root.Position
+				local pivot = soldier.model:GetPivot().Position
+				soldier.model:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
+				local tip = soldier.model:FindFirstChild("Muzzle", true) :: Attachment?
+				local from = if tip then tip.WorldPosition else head.Position
+				Effects.Shot(from, target, stats.sound, "flesh")
+				best.humanoid:TakeDamage(stats.damage)
+			end
+		end
+	end
+end
+
 local function tick(player: Player, state: State)
 	local profile = DataService.Get(player)
 	local plot = TycoonService.GetPlot(player)
@@ -838,6 +906,7 @@ local function tick(player: Player, state: State)
 	-- Lo investigado en el Laboratorio (Config/Research)
 	applyTraps(player, state, trapsOf(player), Research.Bonus(profile.research, "Explosivos"))
 	defend(player, state, now, Research.Bonus(profile.research, "Torretas"))
+	squadFire(state, now)
 
 	local alive = aliveCount(state)
 	player:SetAttribute("WaveEnemies", if state.spawning then math.max(alive, 1) else alive)
@@ -846,7 +915,105 @@ local function tick(player: Player, state: State)
 	end
 end
 
+-- La bomba: mata a todos los zombis de la ola y ya no sale ninguno más (sí da sus premios)
+local function nuke(player: Player, state: State)
+	for _, zombie in state.zombies do
+		if isAlive(zombie) then
+			Effects.Explosion(zombie.root.Position, 10, "mine")
+			zombie.humanoid.Health = 0
+		end
+	end
+	state.spawning = false
+	notice:FireClient(player, "¡BOMBA! Acabaste con todos los zombis", "great")
+end
+
+-- El ataque aéreo: explosiones a lo largo del lado con más zombis, afuera del muro
+local function airstrike(player: Player, state: State): boolean
+	local plot = TycoonService.GetPlot(player)
+	local counts = {}
+	local bestSide, bestCount = nil, 0
+	for _, zombie in state.zombies do
+		if isAlive(zombie) then
+			counts[zombie.sideName] = (counts[zombie.sideName] or 0) + 1
+			if counts[zombie.sideName] > bestCount then
+				bestSide, bestCount = zombie.sideName, counts[zombie.sideName]
+			end
+		end
+	end
+	local side = nil
+	for _, candidate in Buildings.sides do
+		if candidate.name == bestSide then
+			side = candidate
+		end
+	end
+	if not plot or not side then
+		return false
+	end
+	local frame = plot.cframe * CFrame.Angles(0, math.rad(side.rot), 0)
+	local config = Store.airstrike
+	local depth = (Waves.wallInset + Waves.spawnDistance) / 2 -- a medio camino entre el muro y donde salen
+	local where = (("la " .. side.name):gsub("la frente", "el frente"):gsub("la atrás", "atrás"))
+	notice:FireClient(player, "¡Ataque aéreo por " .. where .. "!", "great")
+	task.spawn(function()
+		for i = 1, config.bombs do
+			local x = -Waves.spawnSpread + (i - 1) * (2 * Waves.spawnSpread) / (config.bombs - 1)
+			local position = (frame * CFrame.new(x, 2, -depth)).Position
+			Effects.Explosion(position, config.radius, "mine")
+			for _, zombie in state.zombies do
+				if isAlive(zombie) and flat(zombie.root.Position - position).Magnitude < config.radius then
+					zombie.humanoid.Health = 0
+				end
+			end
+			task.wait(0.2)
+		end
+	end)
+	return true
+end
+
+-- Llegan los refuerzos: junto a la caja fuerte, mirando hacia afuera. Si hay ola, pelean en
+-- esa; si no, en la siguiente
+function WaveService.Reinforce(player: Player)
+	local state = states[player]
+	local plot = TycoonService.GetPlot(player)
+	if not state or not plot then
+		return
+	end
+	local forWave = if state.active then state.waveId else state.waveId + 1
+	local count = Store.squad.count
+	for i = 1, count do
+		local angle = math.rad(360 * i / count)
+		local spot = plot.cframe * CFrame.Angles(0, angle, 0) * CFrame.new(0, 3, -12)
+		local model = TycoonService.SpawnSoldier(player, CFrame.lookAt(spot.Position, (spot * CFrame.new(0, 0, -1)).Position))
+		if model then
+			table.insert(state.squad, { model = model, forWave = forWave, lastShot = 0 })
+		end
+	end
+	notice:FireClient(player, "¡Llegaron tus refuerzos! Pelean contigo esta ola", "great")
+end
+
+-- El jugador usa la bomba ("nuke") o el ataque aéreo ("strike")
+local function onPower(player: Player, what: any)
+	local state = states[player]
+	local profile = DataService.Get(player)
+	if not state or not profile or (what ~= "nuke" and what ~= "strike") then
+		return
+	end
+	if not state.active or aliveCount(state) == 0 then
+		notice:FireClient(player, "Úsalo cuando haya zombis", "bad")
+		return
+	end
+	if what == "nuke" and profile.nukes > 0 then
+		profile.nukes -= 1
+		player:SetAttribute("Nukes", profile.nukes)
+		nuke(player, state)
+	elseif what == "strike" and profile.strikes > 0 and airstrike(player, state) then
+		profile.strikes -= 1
+		player:SetAttribute("Strikes", profile.strikes)
+	end
+end
+
 function WaveService.Start()
+	powerRemote.OnServerEvent:Connect(onPower)
 	local function onPlayer(player: Player)
 		states[player] = {
 			nextWave = os.clock() + FIRST_DELAY,
@@ -855,6 +1022,7 @@ function WaveService.Start()
 			spawning = false,
 			waveId = 0,
 			lastShot = {},
+			squad = {},
 		}
 	end
 	Players.PlayerAdded:Connect(onPlayer)
@@ -862,6 +1030,12 @@ function WaveService.Start()
 		onPlayer(player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
+		local state = states[player]
+		if state then
+			for _, soldier in state.squad do
+				soldier.model:Destroy()
+			end
+		end
 		states[player] = nil
 	end)
 	task.spawn(function()

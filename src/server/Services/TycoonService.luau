@@ -210,7 +210,7 @@ local function moveOutOfTheWay(player: Player, model: Model)
 end
 
 local ignite: (Player) -> ()
-local premiumItem: (any, number) -> any
+local premiumItem: (any) -> any
 local publishPremium: (Player, DataService.Profile) -> ()
 
 -- El francotirador: un soldado parado arriba de su torre. Es quien dispara (WaveService)
@@ -600,14 +600,15 @@ end
 
 -- Defensas premium ----------------------------------------------------------------------------
 
--- Una defensa premium colocada, como si fuera una cosa más de Config/Buildings
-premiumItem = function(entry, index: number)
+-- Una defensa premium colocada, como si fuera una cosa más de Config/Buildings. Su id lleva el
+-- uid de la colocada (así se puede gastar una mina sin confundirla con otra)
+premiumItem = function(entry)
 	local base = Premium.byKey[entry.key]
 	if not base then
 		return nil
 	end
 	return {
-		id = "Premium" .. index,
+		id = "Premium" .. entry.uid,
 		name = base.name,
 		kind = base.kind,
 		at = { entry.x, entry.z },
@@ -649,9 +650,9 @@ local function place(player: Player, key: any, x: any, z: any, rot: any)
 		return
 	end
 	profile.premium[key] -= 1
-	local entry = { key = key, x = x, z = z, rot = rot }
+	local entry = { key = key, x = x, z = z, rot = rot, uid = HttpService:GenerateGUID(false) }
 	table.insert(profile.placed, entry)
-	local item = premiumItem(entry, #profile.placed)
+	local item = premiumItem(entry)
 	if item then
 		build(state, item, true)
 	end
@@ -768,7 +769,8 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		end
 	end
 	for index, entry in profile.placed do
-		local item = premiumItem(entry, index)
+		entry.uid = entry.uid or tostring(index) -- las colocadas antes de que hubiera uid
+		local item = premiumItem(entry)
 		if item then
 			build(state, item, false)
 		end
@@ -817,7 +819,8 @@ function TycoonService.PlaceOf(player: Player, item): CFrame?
 	return state and placeOf(state.plot, item.at, item.rot)
 end
 
--- Se gastó algo de un solo uso (una mina): desaparece y su botón vuelve a salir
+-- Se gastó algo de un solo uso (una mina): desaparece y su botón vuelve a salir. Si era una
+-- mina premium (de Robux), se quita de las colocadas
 function TycoonService.Consume(player: Player, id: string)
 	local state = states[player]
 	local profile = DataService.Get(player)
@@ -825,12 +828,66 @@ function TycoonService.Consume(player: Player, id: string)
 		return
 	end
 	profile.owned[id] = nil
+	for i, entry in profile.placed do
+		if "Premium" .. tostring(entry.uid) == id then
+			table.remove(profile.placed, i)
+			publishPremium(player, profile)
+			break
+		end
+	end
 	local model = state.models[id]
 	if model then
 		model:Destroy()
 		state.models[id] = nil
+		state.items[id] = nil
 	end
 	refreshButtons(player)
+end
+
+-- Las minas premium colocadas: { id, position }
+function TycoonService.PremiumMines(player: Player): { { id: string, position: Vector3 } }
+	local state = states[player]
+	local list = {}
+	if state then
+		for id, item in state.items do
+			if item.effect == "mine" and string.sub(id, 1, 7) == "Premium" then
+				table.insert(list, { id = id, position = placeOf(state.plot, item.at).Position })
+			end
+		end
+	end
+	return list
+end
+
+-- Deja como nuevo el muro, las barricadas, los edificios y la caja fuerte
+function TycoonService.RepairEverything(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	state.vaultHealth = Waves.vaultHealth
+	vaultHealthChanged(state)
+	WallService.RepairAll(player)
+end
+
+-- Un soldado de refuerzo (Config/Store, kind "squad") parado en cframe, con su rifle. Lo
+-- maneja WaveService
+function TycoonService.SpawnSoldier(player: Player, cframe: CFrame): Model?
+	local state = states[player]
+	local base = getSniperTemplate()
+	if not state or not base then
+		return nil
+	end
+	local model = base:Clone()
+	model.Name = "Refuerzo"
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
+	humanoid.DisplayName = "Refuerzo"
+	model:PivotTo(cframe)
+	root.Anchored = true -- se queda en su lugar
+	model.Parent = state.plot.contents
+	TwoHands.Setup(model)
+	humanoid:EquipTool(WeaponModels.MakeTool(Weapons.byId.Rifle))
+	return model
 end
 
 -- Un zombi golpea la caja fuerte. Devuelve la vida que le queda
@@ -855,8 +912,6 @@ function TycoonService.LoseVault(player: Player): number
 	local lost = math.floor(profile.vault * Waves.lossShare)
 	profile.vault -= lost
 	showVault(state, profile)
-	state.vaultHealth = Waves.vaultHealth
-	vaultHealthChanged(state)
 	-- Las defensas premium (de Robux) solo duran hasta que destruyen la caja fuerte
 	if #profile.placed > 0 then
 		for id, model in state.models do
@@ -870,7 +925,7 @@ function TycoonService.LoseVault(player: Player): number
 		publishPremium(player, profile)
 		notice:FireClient(player, "Se perdieron tus defensas premium", "bad")
 	end
-	WallService.RepairAll(player)
+	TycoonService.RepairEverything(player)
 	return lost
 end
 

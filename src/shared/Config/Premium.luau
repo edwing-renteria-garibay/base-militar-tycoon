@@ -5,7 +5,8 @@
 --   kind     su dibujo (src/server/Builder.luau); su vida está en Waves.buildingHealth
 --   radius   cuánto espacio ocupa (un círculo de este radio, en studs)
 --   defense  si dispara sola: { damage, range, cooldown, sound }. Dispara a todos lados
---   effect   "barricade" = tapa el paso (los zombis demoledores no la buscan)
+--   effect   "barricade" = tapa el paso (los zombis demoledores no la buscan); "mine" =
+--            explota cuando pasa un zombi y se gasta (como las minas de Config/Buildings)
 --
 -- No cambies la key después de publicar: así se guarda cuántas tiene cada jugador.
 
@@ -27,6 +28,14 @@ Premium.list = {
 		kind = "SteelBarricade",
 		radius = 7,
 		effect = "barricade",
+	},
+	{
+		key = "Mina",
+		name = "Mina",
+		description = "Explota cuando un zombi la pisa (se gasta)",
+		kind = "Mine",
+		radius = 2,
+		effect = "mine",
 	},
 }
 

@@ -5,9 +5,12 @@
 -- demás del juego solo lee esos atributos (TycoonService para el dinero, WeaponService para
 -- la munición x2).
 --
--- Paquetes (la bolsa de dinero y las defensas premium): Roblox llama a processReceipt y solo da por buena la compra
--- si devolvemos PurchaseGranted. Si algo falla devolvemos NotProcessedYet y Roblox lo
--- reintenta después, así el jugador nunca pierde sus Robux.
+-- Paquetes (dinero, defensas premium, bomba, vida extra...): Roblox llama a processReceipt y
+-- solo da por buena la compra si devolvemos PurchaseGranted. Si algo falla devolvemos
+-- NotProcessedYet y Roblox lo reintenta después, así el jugador nunca pierde sus Robux.
+--
+-- En Studio (modo prueba) los paquetes que aún no tienen ID se pueden "comprar" gratis con el
+-- botón Probar de la tienda (RemoteEvent "Power", "test"), para probarlos antes de publicar.
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -19,8 +22,10 @@ local Store = require(ReplicatedStorage.Shared.Config.Store)
 local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local TycoonService = require(script.Parent.TycoonService)
+local WaveService = require(script.Parent.WaveService)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
+local powerRemote = ReplicatedStorage.Remotes.Power :: RemoteEvent
 
 local MAX_RECEIPTS = 50
 
@@ -33,8 +38,23 @@ local function grantPass(player: Player, key: string)
 	end
 end
 
--- Pregunta a Roblox qué pases tiene el jugador
+-- Lo que se guarda en el perfil y se usa con un botón: { kind, campo del perfil, atributo }
+local COUNTERS = {
+	antidote = { "antidotes", "Antidotes" },
+	nuke = { "nukes", "Nukes" },
+	airstrike = { "strikes", "Strikes" },
+	life = { "lives", "Lives" },
+}
+
+-- Pregunta a Roblox qué pases tiene el jugador (y publica lo que tiene guardado de la tienda)
 function StoreService.CheckPasses(player: Player)
+	local profile = DataService.Get(player) :: any
+	if profile then
+		for _, counter in COUNTERS do
+			player:SetAttribute(counter[2], profile[counter[1]])
+		end
+		player:SetAttribute("Starter", profile.starter)
+	end
 	for _, pass in Store.passes do
 		if pass.id ~= 0 then
 			local ok, owns = pcall(function()
@@ -82,6 +102,69 @@ local function onPassPurchased(player: Player, passId: number, purchased: boolea
 	end
 end
 
+-- Da lo comprado. Devuelve dos funciones: undo lo quita (si no se pudo guardar) y done hace lo
+-- que ya no se puede deshacer (reparar, mandar refuerzos) y avisa al jugador
+local function grant(player: Player, profile: any, product): (() -> (), () -> ())
+	local amount = product.amount or 1
+	local counter = COUNTERS[product.kind]
+	if counter then
+		local field, attribute = counter[1], counter[2]
+		profile[field] += amount
+		return function()
+			profile[field] -= amount
+		end, function()
+			player:SetAttribute(attribute, profile[field])
+			local how = if product.kind == "nuke"
+				then " (tecla N durante la ola)"
+				elseif product.kind == "airstrike" then " (tecla J durante la ola)"
+				else ""
+			notice:FireClient(player, string.format("¡Gracias! Ya tienes %s%s", product.name, how), "great")
+		end
+	elseif product.kind == "defense" then
+		profile.premium[product.key] = (profile.premium[product.key] or 0) + amount
+		return function()
+			profile.premium[product.key] -= amount
+		end, function()
+			player:SetAttribute("Premium_" .. product.key, profile.premium[product.key])
+			notice:FireClient(player, string.format("¡Gracias! Coloca tu %s con el botón COLOCAR", product.name), "great")
+		end
+	elseif product.kind == "repair" then
+		return function() end, function()
+			TycoonService.RepairEverything(player)
+			notice:FireClient(player, "¡Todo reparado al 100%!", "great")
+		end
+	elseif product.kind == "squad" then
+		return function() end, function()
+			WaveService.Reinforce(player)
+		end
+	elseif product.kind == "starter" then
+		local starter = Store.starter
+		profile.starter = true
+		profile.premium[starter.defense] = (profile.premium[starter.defense] or 0) + 1
+		profile.medkits += starter.medkits
+		DataService.AddMoney(player, starter.money)
+		return function()
+			profile.starter = false
+			profile.premium[starter.defense] -= 1
+			profile.medkits -= starter.medkits
+			DataService.Spend(player, starter.money)
+		end, function()
+			player:SetAttribute("Starter", true)
+			player:SetAttribute("Premium_" .. starter.defense, profile.premium[starter.defense])
+			player:SetAttribute("Medkits", profile.medkits)
+			notice:FireClient(player, "¡Gracias! Paquete inicial: dinero, torreta pesada y botiquines", "great")
+		end
+	end
+	-- "money": lo que genera tu base en un rato
+	local money = math.max(product.minimum, TycoonService.IncomeOf(player) * product.seconds)
+	DataService.AddMoney(player, money)
+	return function()
+		DataService.Spend(player, money)
+	end, function()
+		notice:FireClient(player, string.format("¡Gracias! +%s", Format.Money(money)), "great")
+	end
+end
+
 local function processReceipt(receipt)
 	local player = Players:GetPlayerByUserId(receipt.PlayerId)
 	local profile = player and DataService.Get(player)
@@ -102,40 +185,39 @@ local function processReceipt(receipt)
 		warn("[Tienda] Producto desconocido", receipt.ProductId)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	-- Lo que da: dinero, o una defensa premium para colocar
-	local amount = 0
-	if product.kind == "defense" then
-		profile.premium[product.key] = (profile.premium[product.key] or 0) + 1
-	else
-		amount = math.max(product.minimum, TycoonService.IncomeOf(player) * product.seconds)
-		DataService.AddMoney(player, amount)
-	end
+	local undo, done = grant(player, profile, product)
 	table.insert(profile.receipts, purchaseId)
 	if #profile.receipts > MAX_RECEIPTS then
 		table.remove(profile.receipts, 1)
 	end
 	if not DataService.SaveNow(player) then
 		-- No se guardó: se deshace y Roblox lo reintenta después
-		if product.kind == "defense" then
-			profile.premium[product.key] -= 1
-		else
-			DataService.Spend(player, amount)
-		end
+		undo()
 		table.remove(profile.receipts)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	if product.kind == "defense" then
-		player:SetAttribute("Premium_" .. product.key, profile.premium[product.key])
-		notice:FireClient(player, string.format("¡Gracias! Coloca tu %s con el botón COLOCAR", product.name), "great")
-	else
-		notice:FireClient(player, string.format("¡Gracias! +%s", Format.Money(amount)), "great")
-	end
+	done()
 	return Enum.ProductPurchaseDecision.PurchaseGranted
+end
+
+-- Botón Probar de la tienda (solo en Studio): da el paquete sin pagar
+local function onTest(player: Player, what: any, key: any)
+	local profile = DataService.Get(player)
+	if what ~= "test" or not Settings.Testing.enabled or not profile then
+		return
+	end
+	for _, product in Store.products do
+		if product.key == key then
+			local _, done = grant(player, profile, product)
+			done()
+		end
+	end
 end
 
 function StoreService.Start()
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(onPassPurchased)
 	MarketplaceService.ProcessReceipt = processReceipt
+	powerRemote.OnServerEvent:Connect(onTest)
 end
 
 return StoreService

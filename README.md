@@ -24,7 +24,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Cámara como Escuadrón Cero:** primera persona con el arma y los brazos en pantalla (`src/client/ViewModel.luau`), **V** cambia a tercera persona sobre el hombro, mira en el centro que se pone roja al acertar, retroceso, y **clic derecho** con el francotirador hace zoom. **B** abre la tienda y **G** el menú de colocar; con un menú abierto el mouse queda libre (`src/client/Menus.luau`)
 - **Torretas** que solo disparan hacia su frente (45°); su alcance se marca en el piso con rayas amarillas
 - **Barricadas de concreto** (botón **BARRICADAS** o tecla **H**): las pones donde quieras en hileras de 1 a 3 pedazos, clic donde empieza y clic donde termina; si la punta queda cerca de otra barricada se unen, así armas la forma que quieras. Se rompen y se reparan como el muro (`Config/Barricades.luau`)
-- **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, bolsa de dinero y **defensas premium** (torreta pesada y barricada de acero)
+- **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, bolsa de dinero, **defensas premium** (torreta pesada, barricada de acero y minas), antídotos, bomba que mata a todos (**N**), ataque aéreo (**J**), vida extra, reparación total, refuerzos y paquete inicial. En Studio lo que no tiene ID se puede **Probar** gratis
 - **Defensas premium:** las compradas con Robux las colocas donde quieras con el botón **COLOCAR**, menos en los lugares marcados (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una gratis
 - **Premio diario** que sube si entras días seguidos
 - Se guardan tu dinero, tu base, la ola en la que vas y tu récord (DataStore)

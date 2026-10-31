@@ -16,6 +16,8 @@
 --   placed   = las defensas premium ya colocadas: { { key, x, z, rot }, ... }. Se pierden si
 --              destruyen tu caja fuerte
 --   medkits  = cuántos botiquines carga (Waves.medkit); antidotes = cuántos antídotos
+--   lives, nukes, strikes = vidas extra, bombas y ataques aéreos comprados con Robux
+--              (Config/Store) sin usar; starter = ya compró el paquete inicial
 --   barricades = las hileras de barricadas: { { ax, az, bx, bz, pedazos }, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
@@ -47,6 +49,10 @@ export type Profile = {
 	barricades: { { number } },
 	medkits: number,
 	antidotes: number,
+	lives: number,
+	nukes: number,
+	strikes: number,
+	starter: boolean,
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -127,6 +133,10 @@ function DataService.Load(player: Player): Profile
 		receipts = {},
 		medkits = 0,
 		antidotes = 0,
+		lives = 0,
+		nukes = 0,
+		strikes = 0,
+		starter = false,
 	}
 	if store then
 		local ok, data = pcall(function()
@@ -148,6 +158,10 @@ function DataService.Load(player: Player): Profile
 			profile.barricades = if type(data.barricades) == "table" then data.barricades else {}
 			profile.medkits = tonumber(data.medkits) or 0
 			profile.antidotes = tonumber(data.antidotes) or 0
+			profile.lives = tonumber(data.lives) or 0
+			profile.nukes = tonumber(data.nukes) or 0
+			profile.strikes = tonumber(data.strikes) or 0
+			profile.starter = data.starter == true
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0
@@ -162,6 +176,10 @@ function DataService.Load(player: Player): Profile
 		for _, item in Premium.list do
 			profile.premium[item.key] = Settings.Testing.premium
 		end
+		-- y para probar la bomba, el ataque aéreo y la vida extra
+		profile.nukes = Settings.Testing.premium
+		profile.strikes = Settings.Testing.premium
+		profile.lives = 1
 	end
 	profiles[player] = profile
 
