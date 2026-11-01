@@ -204,6 +204,19 @@ function WeaponService.DamageBonus(player: Player): number
 	return Research.Bonus(profile.research, "Balas")
 end
 
+-- Como workspace:Raycast, pero las balas atraviesan lo invisible (la pieza que tapa la puerta,
+-- la parte central del personaje...): solo choca con lo que se ve
+local function castVisible(origin: Vector3, direction: Vector3, params: RaycastParams): RaycastResult?
+	for _ = 1, 10 do
+		local result = workspace:Raycast(origin, direction, params)
+		if not result or result.Instance.Transparency < 0.95 then
+			return result
+		end
+		params:AddToFilter(result.Instance)
+	end
+	return nil
+end
+
 local function onShoot(player: Player, target: any)
 	if typeof(target) ~= "Vector3" then
 		return
@@ -253,7 +266,7 @@ local function onShoot(player: Player, target: any)
 			local spread = math.rad(weapon.spread)
 			direction = (aim * CFrame.Angles((math.random() - 0.5) * spread * 2, (math.random() - 0.5) * spread * 2, 0)).LookVector
 		end
-		local result = workspace:Raycast(origin, direction * weapon.range, params)
+		local result = castVisible(origin, direction * weapon.range, params)
 		local hitPoint = if result then result.Position else origin + direction * weapon.range
 		local surface = nil
 		if result then
@@ -261,7 +274,8 @@ local function onShoot(player: Player, target: any)
 			if victim then
 				surface = "flesh"
 				if victim.Health > 0 then
-					victim:TakeDamage(damage)
+					local headshot = result.Instance.Name == "Head"
+					victim:TakeDamage(if headshot then damage * Weapons.headshot else damage)
 					if not ally then
 						hitRemote:FireClient(player) -- la mira se pone roja y suena el aviso
 					end

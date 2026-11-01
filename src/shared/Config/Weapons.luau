@@ -67,6 +67,10 @@ Weapons.list = {
 	},
 }
 
+-- Un tiro en la cabeza hace este múltiplo del daño (el rifle mata de un tiro en la cabeza a los
+-- zombis de las primeras olas)
+Weapons.headshot = 2
+
 Weapons.byId = {}
 for _, weapon in Weapons.list do
 	Weapons.byId[weapon.id] = weapon

@@ -26,7 +26,15 @@ local function aim(): Vector3
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { player.Character :: Instance }
+	-- Lo invisible no cuenta (la pieza que tapa la puerta): se apunta a lo que se ve
 	local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+	for _ = 1, 10 do
+		if not result or result.Instance.Transparency < 0.95 then
+			break
+		end
+		params:AddToFilter(result.Instance)
+		result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+	end
 	return if result then result.Position else ray.Origin + ray.Direction * 1000
 end
 
