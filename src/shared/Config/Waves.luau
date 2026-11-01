@@ -8,7 +8,7 @@
 local Waves = {}
 
 -- Tiempos (en segundos). En modo de prueba (Config/Settings) son más cortos
-Waves.firstDelay = 60 -- al entrar, antes de la primera ola
+Waves.firstDelay = 90 -- al entrar, antes de la primera ola (para construir algo primero)
 Waves.breakTime = 40 -- descanso entre una ola y la siguiente
 Waves.testingFirstDelay = 20
 Waves.testingBreakTime = 15
@@ -18,7 +18,7 @@ function Waves.CountOf(n: number): number -- cuántos zombis
 	return math.min(4 + 2 * n, 40)
 end
 function Waves.HealthOf(n: number): number -- vida de cada zombi
-	return 60 + 25 * n
+	return 40 + 20 * n
 end
 function Waves.SpeedOf(n: number): number -- velocidad (un jugador camina a 16)
 	return math.min(8 + 0.4 * n, 14)
@@ -52,10 +52,14 @@ Waves.lossShare = 0.25 -- si la destruyen, se llevan esta parte del dinero que t
 Waves.vaultIncome = { 5, 15, 40, 100, 250 } -- dinero por segundo según su nivel (1 a 5)
 -- La caja junta más mientras más lejos vas: +10% por cada ola (en la ola 20, casi el triple)
 Waves.incomePerWave = 0.1
+-- Y todo lo que compras para tu base también sube lo que junta: cada cosa suma esta parte de
+-- su precio por segundo (una torre de $2,500 da +$5 por segundo). Las mejoras de la caja no,
+-- esas ya tienen lo suyo
+Waves.buildingIncome = 0.002
 
 -- Premios
 function Waves.KillReward(n: number): number -- por cada zombi en la ola n
-	return 5 + 2 * n
+	return 10 + 2 * n
 end
 function Waves.WaveReward(n: number): number -- por pasar la ola n
 	return 150 * n

@@ -9,7 +9,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 ## Qué hay
 
 - Mapa con una calle y 6 terrenos de 200 x 200; cada jugador recibe uno con un letrero con su nombre
-- **Caja fuerte** en el centro: junta dinero cada segundo; pisa su botón verde para cobrar. Se mejora hasta el nivel 5
+- **Caja fuerte** en el centro: junta dinero cada segundo; pisa su botón verde para cobrar. Se mejora hasta el nivel 5. Todo lo que compras para tu base sube lo que junta. Empiezas con $1,000 y 90 segundos antes de la primera ola
 - **Muro** alrededor (a 70 del centro) hecho de pedazos con vida: los zombis lo rompen y tú lo reparas manteniendo **E** junto a la caja fuerte. Se mejora a concreto y a reforzado
 - **Olas de zombis** numeradas: cada una trae más, con más vida y por más lados (frente, derecha, atrás, izquierda). Si destruyen tu caja fuerte se llevan parte de su dinero y vuelves a la ola 1
 - **Zombis especiales:** trepadores (se saltan el muro y suben a las torres por el francotirador), demoledores (grandes, van por tus edificios) saboteadores (van por tus torres y torretas) y corrosivos (verdes, explotan y te **infectan**: pierdes vida hasta que usas un antídoto de la enfermería)

@@ -82,10 +82,23 @@ local function placeOf(plot: PlotService.Plot, spot: { number }, rot: number?): 
 	return plot.cframe * CFrame.new(spot[1], 0, spot[2]) * CFrame.Angles(0, math.rad(rot or 0), 0)
 end
 
--- El dinero por segundo que junta la caja fuerte, con los pases del jugador (los pone
--- StoreService como atributos: "Pass_x2", "Pass_VIP"...)
+-- Lo que suma por segundo una cosa comprada (Waves.buildingIncome). Las mejoras de la caja no
+-- suman: esas suben el nivel
+local function incomeFrom(item): number
+	return if item.effect == "vault" then 0 else math.floor(item.price * Waves.buildingIncome)
+end
+
+-- El dinero por segundo que junta la caja fuerte: su nivel más lo que has comprado, con los
+-- pases del jugador (los pone StoreService como atributos: "Pass_x2", "Pass_VIP"...)
 local function incomeOf(player: Player, profile: DataService.Profile): number
 	local level = Buildings.LevelOf(profile.owned, "vault")
+	local base = Waves.vaultIncome[level]
+	for id in profile.owned do
+		local item = Buildings.byId[id]
+		if item then
+			base += incomeFrom(item)
+		end
+	end
 	local multiplier = 1
 	if player:GetAttribute("Pass_x2") then
 		multiplier *= 2
@@ -95,7 +108,7 @@ local function incomeOf(player: Player, profile: DataService.Profile): number
 	end
 	-- Mientras más lejos vas en las olas, más junta
 	multiplier *= 1 + Waves.incomePerWave * (profile.wave - 1)
-	return math.floor(Waves.vaultIncome[level] * multiplier)
+	return math.floor(base * multiplier)
 end
 
 -- El letrero de la caja fuerte: lo que tiene adentro y cuánto junta por segundo
@@ -443,7 +456,12 @@ local function buy(player: Player, item)
 		WallService.SetLevel(player, Buildings.LevelOf(profile.owned, "wall"))
 	end
 	player:SetAttribute("Income", incomeOf(player, profile))
-	notice:FireClient(player, string.format("Construiste: %s", item.name), "good")
+	local extra = incomeFrom(item)
+	local text = string.format("Construiste: %s", item.name)
+	if extra > 0 then
+		text ..= string.format(" (tu base junta +%s por segundo)", Format.Money(extra))
+	end
+	notice:FireClient(player, text, "good")
 	refreshButtons(player)
 end
 
@@ -784,6 +802,21 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 	vaultHealthChanged(state)
 	player:SetAttribute("Income", incomeOf(player, profile))
 	refreshButtons(player)
+	-- La primera vez: cómo se juega, en pocas palabras
+	if profile.record == 0 and profile.wave == 1 and next(profile.owned) == nil then
+		local tips = {
+			"Tu caja fuerte junta dinero solo: pisa su botón verde para cobrarlo",
+			"Pisa los botones del piso para construir. Todo lo que compres sube lo que junta tu base",
+			"Antes de que lleguen los zombis, pon defensas en tu muro. ¡Aguanta todas las olas que puedas!",
+		}
+		for i, tip in tips do
+			task.delay(4 + (i - 1) * 6, function()
+				if player.Parent then
+					notice:FireClient(player, tip, "great")
+				end
+			end)
+		end
+	end
 end
 
 -- Para las olas y la tienda ----------------------------------------------------------------
