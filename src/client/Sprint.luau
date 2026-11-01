@@ -3,10 +3,13 @@
 -- Solo corre el jugador: los zombis caminan a su velocidad (Config/Waves).
 --
 -- La velocidad de tu personaje la controla tu propio cliente, así que basta con cambiar
--- WalkSpeed aquí.
+-- WalkSpeed aquí. Se revisa cada fotograma si tienes Shift apretado (así no importa si otra
+-- cosa de Roblox, como el "shift lock", se queda con la tecla).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
@@ -15,37 +18,33 @@ local SPRINT_SPEED = 24
 
 local Sprint = {}
 
-local function getHumanoid(): Humanoid?
-	local character = player.Character
-	return character and character:FindFirstChildOfClass("Humanoid")
-end
+local toggled = false -- con el botón de celular o L3: corre hasta que lo vuelvas a tocar
 
-local function setRunning(running: boolean)
-	local humanoid = getHumanoid()
-	if humanoid and humanoid.Health > 0 then
-		humanoid.WalkSpeed = if running then SPRINT_SPEED else WALK_SPEED
-	end
-end
-
-local function onAction(_name: string, state: Enum.UserInputState, input: InputObject)
-	if input.UserInputType == Enum.UserInputType.Touch then
-		-- En celular: un toque prende y otro apaga
-		if state == Enum.UserInputState.Begin then
-			local humanoid = getHumanoid()
-			setRunning(humanoid ~= nil and humanoid.WalkSpeed < SPRINT_SPEED)
-		end
-	elseif state == Enum.UserInputState.Begin then
-		setRunning(true)
-	else
-		setRunning(false) -- soltaste la tecla (o se canceló)
+local function onToggle(_name: string, state: Enum.UserInputState)
+	if state == Enum.UserInputState.Begin then
+		toggled = not toggled
 	end
 	return Enum.ContextActionResult.Pass
 end
 
 function Sprint.Start()
-	ContextActionService:BindAction("Sprint", onAction, true, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
+	ContextActionService:BindAction("Sprint", onToggle, true, Enum.KeyCode.ButtonL3)
 	ContextActionService:SetTitle("Sprint", "Correr")
 	ContextActionService:SetPosition("Sprint", UDim2.new(1, -160, 1, -150))
+	RunService.Heartbeat:Connect(function()
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if not humanoid or humanoid.Health <= 0 then
+			toggled = false
+			return
+		end
+		local shift = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
+			or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+		local speed = if shift or toggled then SPRINT_SPEED else WALK_SPEED
+		if humanoid.WalkSpeed ~= speed then
+			humanoid.WalkSpeed = speed
+		end
+	end)
 end
 
 return Sprint
