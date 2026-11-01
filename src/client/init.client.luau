@@ -1,4 +1,4 @@
--- Punto de entrada del cliente: la cámara (primera persona, V para tercera), el arma en primera
+-- Punto de entrada del cliente: la cámara (primera persona, V para tercera), correr (Shift), el arma en primera
 -- persona y la mira, la pantalla con tu dinero, los avisos y la próxima ola, la tienda, la
 -- armería, el laboratorio, colocar defensas premium, poner barricadas, la bomba y el ataque aéreo, las armas, los efectos de los disparos y lo
 -- que gira.
@@ -7,6 +7,7 @@ local Camera = require(script.Camera)
 local Crosshair = require(script.Crosshair)
 local Fx = require(script.Fx)
 local Spinner = require(script.Spinner)
+local Sprint = require(script.Sprint)
 local ViewModel = require(script.ViewModel)
 local Weapon = require(script.Weapon)
 local ArmoryUI = require(script.UI.Armory)
@@ -30,3 +31,4 @@ PowersUI.Start()
 Weapon.Start()
 Fx.Start()
 Spinner.Start()
+Sprint.Start()
