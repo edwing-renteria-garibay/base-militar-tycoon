@@ -49,7 +49,7 @@ Waves.playerHit = 15 -- daño por golpe a un jugador (un golpe por segundo)
 -- La caja fuerte
 Waves.vaultHealth = 2000
 Waves.lossShare = 0.25 -- si la destruyen, se llevan esta parte del dinero que tenía adentro
-Waves.vaultIncome = { 5, 15, 40, 100, 250 } -- dinero por segundo según su nivel (1 a 5)
+Waves.vaultIncome = { 10, 25, 60, 140, 320 } -- dinero por segundo según su nivel (1 a 5)
 -- La caja junta más mientras más lejos vas: +10% por cada ola (en la ola 20, casi el triple)
 Waves.incomePerWave = 0.1
 -- Y todo lo que compras para tu base también sube lo que junta: cada cosa suma esta parte de
@@ -59,10 +59,10 @@ Waves.buildingIncome = 0.002
 
 -- Premios
 function Waves.KillReward(n: number): number -- por cada zombi en la ola n
-	return 10 + 2 * n
+	return 15 + 5 * n
 end
 function Waves.WaveReward(n: number): number -- por pasar la ola n
-	return 150 * n
+	return 250 * n
 end
 
 -- Las torretas solo disparan hacia su frente: este es su ángulo de vista, en grados (45 = 22.5

@@ -22,7 +22,7 @@ Weapons.list = {
 		name = "Rifle",
 		description = "Balas infinitas",
 		price = 0,
-		damage = 34,
+		damage = 40,
 		cooldown = 0.3,
 		range = 300,
 		sound = "AssaultRifle",
@@ -68,8 +68,8 @@ Weapons.list = {
 }
 
 -- Un tiro en la cabeza hace este múltiplo del daño (el rifle mata de un tiro en la cabeza a los
--- zombis de las primeras olas)
-Weapons.headshot = 2
+-- zombis hasta la ola 4)
+Weapons.headshot = 3
 
 Weapons.byId = {}
 for _, weapon in Weapons.list do

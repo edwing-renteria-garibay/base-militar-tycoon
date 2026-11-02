@@ -68,6 +68,7 @@ type Zombie = {
 	climbing: boolean, -- trepando: lo mueve climb(), no piensa
 	onTower: string?, -- el trepador ya está arriba de esta torre
 	exploded: boolean, -- el explosivo ya explotó (no da premio)
+	ring: Vector3, -- dónde se pone junto a la caja fuerte (cada uno en su lugar, alrededor)
 	weapon: Weld?, -- lo que trae en la mano (tubo, palo o pico): se mueve al golpear
 }
 type State = {
@@ -288,11 +289,18 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		climbing = false,
 		onTower = nil,
 		exploded = false,
+		ring = CFrame.Angles(0, math.random() * 2 * math.pi, 0).LookVector * (VAULT_REACH - 2),
 		-- El explosivo no trae nada: sostiene su bomba
 		weapon = if special and special.explode then nil else giveWeapon(model),
 	}
 	table.insert(state.zombies, zombie)
 	humanoid.Died:Connect(function()
+		-- El cuerpo ya no tapa las balas: le pegas al que viene atrás
+		for _, piece in model:GetDescendants() do
+			if piece:IsA("BasePart") then
+				piece.CanQuery = false
+			end
+		end
 		if zombie.exploded then
 			Debris:AddItem(model, 0.5)
 			return
@@ -676,7 +684,7 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 	-- Afuera del muro camina derecho por su carril; ya adentro, va a lo que busca
 	local here = zombie.side:PointToObjectSpace(position)
 	local inset = Waves.wallInset
-	local inside = if target then (target:GetBoundingBox()).Position else center
+	local inside = if target then (target:GetBoundingBox()).Position else center + zombie.ring
 	local goal = if here.Z < -(inset - 6)
 		then (zombie.side * CFrame.new(zombie.lane, 0, -(inset - 10))).Position
 		else inside
