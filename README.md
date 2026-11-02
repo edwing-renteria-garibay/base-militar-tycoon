@@ -26,6 +26,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Barricadas de concreto** (botón **BARRICADAS** o tecla **H**): las pones donde quieras en hileras de 1 a 3 pedazos, clic donde empieza y clic donde termina; si la punta queda cerca de otra barricada se unen, así armas la forma que quieras. Se rompen y se reparan como el muro (`Config/Barricades.luau`)
 - **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, bolsa de dinero, **defensas premium** (torreta pesada, barricada de acero y minas), antídotos, bomba que mata a todos (**N**), ataque aéreo (**J**), vida extra, reparación total, refuerzos y paquete inicial. En Studio lo que no tiene ID se puede **Probar** gratis
 - **Defensas premium:** las compradas con Robux las colocas donde quieras con el botón **COLOCAR**, menos en los lugares marcados (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una gratis
+- **Invitar amigos** (botón **INVITAR** o tecla **I**): el amigo entra a tu mismo servidor con su propio terreno y puede ayudarte a matar a tus zombis. En Studio dice "No disponible"; pruébalo en el juego publicado
 - **Premio diario** que sube si entras días seguidos
 - Se guardan tu dinero, tu base, la ola en la que vas y tu récord (DataStore)
 

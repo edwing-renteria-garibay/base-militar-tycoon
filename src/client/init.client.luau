@@ -1,6 +1,6 @@
 -- Punto de entrada del cliente: la cámara (primera persona, V para tercera), correr (Shift), el arma en primera
 -- persona y la mira, la pantalla con tu dinero, los avisos y la próxima ola, la tienda, la
--- armería, el laboratorio, colocar defensas premium, poner barricadas, la bomba y el ataque aéreo, las armas, los efectos de los disparos y lo
+-- armería, el laboratorio, colocar defensas premium, poner barricadas, la bomba y el ataque aéreo, invitar amigos, las armas, los efectos de los disparos y lo
 -- que gira.
 
 local Camera = require(script.Camera)
@@ -13,6 +13,7 @@ local Weapon = require(script.Weapon)
 local ArmoryUI = require(script.UI.Armory)
 local BarricadesUI = require(script.UI.Barricades)
 local HUD = require(script.UI.HUD)
+local InviteUI = require(script.UI.Invite)
 local LabUI = require(script.UI.Lab)
 local PlacementUI = require(script.UI.Placement)
 local PowersUI = require(script.UI.Powers)
@@ -28,6 +29,7 @@ LabUI.Start()
 PlacementUI.Start()
 BarricadesUI.Start()
 PowersUI.Start()
+InviteUI.Start()
 Weapon.Start()
 Fx.Start()
 Spinner.Start()
