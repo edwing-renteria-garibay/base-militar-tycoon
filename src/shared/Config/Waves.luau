@@ -15,7 +15,7 @@ Waves.testingBreakTime = 15
 
 -- Cómo es la ola número n
 function Waves.CountOf(n: number): number -- cuántos zombis
-	return math.min(4 + 2 * n, 40)
+	return math.min(math.floor(3 + 1.5 * n), 40)
 end
 function Waves.HealthOf(n: number): number -- vida de cada zombi
 	return 40 + 20 * n
@@ -42,12 +42,12 @@ Waves.spawnEvery = 1 -- segundos entre un zombi y el siguiente
 -- Daño por segundo de un zombi a muros, construcciones y la caja fuerte en la ola n (sube
 -- con cada ola; los especiales lo multiplican)
 function Waves.DpsOf(n: number): number
-	return 15 + 5 * n
+	return 5 + 2 * n
 end
 Waves.playerHit = 15 -- daño por golpe a un jugador (un golpe por segundo)
 
 -- La caja fuerte
-Waves.vaultHealth = 2000
+Waves.vaultHealth = 4000
 Waves.lossShare = 0.25 -- si la destruyen, se llevan esta parte del dinero que tenía adentro
 Waves.vaultIncome = { 20, 50, 120, 280, 600 } -- dinero por segundo según su nivel (1 a 5)
 -- La caja junta más mientras más lejos vas: +10% por cada ola (en la ola 20, casi el triple)
@@ -82,7 +82,7 @@ Waves.infection = { dps = 2 }
 Waves.antidote = { price = 300, max = 3 }
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
-Waves.wallHealth = { 200, 600, 1500 }
+Waves.wallHealth = { 500, 1500, 4000 }
 Waves.wallInset = 70 -- distancia del centro al muro
 
 -- Vida de las construcciones (los zombis también las rompen). Rota, una construcción deja de
@@ -112,7 +112,7 @@ Waves.special = {
 	{
 		key = "Trepador",
 		name = "trepador",
-		from = 3,
+		from = 4,
 		every = 5,
 		health = 0.7,
 		speed = 1.3,
@@ -124,11 +124,11 @@ Waves.special = {
 	{
 		key = "Demoledor",
 		name = "demoledor",
-		from = 4,
+		from = 6,
 		every = 7,
-		health = 3,
+		health = 2.5,
 		speed = 0.7,
-		dps = 3,
+		dps = 2.5,
 		target = "building",
 		shirt = Color3.fromRGB(220, 110, 30),
 		scale = 1.4,
@@ -136,7 +136,7 @@ Waves.special = {
 	{
 		key = "Saboteador",
 		name = "saboteador",
-		from = 5,
+		from = 7,
 		every = 6,
 		health = 1.2,
 		speed = 1.1,
@@ -148,7 +148,7 @@ Waves.special = {
 	{
 		key = "Explosivo", -- (no cambiar la key; en el juego se llama "corrosivo")
 		name = "corrosivo",
-		from = 6,
+		from = 8,
 		every = 8,
 		health = 0.8,
 		speed = 1.2,

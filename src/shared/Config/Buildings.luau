@@ -96,7 +96,7 @@ for i, corner in { { -60, -60 }, { 60, -60 }, { -60, 60 }, { 60, 60 } } do
 		price = towerPrices[i],
 		kind = "SniperTower",
 		at = corner,
-		defense = { damage = 40, range = 160, cooldown = 1.5, sound = "Sniper" },
+		defense = { damage = 80, range = 160, cooldown = 1.2, sound = "Sniper" },
 	})
 end
 
@@ -128,7 +128,7 @@ for i, side in Buildings.sides do
 		kind = "Turret",
 		at = place(0, -58),
 		rot = side.rot,
-		defense = { damage = 15, range = 90, cooldown = 0.6, sound = "AssaultRifle" },
+		defense = { damage = 25, range = 90, cooldown = 0.4, sound = "AssaultRifle" },
 	})
 	-- (las barricadas de concreto ya no van aquí: las pones donde quieras, Config/Barricades)
 	for j, x in { -20, 20 } do
