@@ -19,6 +19,7 @@ local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
+local Lamps = require(script.Parent.Parent.Lamps)
 local TwoHands = require(script.Parent.Parent.TwoHands)
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local DataService = require(script.Parent.DataService)
@@ -286,6 +287,9 @@ local function onShoot(player: Player, target: any)
 				end
 			else
 				surface = Effects.SurfaceOf(result.Instance)
+				if Lamps.IsLamp(result.Instance) then
+					Lamps.Break(result.Instance :: BasePart) -- ¡rompiste un farol!
+				end
 			end
 		end
 		-- Solo la primera bala suena (la escopeta dispara 6 a la vez)

@@ -170,6 +170,15 @@ for i, side in Buildings.sides do
 end
 
 -- Para buscar rápido por id
+-- Los faroles de cada terreno (src/server/Lamps.luau): de cada lado, dos adentro del muro y
+-- dos afuera junto a la puerta. Si les disparas se rompen (hasta que pases la ola)
+Buildings.lamps = {}
+for _, side in Buildings.sides do
+	for _, spot in { { -25, -50 }, { 25, -50 }, { -12, -75 }, { 12, -75 } } do
+		table.insert(Buildings.lamps, turn(spot[1], spot[2], side.rot))
+	end
+end
+
 Buildings.byId = {}
 for _, item in Buildings.list do
 	Buildings.byId[item.id] = item

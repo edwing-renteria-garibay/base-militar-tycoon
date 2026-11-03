@@ -4,6 +4,8 @@
 
 local Players = game:GetService("Players")
 
+local Lamps = require(script.Lamps)
+
 local Services = script.Services
 local DataService = require(Services.DataService)
 local InfectionService = require(Services.InfectionService)
@@ -26,6 +28,7 @@ WeaponService.Start()
 WaveService.Start()
 ResearchService.Start()
 InfectionService.Start() -- la infección del zombi corrosivo
+Lamps.Start() -- los faroles parpadean
 
 local function onPlayerAdded(player: Player)
 	DataService.Load(player)

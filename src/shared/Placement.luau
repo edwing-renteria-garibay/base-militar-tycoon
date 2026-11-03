@@ -48,6 +48,10 @@ for _, item in Buildings.list do
 	table.insert(circles, { x = button[1], z = button[2], r = BUTTON_RADIUS })
 end
 
+for _, lamp in Buildings.lamps do
+	table.insert(circles, { x = lamp[1], z = lamp[2], r = 1.5 }) -- los faroles
+end
+
 -- Para dibujarlos en el piso mientras colocas algo (src/client/ReservedMarks.luau)
 Placement.zones = { rects = rects, circles = circles }
 

@@ -40,25 +40,68 @@
     "Lighting": {
       "$properties": {
         "Technology": "Future",
-        "Brightness": 2.5,
-        "ClockTime": 14,
+        "Brightness": 0.6,
+        "ClockTime": 0.5,
         "GlobalShadows": true,
+        "EnvironmentDiffuseScale": 0.2,
+        "EnvironmentSpecularScale": 0.3,
         "Ambient": [
-          0.27,
-          0.27,
-          0.3
+          0.08,
+          0.09,
+          0.12
         ],
         "OutdoorAmbient": [
-          0.5,
-          0.5,
-          0.52
+          0.16,
+          0.18,
+          0.24
         ]
       },
       "Atmosphere": {
-        "$className": "Atmosphere"
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.42,
+          "Offset": 0.1,
+          "Haze": 2.2,
+          "Glare": 0,
+          "Color": [
+            0.42,
+            0.46,
+            0.44
+          ],
+          "Decay": [
+            0.2,
+            0.24,
+            0.22
+          ]
+        }
       },
       "Sky": {
-        "$className": "Sky"
+        "$className": "Sky",
+        "$properties": {
+          "StarCount": 1500,
+          "MoonAngularSize": 14
+        }
+      },
+      "Tono": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Saturation": -0.35,
+          "Contrast": 0.12,
+          "Brightness": -0.03,
+          "TintColor": [
+            0.88,
+            0.95,
+            0.9
+          ]
+        }
+      },
+      "Brillo": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.6,
+          "Size": 30,
+          "Threshold": 1.4
+        }
       }
     },
     "ServerScriptService": {

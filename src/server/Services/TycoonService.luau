@@ -41,6 +41,7 @@ local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.Builder)
+local Lamps = require(script.Parent.Parent.Lamps)
 local TwoHands = require(script.Parent.Parent.TwoHands)
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local DataService = require(script.Parent.DataService)
@@ -774,6 +775,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 	if not profile then
 		return
 	end
+	Lamps.Build(plot.cframe, plot.contents)
 	local vault, pad, vaultText = Builder.Vault(plot.cframe)
 	vault.Parent = plot.contents
 	pad.Touched:Connect(function(hit)
@@ -922,6 +924,7 @@ function TycoonService.RepairEverything(player: Player)
 	state.vaultHealth = Waves.vaultHealth
 	vaultHealthChanged(state)
 	WallService.RepairAll(player)
+	Lamps.FixAll(state.plot.contents) -- y los faroles rotos
 end
 
 -- Un soldado de refuerzo (Config/Store, kind "squad") parado en cframe, con su rifle. Lo
