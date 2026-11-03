@@ -42,8 +42,8 @@ se pierde.
 - **Reparar:** mantén **E** junto a la caja fuerte. Cuesta $0.50 por punto de vida.
 - **Premios:** cada zombi da $5 más 2 por el número de la ola, y pasar la ola n da $150 x n.
   Además la caja fuerte junta 10% más por cada ola a la que llegas (`Waves.incomePerWave`).
-  Y todo lo que compras para tu base suma: cada cosa da 0.2% de su precio por segundo (una
-  torre de $2,500 da +$25 por segundo y cada pedazo de barricada +$2, `Waves.buildingIncome`).
+  Y todo lo que compras para tu base suma: cada cosa da 0.5% de su precio por segundo (una
+  torre de $2,500 da +$12 por segundo y cada pedazo de barricada +$1, `Waves.buildingIncome`).
   Al pasar una ola, tus defensas se reparan solas y gratis.
 
 Todos los números están en `src/shared/Config/Waves.luau`.
