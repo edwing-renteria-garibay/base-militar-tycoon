@@ -10,6 +10,8 @@
 --    torres, si tienen francotirador.
 -- 4. Zombis especiales (Waves.special): el trepador se salta el muro y sube a las torres por
 --    el francotirador, el demoledor va por los edificios y el saboteador por torres y torretas.
+--    El corrosivo y el kamikaze explotan; el teletransportador, herido, aparece junto a ti o a
+--    una de tus construcciones.
 -- 5. Si eliminas a todos, pasas la ola: premio, récord y descanso hasta la siguiente. Si
 --    destruyen tu caja fuerte, se llevan parte de su dinero y vuelves a la ola 1 (con una vida
 --    extra, repites la ola y no pierdes nada).
@@ -44,7 +46,7 @@ local BREAK_TIME = if testing then Waves.testingBreakTime else Waves.breakTime
 local REACH = 4 -- qué tan lejos alcanza a golpear un zombi lo que tiene enfrente
 local VAULT_REACH = 7 -- a esta distancia del centro ya está golpeando la caja fuerte
 local WIRE_HALF = Vector2.new(8.5, 2.5) -- medio ancho y medio fondo del alambre (Builder.Wire)
-local TRENCH_HALF = Vector2.new(30, 2.5) -- lo mismo para la zanja (Builder.FireTrench)
+local TRENCH_HALF = Vector2.new(91, 2.5) -- lo mismo para la zanja (Builder.FireTrench: un lado entero)
 
 local WaveService = {}
 
@@ -68,6 +70,7 @@ type Zombie = {
 	climbing: boolean, -- trepando: lo mueve climb(), no piensa
 	onTower: string?, -- el trepador ya está arriba de esta torre
 	exploded: boolean, -- el explosivo ya explotó (no da premio)
+	teleported: boolean, -- el teletransportador ya usó su salto
 	ring: Vector3, -- dónde se pone junto a la caja fuerte (cada uno en su lugar, alrededor)
 	weapon: Weld?, -- lo que trae en la mano (tubo, palo o pico): se mueve al golpear
 }
@@ -122,7 +125,7 @@ local function getTemplate(special): Model?
 		bomb.Name = "Bomba"
 		bomb.Shape = Enum.PartType.Ball
 		bomb.Size = Vector3.new(1.2, 1.2, 1.2)
-		bomb.Color = Color3.fromRGB(120, 255, 60) -- verde: es ácido
+		bomb.Color = special.bombColor or Color3.fromRGB(120, 255, 60) -- verde: es ácido
 		bomb.Material = Enum.Material.Neon
 		bomb.CanCollide = false
 		bomb.Massless = true
@@ -239,6 +242,36 @@ local function aliveCount(state: State): number
 	return count
 end
 
+-- El teletransportador, herido, salta junto al jugador o a una de sus construcciones (al azar)
+local function teleport(player: Player, zombie: Zombie)
+	local plot = TycoonService.GetPlot(player)
+	if not plot or zombie.climbing or zombie.onTower then
+		return
+	end
+	zombie.teleported = true
+	local spots = {}
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		table.insert(spots, root.Position)
+	end
+	for _, category in { "building", "defense" } do
+		for _, target in TycoonService.Targets(player, category) do
+			table.insert(spots, (target.model:GetBoundingBox()).Position)
+		end
+	end
+	if #spots == 0 then
+		return
+	end
+	local spot = spots[math.random(#spots)]
+	local away = CFrame.Angles(0, math.random() * 2 * math.pi, 0).LookVector * zombie.special.teleport.distance
+	local destination = Vector3.new(spot.X, plot.cframe.Y + 3, spot.Z) + away
+	Effects.Hit(zombie.root.Position)
+	zombie.model:PivotTo(CFrame.lookAt(destination, Vector3.new(spot.X, destination.Y, spot.Z)))
+	zombie.detour = nil
+	zombie.targetId = nil
+	Effects.Hit(destination)
+end
+
 local function spawnZombie(player: Player, state: State, side, n: number, special)
 	local plot = TycoonService.GetPlot(player)
 	local base = getTemplate(special)
@@ -289,11 +322,21 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		climbing = false,
 		onTower = nil,
 		exploded = false,
+		teleported = false,
 		ring = CFrame.Angles(0, math.random() * 2 * math.pi, 0).LookVector * (VAULT_REACH - 2),
 		-- El explosivo no trae nada: sostiene su bomba
 		weapon = if special and special.explode then nil else giveWeapon(model),
 	}
 	table.insert(state.zombies, zombie)
+	-- Empieza a caminar en seguida (si no, espera a que piense por primera vez)
+	humanoid:MoveTo((sideFrame * CFrame.new(lane, 0, -(Waves.wallInset - 10))).Position)
+	if special and special.teleport then
+		humanoid.HealthChanged:Connect(function(health)
+			if not zombie.teleported and health > 0 and health <= humanoid.MaxHealth * special.teleport.at then
+				teleport(player, zombie)
+			end
+		end)
+	end
 	humanoid.Died:Connect(function()
 		-- El cuerpo ya no tapa las balas: le pegas al que viene atrás
 		for _, piece in model:GetDescendants() do
@@ -1025,6 +1068,13 @@ end
 
 function WaveService.Start()
 	powerRemote.OnServerEvent:Connect(onPower)
+	-- Arma de una vez un zombi de cada tipo (tarda un poco): así la primera ola no se atora
+	task.spawn(function()
+		getTemplate(nil)
+		for _, special in Waves.special do
+			getTemplate(special)
+		end
+	end)
 	local function onPlayer(player: Player)
 		states[player] = {
 			nextWave = os.clock() + FIRST_DELAY,

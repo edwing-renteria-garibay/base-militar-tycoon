@@ -601,18 +601,22 @@ ignite = function(player: Player)
 	state.fireUntil = now + Waves.fire.duration
 	state.fuel -= Waves.fuel.cost
 	for _, model in trenches do
+		local count = 0
 		for _, flame in model:GetChildren() do
 			if flame.Name == "Llama" then
+				count += 1
 				local fire = Instance.new("Fire")
 				fire.Size = 9
 				fire.Heat = 12
 				fire.Parent = flame
-				local glow = Instance.new("PointLight")
-				glow.Color = Color3.fromRGB(255, 140, 50)
-				glow.Range = 14
-				glow.Parent = flame
 				Debris:AddItem(fire, Waves.fire.duration)
-				Debris:AddItem(glow, Waves.fire.duration)
+				if count % 3 == 0 then -- luz en una de cada tres llamas (muchas luces hacen lento el juego)
+					local glow = Instance.new("PointLight")
+					glow.Color = Color3.fromRGB(255, 140, 50)
+					glow.Range = 18
+					glow.Parent = flame
+					Debris:AddItem(glow, Waves.fire.duration)
+				end
 			end
 		end
 	end

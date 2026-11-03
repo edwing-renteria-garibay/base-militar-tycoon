@@ -617,21 +617,27 @@ end
 
 -- Zanja de gasolina: 60 de ancho y 4 de fondo. Las "Llama" son donde sale el fuego al
 -- encenderla (TycoonService)
+-- La zanja ocupa un lado entero, de esquina a esquina: las cuatro juntas rodean toda la base
+-- (WaveService, TRENCH_HALF, usa el mismo largo)
+local TRENCH_LENGTH = 182
+
 function Builder.kinds.FireTrench(m: Model, o: CFrame)
-	local trench = part(m, o, Vector3.new(60, 0.2, 4), at(0, 0.1, 0), Color3.fromRGB(35, 30, 25), Enum.Material.Ground)
+	local length = TRENCH_LENGTH
+	local trench = part(m, o, Vector3.new(length, 0.2, 4), at(0, 0.1, 0), Color3.fromRGB(35, 30, 25), Enum.Material.Ground)
 	trench.CanCollide = false
-	local fuel = part(m, o, Vector3.new(58, 0.1, 2.6), at(0, 0.22, 0), Color3.fromRGB(70, 50, 90), Enum.Material.Glass)
+	local fuel = part(m, o, Vector3.new(length - 2, 0.1, 2.6), at(0, 0.22, 0), Color3.fromRGB(70, 50, 90), Enum.Material.Glass)
 	fuel.Transparency = 0.3
 	fuel.CanCollide = false
-	for x = -27, 27, 6 do
+	for x = -length / 2 + 3, length / 2 - 3, 6 do
 		local flame = part(m, o, Vector3.new(1, 1, 1), at(x, 1, 0), RED)
 		flame.Name = "Llama"
 		flame.Transparency = 1
 		flame.CanCollide = false
 		flame.CanQuery = false
 	end
-	for _, x in { -31.5, 31.5 } do
-		part(m, o, Vector3.new(3, 2.4, 2.4), at(x, 1.5, 0) * UPRIGHT, RED, Enum.Material.Metal, Enum.PartType.Cylinder)
+	-- Los barriles de gasolina, en medio de cada mitad
+	for _, x in { -length / 4, length / 4 } do
+		part(m, o, Vector3.new(3, 2.4, 2.4), at(x, 1.5, 4) * UPRIGHT, RED, Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
 end
 

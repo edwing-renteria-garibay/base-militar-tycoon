@@ -109,7 +109,10 @@ Waves.sniper = { price = 500, health = 150 }
 --                       va a la caja fuerte, como uno normal
 --   explode             explota al llegar al muro, a algo que le tape el paso, a la caja o a
 --                       un jugador: daño a lo que esté en radius (y playerDamage a jugadores).
---                       Con infect, los jugadores que alcanza quedan infectados (Waves.infection)
+--                       Con infect, los jugadores que alcanza quedan infectados (Waves.infection).
+--                       bombColor: el color de lo que trae en el pecho
+--   teleport            al perder vida (le queda "at" de su vida) se teletransporta una vez
+--                       junto a ti, a un edificio o a una torreta
 Waves.special = {
 	{
 		key = "Trepador",
@@ -158,6 +161,31 @@ Waves.special = {
 		shirt = Color3.fromRGB(90, 140, 40),
 		scale = 1.1,
 		explode = { damage = 400, radius = 12, playerDamage = 50, infect = true },
+	},
+	{
+		key = "Teletransportador",
+		name = "teletransportador",
+		from = 9,
+		every = 9,
+		health = 1.3,
+		speed = 1,
+		dps = 1.5,
+		shirt = Color3.fromRGB(60, 200, 230),
+		scale = 1,
+		teleport = { at = 0.35, distance = 8 },
+	},
+	{
+		key = "Kamikaze",
+		name = "kamikaze",
+		from = 10,
+		every = 10,
+		health = 0.6,
+		speed = 1.7,
+		dps = 1,
+		shirt = Color3.fromRGB(170, 30, 30),
+		scale = 0.95,
+		bombColor = Color3.fromRGB(255, 60, 40), -- roja: es una bomba
+		explode = { damage = 900, radius = 14, playerDamage = 80 },
 	},
 }
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre

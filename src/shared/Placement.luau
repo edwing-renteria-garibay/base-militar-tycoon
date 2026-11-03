@@ -28,7 +28,7 @@ local HALF_SIZE = {
 	SniperTower = Vector2.new(3.3, 4.5),
 	Turret = Vector2.new(3.5, 3.5),
 	Wire = Vector2.new(8.5, 1.5),
-	FireTrench = Vector2.new(33, 2),
+	FireTrench = Vector2.new(91, 2), -- un lado entero (Builder.FireTrench)
 	Mine = Vector2.new(1.5, 1.5),
 }
 

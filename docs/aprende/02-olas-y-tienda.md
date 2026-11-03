@@ -30,7 +30,10 @@ se pierde.
 - **Zombis especiales** (`Waves.special`): desde la ola 4 salen trepadores (se saltan el muro
   y suben a las torres por el francotirador), desde la 6 demoledores (grandes y lentos, van
   por tus edificios), desde la 7 saboteadores (van por tus torres y torretas) y desde la 8
-  corrosivos (traen una bola verde de ácido: explotan al llegar al muro o a ti y te infectan). El aviso
+  corrosivos (traen una bola verde de ácido: explotan al llegar al muro o a ti y te infectan). Desde la 9 salen
+  teletransportadores (azules: cuando les quitas casi toda la vida aparecen junto a ti o a una
+  de tus construcciones) y desde la 10 kamikazes (rojos, rápidos, con una bomba roja: explotan
+  con mucho daño). El aviso
   de la ola no dice cuáles vienen: fíjate en quién te ataca.
 - **Todo se rompe:** los edificios y las defensas tienen vida. Rotos se ven oscuros y
   transparentes, y no funcionan hasta que los reparas.
