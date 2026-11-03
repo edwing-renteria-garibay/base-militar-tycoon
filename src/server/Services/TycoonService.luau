@@ -18,6 +18,8 @@
 --      radar                los zombis se ven a través de las paredes (WaveService)
 --    Las torres y torretas ("defense") las hace disparar WaveService.
 -- 4. Mantén E junto a la caja fuerte para reparar el muro y las barricadas con dinero.
+-- 4b. Cada jugador tiene UN edificio gratis, el que él elija: mientras no lo use, los botones
+--    de los edificios dicen "¡GRATIS!" y el primero que pise no le cobra (profile.freeUsed).
 -- 5. Las defensas premium (Config/Premium, se compran con Robux) las coloca el jugador donde
 --    quiera con la pantalla de colocar (RemoteEvent "Place"), si Placement.Check lo permite.
 --
@@ -57,7 +59,7 @@ local BUILD_TIME = 0.6 -- segundos que tarda la animación al construir
 
 local TycoonService = {}
 
-type Button = { part: BasePart, item: any }
+type Button = { part: BasePart, item: any, label: TextLabel }
 type State = {
 	owner: Player,
 	plot: PlotService.Plot,
@@ -434,13 +436,21 @@ end
 
 local refreshButtons: (Player) -> ()
 
+-- ¿Puede salirle gratis? (su edificio gratis: solo edificios, no trampas ni mejoras)
+local function canBeFree(profile: DataService.Profile, item): boolean
+	return not profile.freeUsed and item.kind ~= nil and not item.oneUse and item.effect ~= "wire"
+end
+
 local function buy(player: Player, item)
 	local state = states[player]
 	local profile = DataService.Get(player)
 	if not state or not profile or not isAvailable(profile, item) then
 		return
 	end
-	if not DataService.Spend(player, item.price) then
+	if canBeFree(profile, item) then
+		profile.freeUsed = true
+		notice:FireClient(player, "¡Usaste tu edificio gratis!", "great")
+	elseif not DataService.Spend(player, item.price) then
 		local now = os.clock()
 		if now - (lastWarning[player] or 0) > 2 then
 			lastWarning[player] = now
@@ -472,7 +482,7 @@ end
 local function makeButton(player: Player, state: State, item)
 	local spot = item.button or item.at
 	local text = string.format("%s\n%s", item.name, Format.Money(item.price))
-	local part = Builder.Button(placeOf(state.plot, spot), text)
+	local part, label = Builder.Button(placeOf(state.plot, spot), text)
 	part.Touched:Connect(function(hit)
 		local character = hit.Parent
 		if character and Players:GetPlayerFromCharacter(character) == player then
@@ -483,7 +493,7 @@ local function makeButton(player: Player, state: State, item)
 		end
 	end)
 	part.Parent = state.plot.contents
-	state.buttons[item.id] = { part = part, item = item }
+	state.buttons[item.id] = { part = part, item = item, label = label }
 end
 
 -- Crea los botones que faltan y los pinta verde (te alcanza) o rojo (todavía no)
@@ -499,7 +509,10 @@ refreshButtons = function(player: Player)
 		end
 	end
 	for _, button in state.buttons do
-		button.part.Color = if profile.money >= button.item.price then AFFORD else TOO_EXPENSIVE
+		local item = button.item
+		local free = canBeFree(profile, item)
+		button.part.Color = if free or profile.money >= item.price then AFFORD else TOO_EXPENSIVE
+		button.label.Text = string.format("%s\n%s", item.name, if free then "¡GRATIS! (solo 1)" else Format.Money(item.price))
 	end
 end
 
@@ -811,6 +824,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		local tips = {
 			"Tu caja fuerte junta dinero solo: pisa su botón verde para cobrarlo",
 			"Pisa los botones del piso para construir. Todo lo que compres sube lo que junta tu base",
+			"Tienes UN edificio gratis: el primero que pises de los que dicen ¡GRATIS! Elige bien",
 			"Antes de que lleguen los zombis, pon defensas en tu muro. ¡Aguanta todas las olas que puedas!",
 		}
 		for i, tip in tips do

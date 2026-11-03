@@ -19,18 +19,29 @@ local PlacementUI = require(script.UI.Placement)
 local PowersUI = require(script.UI.Powers)
 local StoreUI = require(script.UI.Store)
 
-Camera.Start()
-ViewModel.Start()
-Crosshair.Start()
-HUD.Start()
-StoreUI.Start()
-ArmoryUI.Start()
-LabUI.Start()
-PlacementUI.Start()
-BarricadesUI.Start()
-PowersUI.Start()
-InviteUI.Start()
-Weapon.Start()
-Fx.Start()
-Spinner.Start()
-Sprint.Start()
+-- Cada parte arranca por separado: si una falla (sale en rojo en Output), las demás siguen
+local parts = {
+	Camera,
+	Sprint,
+	ViewModel,
+	Crosshair,
+	HUD,
+	StoreUI,
+	ArmoryUI,
+	LabUI,
+	PlacementUI,
+	BarricadesUI,
+	PowersUI,
+	InviteUI,
+	Weapon,
+	Fx,
+	Spinner,
+}
+for _, part in parts do
+	task.spawn(function()
+		local ok, err = pcall(part.Start)
+		if not ok then
+			warn("[Cliente] No arrancó una parte:", err)
+		end
+	end)
+end
