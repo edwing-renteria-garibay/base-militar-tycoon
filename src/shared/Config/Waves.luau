@@ -17,8 +17,10 @@ Waves.testingBreakTime = 15
 function Waves.CountOf(n: number): number -- cuántos zombis
 	return math.min(math.floor(3 + 1.5 * n), 40)
 end
+-- (la vida y el daño suben más rápido en las olas altas: las primeras casi no cambian, pero
+-- desde la 10 ya no basta con dejar las torres solas)
 function Waves.HealthOf(n: number): number -- vida de cada zombi
-	return 40 + 20 * n
+	return math.floor(40 + 20 * n + 1.5 * n * n)
 end
 function Waves.SpeedOf(n: number): number -- velocidad (un jugador camina a 16)
 	return math.min(8 + 0.4 * n, 14)
@@ -42,7 +44,7 @@ Waves.spawnEvery = 1 -- segundos entre un zombi y el siguiente
 -- Daño por segundo de un zombi a muros, construcciones y la caja fuerte en la ola n (sube
 -- con cada ola; los especiales lo multiplican)
 function Waves.DpsOf(n: number): number
-	return 5 + 2 * n
+	return math.floor(5 + 2 * n + 0.15 * n * n)
 end
 Waves.playerHit = 15 -- daño por golpe a un jugador (un golpe por segundo)
 
