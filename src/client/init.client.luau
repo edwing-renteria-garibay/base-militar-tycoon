@@ -12,6 +12,7 @@ local ViewModel = require(script.ViewModel)
 local Weapon = require(script.Weapon)
 local ArmoryUI = require(script.UI.Armory)
 local BarricadesUI = require(script.UI.Barricades)
+local BossBar = require(script.UI.BossBar)
 local HUD = require(script.UI.HUD)
 local InviteUI = require(script.UI.Invite)
 local LabUI = require(script.UI.Lab)
@@ -32,6 +33,7 @@ local parts = {
 	PlacementUI,
 	BarricadesUI,
 	PowersUI,
+	BossBar,
 	InviteUI,
 	Weapon,
 	Fx,

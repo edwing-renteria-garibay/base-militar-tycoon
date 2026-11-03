@@ -188,6 +188,23 @@ Waves.special = {
 		explode = { damage = 900, radius = 14, playerDamage = 80 },
 	},
 }
+-- El jefe: cada "every" olas llega uno además de los demás. Grande, aguanta muchísimo y es
+-- lento, pero pega muy fuerte (a muros y caja: dps; a jugadores: playerHit veces el golpe
+-- normal). Al matarlo da reward veces el premio de un zombi. Su vida sale en una barra abajo
+Waves.boss = {
+	key = "Jefe",
+	name = "JEFE",
+	boss = true,
+	every = 10,
+	health = 25,
+	speed = 0.5,
+	dps = 6,
+	playerHit = 4,
+	reward = 20,
+	shirt = Color3.fromRGB(40, 40, 45),
+	scale = 2.5,
+}
+
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre
 Waves.emptyTowerDamage = 2 -- arriba de una torre sin francotirador, la rompe así de más rápido
 

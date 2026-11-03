@@ -33,7 +33,8 @@ se pierde.
   corrosivos (traen una bola verde de ácido: explotan al llegar al muro o a ti y te infectan). Desde la 9 salen
   teletransportadores (azules: cuando les quitas casi toda la vida aparecen junto a ti o a una
   de tus construcciones) y desde la 10 kamikazes (rojos, rápidos, con una bomba roja: explotan
-  con mucho daño). El aviso
+  con mucho daño). Cada 10 olas llega además el **JEFE**: gigante, lento y aguantador, pero pega muy fuerte;
+  su vida sale en una barra abajo y al matarlo da 20 veces el premio de un zombi (`Waves.boss`). El aviso
   de la ola no dice cuáles vienen: fíjate en quién te ataca.
 - **Todo se rompe:** los edificios y las defensas tienen vida. Rotos se ven oscuros y
   transparentes, y no funcionan hasta que los reparas.

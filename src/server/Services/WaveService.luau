@@ -105,7 +105,7 @@ local function getTemplate(special): Model?
 	description.TorsoColor = shirt
 	description.LeftLegColor = pants
 	description.RightLegColor = pants
-	local scale = if special then special.scale else 1
+	local scale = if special and not special.boss then special.scale else 1 -- (el jefe se agranda abajo)
 	description.HeightScale = scale
 	description.WidthScale = scale
 	description.DepthScale = scale
@@ -139,6 +139,9 @@ local function getTemplate(special): Model?
 		glow.Color = bomb.Color
 		glow.Range = 8
 		glow.Parent = bomb
+	end
+	if special and special.boss then
+		model:ScaleTo(special.scale) -- la descripción no deja hacerlo tan grande
 	end
 	templates[key] = model
 	return model
@@ -330,6 +333,14 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 	table.insert(state.zombies, zombie)
 	-- Empieza a caminar en seguida (si no, espera a que piense por primera vez)
 	humanoid:MoveTo((sideFrame * CFrame.new(lane, 0, -(Waves.wallInset - 10))).Position)
+	if special and special.boss then
+		-- Su barra de vida (UI/BossBar)
+		player:SetAttribute("BossMax", humanoid.MaxHealth)
+		player:SetAttribute("BossHealth", humanoid.MaxHealth)
+		humanoid.HealthChanged:Connect(function(health)
+			player:SetAttribute("BossHealth", if health > 0 then math.ceil(health) else nil)
+		end)
+	end
 	if special and special.teleport then
 		humanoid.HealthChanged:Connect(function(health)
 			if not zombie.teleported and health > 0 and health <= humanoid.MaxHealth * special.teleport.at then
@@ -348,9 +359,10 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 			Debris:AddItem(model, 0.5)
 			return
 		end
-		local reward = Waves.KillReward(n)
+		local reward = Waves.KillReward(n) * (if special and special.reward then special.reward else 1)
 		DataService.AddMoney(player, reward)
-		notice:FireClient(player, "Zombi eliminado: +" .. Format.Money(reward), "money")
+		local what = if special and special.boss then "¡Mataste al JEFE!" else "Zombi eliminado:"
+		notice:FireClient(player, what .. " +" .. Format.Money(reward), if special and special.boss then "great" else "money")
 		Debris:AddItem(model, 2)
 	end)
 end
@@ -387,6 +399,7 @@ end
 local function startWave(player: Player, state: State, n: number)
 	local count = Waves.CountOf(n)
 	local sides, sideText = pickSides(Waves.SidesOf(n))
+	local bossWave = n % Waves.boss.every == 0
 	-- No se avisa qué tipos de zombis vienen: hay que fijarse en quién te ataca
 	state.active = true
 	state.spawning = true
@@ -394,8 +407,12 @@ local function startWave(player: Player, state: State, n: number)
 	state.waveId += 1
 	local waveId = state.waveId
 	player:SetAttribute("WaveIn", nil)
-	player:SetAttribute("WaveEnemies", count)
+	player:SetAttribute("WaveEnemies", count + (if bossWave then 1 else 0))
 	notice:FireClient(player, string.format("¡Ola %d! %d zombis por %s", n, count, sideText), "bad")
+	if bossWave then
+		notice:FireClient(player, "¡CUIDADO! Viene el JEFE", "bad")
+		spawnZombie(player, state, sides[1], n, Waves.boss)
+	end
 	task.spawn(function()
 		for i = 1, count do
 			if states[player] ~= state or state.waveId ~= waveId or not state.spawning then
@@ -452,6 +469,7 @@ local function defeat(player: Player, state: State)
 	state.zombies = {}
 	state.nextWave = os.clock() + BREAK_TIME
 	player:SetAttribute("WaveEnemies", nil)
+	player:SetAttribute("BossHealth", nil)
 	local profile = DataService.Get(player)
 	if profile and profile.lives > 0 then
 		profile.lives -= 1
@@ -530,7 +548,8 @@ local function hitPlayers(zombie: Zombie, now: number): boolean
 		if root and humanoid and humanoid.Health > 0 and (root.Position - zombie.root.Position).Magnitude < REACH + 1 then
 			zombie.lastHit = now
 			swingWeapon(zombie)
-			humanoid:TakeDamage(Waves.playerHit)
+			local special = zombie.special
+			humanoid:TakeDamage(Waves.playerHit * (if special and special.playerHit then special.playerHit else 1))
 			return true
 		end
 	end
@@ -1074,6 +1093,7 @@ function WaveService.Start()
 		for _, special in Waves.special do
 			getTemplate(special)
 		end
+		getTemplate(Waves.boss)
 	end)
 	local function onPlayer(player: Player)
 		states[player] = {
