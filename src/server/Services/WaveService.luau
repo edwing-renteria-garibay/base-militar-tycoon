@@ -387,7 +387,10 @@ local function finishWave(player: Player, state: State, n: number)
 	local reward = Waves.WaveReward(n)
 	DataService.AddMoney(player, reward)
 	DataService.WaveCleared(player, n)
-	notice:FireClient(player, string.format("¡Pasaste la ola %d! +%s", n, Format.Money(reward)), "great")
+	-- Al pasar la ola, el muro, las barricadas y los edificios se reparan solos (gratis)
+	TycoonService.RepairEverything(player)
+	local text = string.format("¡Pasaste la ola %d! +%s y tus defensas quedaron como nuevas", n, Format.Money(reward))
+	notice:FireClient(player, text, "great")
 	if newRecord then
 		notice:FireClient(player, string.format("¡Nuevo récord: ola %d!", n), "great")
 	end

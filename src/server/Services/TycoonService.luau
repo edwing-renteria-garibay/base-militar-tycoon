@@ -99,6 +99,10 @@ local function incomeOf(player: Player, profile: DataService.Profile): number
 			base += incomeFrom(item)
 		end
 	end
+	-- las barricadas también cuentan
+	for _, row in profile.barricades do
+		base += math.floor(row[5] * Barricades.price * Waves.buildingIncome)
+	end
 	local multiplier = 1
 	if player:GetAttribute("Pass_x2") then
 		multiplier *= 2

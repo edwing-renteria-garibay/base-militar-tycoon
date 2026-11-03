@@ -49,20 +49,21 @@ Waves.playerHit = 15 -- daño por golpe a un jugador (un golpe por segundo)
 -- La caja fuerte
 Waves.vaultHealth = 2000
 Waves.lossShare = 0.25 -- si la destruyen, se llevan esta parte del dinero que tenía adentro
-Waves.vaultIncome = { 10, 25, 60, 140, 320 } -- dinero por segundo según su nivel (1 a 5)
+Waves.vaultIncome = { 20, 50, 120, 280, 600 } -- dinero por segundo según su nivel (1 a 5)
 -- La caja junta más mientras más lejos vas: +10% por cada ola (en la ola 20, casi el triple)
 Waves.incomePerWave = 0.1
 -- Y todo lo que compras para tu base también sube lo que junta: cada cosa suma esta parte de
--- su precio por segundo (una torre de $2,500 da +$5 por segundo). Las mejoras de la caja no,
+-- su precio por segundo (una torre de $2,500 da +$25 por segundo, cada pedazo de barricada
+-- +$2). Las mejoras de la caja no,
 -- esas ya tienen lo suyo
-Waves.buildingIncome = 0.002
+Waves.buildingIncome = 0.01
 
 -- Premios
 function Waves.KillReward(n: number): number -- por cada zombi en la ola n
-	return 15 + 5 * n
+	return 20 + 6 * n
 end
 function Waves.WaveReward(n: number): number -- por pasar la ola n
-	return 250 * n
+	return 400 * n
 end
 
 -- Las torretas solo disparan hacia su frente: este es su ángulo de vista, en grados (45 = 22.5
@@ -161,7 +162,7 @@ Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una tor
 Waves.emptyTowerDamage = 2 -- arriba de una torre sin francotirador, la rompe así de más rápido
 
 -- Reparar a mano (en la caja fuerte) cuesta esto por cada punto de vida
-Waves.repairCost = 0.5
+Waves.repairCost = 0.2
 
 -- Defensas de afuera del muro
 Waves.wire = { slow = 0.4, dps = 8 } -- el alambre frena (40% de su velocidad) y lastima
