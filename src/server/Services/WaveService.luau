@@ -601,18 +601,18 @@ local function climb(zombie: Zombie, path: { Vector3 }, stay: boolean)
 	end)
 end
 
--- La construcción a la que va un zombi especial (nil si ya no queda ninguna: va a la caja)
+-- La construcción a la que va un zombi (nil si ya no queda ninguna: va a la caja fuerte).
+-- Los especiales buscan su tipo (torres, edificios o defensas); los demás, lo que esté más cerca:
+-- primero tiran la base y al final van por la caja fuerte
 local function targetOf(player: Player, zombie: Zombie): Model?
 	local special = zombie.special
-	if not special or not special.target then
-		return nil
-	end
+	local category = if special and special.target then special.target else "any"
 	if zombie.targetId and TycoonService.IsWorking(player, zombie.targetId) then
 		return TycoonService.ModelOf(player, zombie.targetId)
 	end
-	local candidates = TycoonService.Targets(player, special.target)
+	local candidates = TycoonService.Targets(player, category)
 	-- Los trepadores prefieren las torres que tienen francotirador
-	if special.target == "tower" then
+	if category == "tower" then
 		local manned = {}
 		for _, candidate in candidates do
 			if TycoonService.SniperOf(player, candidate.id) then
@@ -754,8 +754,11 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 		return TycoonService.DamageVault(player, damage) <= 0
 	end
 	if target and reached(zombie, target) then
+		if explosive then
+			return explode(player, zombie, center)
+		end
 		zombie.humanoid:MoveTo(position)
-		if special.target == "tower" then
+		if special and special.target == "tower" then
 			-- Sube por la torre hasta donde está el francotirador
 			local top = (target:GetBoundingBox()).Position
 			local away = flat(position - top)

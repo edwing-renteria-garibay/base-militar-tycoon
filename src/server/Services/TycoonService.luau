@@ -1159,7 +1159,9 @@ function TycoonService.Targets(player: Player, category: string): { { id: string
 		local item = state.items[id]
 		if item and isBreakable(item) and working(model) and item.effect ~= "barricade" then
 			local defense = item.defense ~= nil
-			local fits = if category == "tower"
+			local fits = if category == "any"
+				then true
+				elseif category == "tower"
 				then item.kind == "SniperTower"
 				elseif category == "defense" then defense
 				else not defense
