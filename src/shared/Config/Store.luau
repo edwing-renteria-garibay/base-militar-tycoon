@@ -8,18 +8,18 @@
 local Store = {}
 
 Store.passes = {
-	{ key = "x2", id = 0, name = "x2 Dinero", robux = 299, description = "Tu caja fuerte junta el doble para siempre" },
+	{ key = "x2", id = 2066420376, name = "x2 Dinero", robux = 299, description = "Tu caja fuerte junta el doble para siempre" },
 	{
 		key = "AutoCobrar",
-		id = 0,
+		id = 2067266283,
 		name = "Auto-cobrar",
 		robux = 199,
 		description = "El dinero entra solo, sin ir a la caja fuerte",
 	},
-	{ key = "VIP", id = 0, name = "VIP", robux = 249, description = "+20% de dinero y nombre dorado" },
+	{ key = "VIP", id = 2068220348, name = "VIP", robux = 249, description = "+20% de dinero y nombre dorado" },
 	{
 		key = "MunicionX2",
-		id = 0,
+		id = 2071640336,
 		name = "Munición x2",
 		robux = 149,
 		description = "Cada paquete de munición de la armería trae el doble",
