@@ -41,6 +41,8 @@ local lastEmpty: { [Player]: number } = {}
 local clips: { [Player]: { [string]: number } } = {} -- balas en el cargador (no se guarda)
 local reloading: { [Player]: { id: string, token: number } } = {}
 local reloadCount = 0
+-- La recarga que se interrumpió al cambiar de arma: vuelve a empezar al sacar otra vez esa arma
+local interrupted: { [Player]: { [string]: boolean } } = {}
 
 -- ¿Tiene esa mejora para esa arma?
 local function hasMod(profile: DataService.Profile, weapon): (string) -> boolean
@@ -111,6 +113,36 @@ local function cancelReload(player: Player)
 	player:SetAttribute("Reloading", nil)
 end
 
+-- Guardó el arma a la mitad de la recarga: se cancela, y se apunta para volver a empezarla
+local function onUnequip(player: Player, tool: Instance)
+	local busy = reloading[player]
+	if busy and busy.id == tool.Name then
+		cancelReload(player)
+		interrupted[player] = interrupted[player] or {}
+		interrupted[player][tool.Name] = true
+	end
+end
+
+-- Sacó un arma: si su recarga se había cortado (o está vacía), vuelve a recargar desde el inicio
+local function onEquip(player: Player, tool: Instance)
+	local weapon = Weapons.byId[tool.Name]
+	local profile = DataService.Get(player)
+	if not weapon or not profile or not tool:IsA("Tool") then
+		return
+	end
+	local mine = interrupted[player]
+	local wasCut = mine ~= nil and mine[weapon.id] == true
+	if mine then
+		mine[weapon.id] = nil
+	end
+	if reloading[player] then
+		cancelReload(player) -- (recargaba otra arma)
+	end
+	if wasCut or clipOf(player, profile, weapon) <= 0 then
+		reload(player, profile, weapon)
+	end
+end
+
 -- Pone en la pantalla qué armas tiene y cuántas balas le quedan
 local function publish(player: Player)
 	local profile = DataService.Get(player)
@@ -125,7 +157,11 @@ local function publish(player: Player)
 		for _, mod in Weapons.mods do
 			player:SetAttribute("Mod_" .. weapon.id .. "_" .. mod.key, hasMod(profile, weapon)(mod.key) or nil)
 		end
-		player:SetAttribute("Clip_" .. weapon.id, clipOf(player, profile, weapon))
+		if weapon.price == 0 or profile.weapons[weapon.id] == true then
+			-- (solo las que tiene: si no, el cargador de un arma sin balas se quedaba vacío y al
+			-- comprarla recargaba en el primer disparo)
+			player:SetAttribute("Clip_" .. weapon.id, clipOf(player, profile, weapon))
+		end
 	end
 	player:SetAttribute("Medkits", profile.medkits)
 	player:SetAttribute("Antidotes", profile.antidotes)
@@ -435,6 +471,9 @@ local function onArmory(player: Player, action: any, id: any, modKey: any)
 		end
 		profile.weapons[weapon.id] = true
 		profile.ammo[weapon.id] = (profile.ammo[weapon.id] or 0) + packSize
+		if clips[player] then
+			clips[player][weapon.id] = nil -- nueva: el cargador lleno
+		end
 		giveWeapons(player)
 		notice:FireClient(player, "Compraste: " .. weapon.name, "great")
 	elseif action == "ammo" then
@@ -467,6 +506,16 @@ end
 -- Al terminar de cargar su perfil (init.server.luau): sus armas
 WeaponService.Give = giveWeapons
 
+-- Avisa cuando saca o guarda un arma (para cancelar o volver a empezar la recarga)
+local function watchTools(player: Player, character: Model)
+	character.ChildAdded:Connect(function(child)
+		onEquip(player, child)
+	end)
+	character.ChildRemoved:Connect(function(child)
+		onUnequip(player, child)
+	end)
+end
+
 function WeaponService.Start()
 	shootRemote.OnServerEvent:Connect(onShoot)
 	armoryRemote.OnServerEvent:Connect(onArmory)
@@ -478,11 +527,14 @@ function WeaponService.Start()
 		end
 		player.CharacterAdded:Connect(function(character)
 			clips[player] = nil -- al aparecer, cargadores llenos
+			interrupted[player] = nil
 			cancelReload(player)
+			watchTools(player, character)
 			TwoHands.Setup(character)
 			giveWeapons(player)
 		end)
 		if player.Character then
+			watchTools(player, player.Character)
 			task.spawn(TwoHands.Setup, player.Character)
 			task.spawn(giveWeapons, player)
 		end
@@ -497,6 +549,7 @@ function WeaponService.Start()
 		lastUse[player] = nil
 		clips[player] = nil
 		reloading[player] = nil
+		interrupted[player] = nil
 	end)
 end
 

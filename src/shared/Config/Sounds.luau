@@ -23,6 +23,14 @@ return {
 	},
 	-- Aviso de acierto: solo lo oye quien dispara, cuando le da a un zombi
 	hit = "rbxasset://sounds/electronicpingshort.wav",
+	-- Recarga (los de Escuadrón Cero): la oye quien recarga, y se corta si guardas el arma.
+	-- El rifle y la ametralladora no tenían uno propio: usan el del francotirador
+	reload = {
+		Rifle = "rbxassetid://4649193317",
+		Escopeta = "rbxassetid://138395973630666",
+		Ametralladora = "rbxassetid://4649193317",
+		Francotirador = "rbxassetid://4649193317",
+	},
 	empty = "rbxassetid://136205387185309", -- clic al disparar sin balas
 	-- Sin balas, para las armas con su propio clic (las demás usan empty)
 	emptyBy = {

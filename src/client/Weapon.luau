@@ -8,6 +8,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
@@ -84,7 +85,7 @@ local function hook(tool: Instance)
 			if now - lastShot >= weapon.cooldown / rate then
 				lastShot = now
 				local clip = player:GetAttribute("Clip_" .. weapon.id) or 1
-				if player:GetAttribute("Reloading") then
+				if player:GetAttribute("Reloading") == weapon.id then
 					-- está recargando: no dispara
 				elseif clip <= 0 or (weapon.ammo and (player:GetAttribute("Ammo_" .. weapon.id) or 0) <= 0) then
 					Sfx.PlayLocal(Sounds.emptyBy[weapon.id] or Sounds.empty) -- clic: sin balas
@@ -130,7 +131,36 @@ local function reload(_, state: Enum.UserInputState)
 	return Enum.ContextActionResult.Sink
 end
 
+-- El sonido de recarga: suena al empezar y se corta si se cancela (al guardar el arma)
+local reloadSound: Sound? = nil
+local reloadingId: string? = nil
+local function onReloading()
+	local id = player:GetAttribute("Reloading")
+	if reloadSound then
+		-- Si terminó con el arma en la mano, deja que acabe de sonar; si la guardaste, se corta
+		local held = reloadingId and player.Character and player.Character:FindFirstChild(reloadingId)
+		if id ~= nil or not held then
+			reloadSound:Stop()
+			reloadSound:Destroy()
+		else
+			game:GetService("Debris"):AddItem(reloadSound, 3)
+		end
+		reloadSound = nil
+	end
+	reloadingId = id
+	local soundId = id and Sounds.reload[id]
+	if soundId and soundId ~= "" then
+		local sound = Instance.new("Sound")
+		sound.SoundId = soundId
+		sound.Volume = 0.7
+		sound.Parent = SoundService
+		sound:Play()
+		reloadSound = sound
+	end
+end
+
 function Weapon.Start()
+	player:GetAttributeChangedSignal("Reloading"):Connect(onReloading)
 	-- Control y botón en celular; la R va aparte porque al colocar defensas la R gira la defensa
 	ContextActionService:BindAction("Recargar", reload, true, Enum.KeyCode.ButtonX)
 	UserInputService.InputBegan:Connect(function(input, processed)
