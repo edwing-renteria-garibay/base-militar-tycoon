@@ -1,5 +1,6 @@
 -- La tienda de la Armería: se abre con el letrero de la armería (mantener E). Muestra las armas
--- de Config/Weapons: las que no tienes se compran y a las que tienes se les compra munición.
+-- de Config/Weapons: las que no tienes se compran y a las que tienes se les compra munición y
+-- mejoras (cargador grande y mira precisa, Weapons.mods).
 -- Las compras las revisa el servidor (WeaponService) por el RemoteEvent "Armory".
 
 local Players = game:GetService("Players")
@@ -19,6 +20,7 @@ local CARD = Color3.fromRGB(42, 46, 38)
 local BUY = Color3.fromRGB(60, 160, 70)
 local AMMO = Color3.fromRGB(190, 140, 40)
 local OWNED = Color3.fromRGB(90, 90, 96)
+local MOD = Color3.fromRGB(70, 110, 170)
 local GOLD = Color3.fromRGB(230, 180, 50)
 
 local ArmoryUI = {}
@@ -93,9 +95,17 @@ local function redraw()
 	local x2 = player:GetAttribute("Pass_MunicionX2") == true
 	for i, weapon in Weapons.list do
 		local owned = player:GetAttribute("Weapon_" .. weapon.id) == true
-		local stats = string.format("Daño %d · %s", weapon.damage * (weapon.pellets or 1), weapon.description)
+		local stats = string.format(
+			"Daño %d · Cargador %d · %s",
+			weapon.damage * (weapon.pellets or 1),
+			Weapons.Stat(weapon, "magazine", function(key)
+				return player:GetAttribute("Mod_" .. weapon.id .. "_" .. key) == true
+			end),
+			weapon.description
+		)
+		local order = i * 10
 		if not owned then
-			row(i, weapon.name, stats, "Comprar\n" .. Format.Money(weapon.price), BUY, function()
+			row(order, weapon.name, stats, "Comprar\n" .. Format.Money(weapon.price), BUY, function()
 				armoryRemote:FireServer("weapon", weapon.id)
 			end)
 		elseif weapon.ammo then
@@ -103,11 +113,24 @@ local function redraw()
 			local have = player:GetAttribute("Ammo_" .. weapon.id) or 0
 			local name = string.format("%s (%d balas)", weapon.name, have)
 			local label = string.format("+%d balas\n%s", amount, Format.Money(weapon.ammo.price))
-			row(i, name, stats, label, AMMO, function()
+			row(order, name, stats, label, AMMO, function()
 				armoryRemote:FireServer("ammo", weapon.id)
 			end)
 		else
-			row(i, weapon.name, stats, "Ya la tienes", OWNED, nil)
+			row(order, weapon.name, stats, "Ya la tienes", OWNED, nil)
+		end
+		-- Sus mejoras (solo si ya la tienes)
+		if owned then
+			for k, mod in Weapons.mods do
+				local name = string.format("   %s · %s", mod.name, weapon.name)
+				if player:GetAttribute("Mod_" .. weapon.id .. "_" .. mod.key) then
+					row(order + k, name, mod.description, "Ya la tienes", OWNED, nil)
+				else
+					row(order + k, name, mod.description, "Mejorar\n" .. Format.Money(weapon.modPrice), MOD, function()
+						armoryRemote:FireServer("mod", weapon.id, mod.key)
+					end)
+				end
+			end
 		end
 	end
 end
@@ -172,6 +195,9 @@ function ArmoryUI.Start()
 	for _, weapon in Weapons.list do
 		player:GetAttributeChangedSignal("Weapon_" .. weapon.id):Connect(redraw)
 		player:GetAttributeChangedSignal("Ammo_" .. weapon.id):Connect(redraw)
+		for _, mod in Weapons.mods do
+			player:GetAttributeChangedSignal("Mod_" .. weapon.id .. "_" .. mod.key):Connect(redraw)
+		end
 	end
 	player:GetAttributeChangedSignal("Pass_MunicionX2"):Connect(redraw)
 end

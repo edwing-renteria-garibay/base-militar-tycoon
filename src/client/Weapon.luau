@@ -2,7 +2,9 @@
 -- la mano, le dice al servidor a dónde apuntaste; si lo mantienes, sigue disparando. El
 -- servidor decide si le diste a alguien y cuántas balas te quedan (WeaponService).
 -- Aquí también se mueve el arma y sube la mira al disparar (retroceso), como en Escuadrón Cero.
+-- Con R (o el botón en celular) recargas; al vaciar el cargador recarga sola.
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -51,6 +53,13 @@ local function stillHolding(): boolean
 	return true -- en celular, hasta que levantas el dedo (Deactivated)
 end
 
+-- ¿Tiene esa mejora (Armería) para esa arma?
+local function hasMod(weapon): (string) -> boolean
+	return function(key: string): boolean
+		return player:GetAttribute("Mod_" .. weapon.id .. "_" .. key) == true
+	end
+end
+
 local connected: { [Tool]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local lastShot = 0
 
@@ -71,15 +80,20 @@ local function hook(tool: Instance)
 			local now = os.clock()
 			if now - lastShot >= weapon.cooldown then
 				lastShot = now
-				if weapon.ammo and (player:GetAttribute("Ammo_" .. weapon.id) or 0) <= 0 then
+				local clip = player:GetAttribute("Clip_" .. weapon.id) or 1
+				if player:GetAttribute("Reloading") then
+					-- está recargando: no dispara
+				elseif clip <= 0 or (weapon.ammo and (player:GetAttribute("Ammo_" .. weapon.id) or 0) <= 0) then
 					Sfx.PlayLocal(Sounds.emptyBy[weapon.id] or Sounds.empty) -- clic: sin balas
+					shootRemote:FireServer(aim()) -- el servidor recarga (o avisa que no hay balas)
 				else
 					ViewModel.Kick() -- el arma se mueve y hace fogonazo en primera persona
 					if weapon.recoil then
-						Camera.Kick(weapon.recoil) -- la mira sube (escopeta y francotirador)
+						-- la mira sube (escopeta y francotirador); con la Mira precisa, menos
+						Camera.Kick(Weapons.Stat(weapon, "recoil", hasMod(weapon)))
 					end
+					shootRemote:FireServer(aim())
 				end
-				shootRemote:FireServer(aim())
 			end
 			task.wait()
 		end
@@ -100,7 +114,29 @@ local function watch(container: Instance)
 	container.ChildAdded:Connect(hook)
 end
 
+-- Recargar el arma que traes en la mano
+local function reload(_, state: Enum.UserInputState)
+	if state ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Pass
+	end
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	if not tool or not Weapons.byId[tool.Name] or Menus.AnyOpen() then
+		return Enum.ContextActionResult.Pass
+	end
+	shootRemote:FireServer("reload")
+	return Enum.ContextActionResult.Sink
+end
+
 function Weapon.Start()
+	-- Control y botón en celular; la R va aparte porque al colocar defensas la R gira la defensa
+	ContextActionService:BindAction("Recargar", reload, true, Enum.KeyCode.ButtonX)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.KeyCode == Enum.KeyCode.R then
+			reload(nil, Enum.UserInputState.Begin)
+		end
+	end)
+	ContextActionService:SetTitle("Recargar", "R")
+	ContextActionService:SetPosition("Recargar", UDim2.new(1, -170, 1, -150))
 	local function onCharacter(character: Model)
 		watch(character)
 		watch(player:WaitForChild("Backpack"))

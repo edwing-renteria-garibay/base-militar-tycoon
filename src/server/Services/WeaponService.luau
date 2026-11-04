@@ -5,10 +5,13 @@
 --    servidor revisa qué arma trae en la mano, que no dispare más rápido de lo permitido y que
 --    le queden balas; traza las balas (Raycast) y, si le dan a un zombi, le quita vida (más
 --    con el Laboratorio).
--- 3. En la Armería (el RemoteEvent "Armory") se compran armas y munición.
+-- 3. En la Armería (el RemoteEvent "Armory") se compran armas, munición y mejoras.
+-- 4. Cada arma tiene cargador: al vaciarlo recarga sola (o con R: el cliente manda "reload"
+--    por el mismo "Shoot"). Mientras recarga no dispara.
 --
--- Lo que tiene cada quien se guarda en su perfil (weapons y ammo) y se muestra con los
--- atributos "Weapon_<id>" y "Ammo_<id>" (los lee la pantalla).
+-- Lo que tiene cada quien se guarda en su perfil (weapons, ammo y mods) y se muestra con los
+-- atributos "Weapon_<id>", "Ammo_<id>", "Mod_<id>_<mejora>", "Clip_<id>" (balas en el
+-- cargador) y "Reloading" (el arma que está recargando). Los lee la pantalla.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -35,6 +38,78 @@ local WeaponService = {}
 
 local lastShot: { [Player]: number } = {}
 local lastEmpty: { [Player]: number } = {}
+local clips: { [Player]: { [string]: number } } = {} -- balas en el cargador (no se guarda)
+local reloading: { [Player]: { id: string, token: number } } = {}
+local reloadCount = 0
+
+-- ¿Tiene esa mejora para esa arma?
+local function hasMod(profile: DataService.Profile, weapon): (string) -> boolean
+	return function(key: string): boolean
+		local mods = profile.mods[weapon.id]
+		return mods ~= nil and mods[key] == true
+	end
+end
+
+local function magazineOf(profile: DataService.Profile, weapon): number
+	return Weapons.Stat(weapon, "magazine", hasMod(profile, weapon))
+end
+
+-- Lo más que le cabe al cargador ahora (las armas con munición, hasta donde alcancen sus balas)
+local function fullClip(profile: DataService.Profile, weapon): number
+	local size = magazineOf(profile, weapon)
+	return if weapon.ammo then math.min(size, profile.ammo[weapon.id] or 0) else size
+end
+
+local function clipOf(player: Player, profile: DataService.Profile, weapon): number
+	local mine = clips[player]
+	if not mine then
+		mine = {}
+		clips[player] = mine
+	end
+	if mine[weapon.id] == nil then
+		mine[weapon.id] = fullClip(profile, weapon) -- al aparecer, todos los cargadores llenos
+		player:SetAttribute("Clip_" .. weapon.id, mine[weapon.id])
+	end
+	return mine[weapon.id]
+end
+
+local function setClip(player: Player, weapon, value: number)
+	clips[player] = clips[player] or {}
+	clips[player][weapon.id] = value
+	player:SetAttribute("Clip_" .. weapon.id, value)
+end
+
+-- Recarga: tarda weapon.reload segundos. Si cambia de arma a la mitad, se cancela
+local function reload(player: Player, profile: DataService.Profile, weapon)
+	if reloading[player] then
+		return
+	end
+	local current = clipOf(player, profile, weapon)
+	if fullClip(profile, weapon) <= current then
+		return -- ya está lleno (o no hay más balas)
+	end
+	reloadCount += 1
+	local token = reloadCount
+	reloading[player] = { id = weapon.id, token = token }
+	player:SetAttribute("Reloading", weapon.id)
+	task.delay(weapon.reload, function()
+		local now = reloading[player]
+		if not now or now.token ~= token then
+			return
+		end
+		reloading[player] = nil
+		player:SetAttribute("Reloading", nil)
+		local latest = DataService.Get(player)
+		if latest then
+			setClip(player, weapon, fullClip(latest, weapon))
+		end
+	end)
+end
+
+local function cancelReload(player: Player)
+	reloading[player] = nil
+	player:SetAttribute("Reloading", nil)
+end
 
 -- Pone en la pantalla qué armas tiene y cuántas balas le quedan
 local function publish(player: Player)
@@ -47,6 +122,10 @@ local function publish(player: Player)
 		if weapon.ammo then
 			player:SetAttribute("Ammo_" .. weapon.id, profile.ammo[weapon.id] or 0)
 		end
+		for _, mod in Weapons.mods do
+			player:SetAttribute("Mod_" .. weapon.id .. "_" .. mod.key, hasMod(profile, weapon)(mod.key) or nil)
+		end
+		player:SetAttribute("Clip_" .. weapon.id, clipOf(player, profile, weapon))
 	end
 	player:SetAttribute("Medkits", profile.medkits)
 	player:SetAttribute("Antidotes", profile.antidotes)
@@ -220,7 +299,7 @@ local function castVisible(origin: Vector3, direction: Vector3, params: RaycastP
 end
 
 local function onShoot(player: Player, target: any)
-	if typeof(target) ~= "Vector3" then
+	if typeof(target) ~= "Vector3" and target ~= "reload" then
 		return
 	end
 	local profile = DataService.Get(player)
@@ -232,23 +311,44 @@ local function onShoot(player: Player, target: any)
 	if not profile or not weapon or not head or not humanoid or humanoid.Health <= 0 then
 		return
 	end
+	local busy = reloading[player]
+	if busy and busy.id ~= weapon.id then
+		cancelReload(player) -- cambió de arma a la mitad
+		busy = nil
+	end
+	if target == "reload" then
+		reload(player, profile, weapon)
+		return
+	end
+	if busy then
+		return -- está recargando
+	end
 	local now = os.clock()
 	if now - (lastShot[player] or 0) < weapon.cooldown * 0.8 then
 		return -- dispara más rápido de lo permitido
 	end
+	if weapon.ammo and (profile.ammo[weapon.id] or 0) <= 0 then
+		if now - (lastEmpty[player] or 0) > 3 then
+			lastEmpty[player] = now
+			notice:FireClient(player, "Sin balas: compra munición en la Armería", "bad")
+		end
+		return
+	end
+	local clip = clipOf(player, profile, weapon)
+	if clip <= 0 then
+		reload(player, profile, weapon) -- se vació el cargador: recarga sola
+		return
+	end
+	setClip(player, weapon, clip - 1)
 	if weapon.ammo then
 		local ammo = profile.ammo[weapon.id] or 0
-		if ammo <= 0 then
-			if now - (lastEmpty[player] or 0) > 3 then
-				lastEmpty[player] = now
-				notice:FireClient(player, "Sin balas: compra munición en la Armería", "bad")
-			end
-			return
-		end
 		profile.ammo[weapon.id] = ammo - 1
 		player:SetAttribute("Ammo_" .. weapon.id, ammo - 1)
 	end
 	lastShot[player] = now
+	if clip - 1 <= 0 then
+		reload(player, profile, weapon)
+	end
 
 	local origin = head.Position
 	if (target - origin).Magnitude < 0.1 then
@@ -262,10 +362,12 @@ local function onShoot(player: Player, target: any)
 	local tip = handle and handle:FindFirstChild("Muzzle") :: Attachment?
 	local muzzle = if tip then tip.WorldPosition else origin
 	local damage = weapon.damage * WeaponService.DamageBonus(player)
+	local has = hasMod(profile, weapon)
+	local headshotTimes = Weapons.Stat(weapon, "headshot", has)
 	for i = 1, weapon.pellets or 1 do
 		local direction = aim.LookVector
 		if weapon.spread then
-			local spread = math.rad(weapon.spread)
+			local spread = math.rad(Weapons.Stat(weapon, "spread", has))
 			direction = (aim * CFrame.Angles((math.random() - 0.5) * spread * 2, (math.random() - 0.5) * spread * 2, 0)).LookVector
 		end
 		local result = castVisible(origin, direction * weapon.range, params)
@@ -277,7 +379,7 @@ local function onShoot(player: Player, target: any)
 				surface = "flesh"
 				if victim.Health > 0 then
 					local headshot = result.Instance.Name == "Head"
-					victim:TakeDamage(if headshot then damage * Weapons.headshot else damage)
+					victim:TakeDamage(if headshot then damage * headshotTimes else damage)
 					local immune = (victim.Parent :: Instance):FindFirstChildOfClass("ForceField") ~= nil
 					if not ally and victim.Health <= 0 then
 						-- Lo mataste tú: cuenta para tu rango y tus medallas
@@ -303,8 +405,8 @@ local function onShoot(player: Player, target: any)
 	end
 end
 
--- La Armería: comprar un arma (trae un paquete de balas) o más munición
-local function onArmory(player: Player, action: any, id: any)
+-- La Armería: comprar un arma (trae un paquete de balas), más munición o una mejora
+local function onArmory(player: Player, action: any, id: any, modKey: any)
 	local profile = DataService.Get(player)
 	local weapon = Weapons.byId[id]
 	if not profile or not weapon or not TycoonService.Has(player, "armory") then
@@ -337,6 +439,19 @@ local function onArmory(player: Player, action: any, id: any)
 		profile.ammo[weapon.id] = (profile.ammo[weapon.id] or 0) + packSize
 		publish(player)
 		notice:FireClient(player, string.format("+%d balas de %s", packSize, weapon.name), "good")
+	elseif action == "mod" then
+		local mod = Weapons.modById[modKey]
+		if not mod or not owns(profile, weapon) or hasMod(profile, weapon)(mod.key) then
+			return
+		end
+		if not DataService.Spend(player, weapon.modPrice) then
+			notice:FireClient(player, "Te faltan " .. Format.Money(weapon.modPrice - profile.money), "bad")
+			return
+		end
+		profile.mods[weapon.id] = profile.mods[weapon.id] or {}
+		profile.mods[weapon.id][mod.key] = true
+		publish(player)
+		notice:FireClient(player, string.format("%s: %s", weapon.name, mod.name), "great")
 	end
 end
 
@@ -353,6 +468,8 @@ function WeaponService.Start()
 			end)
 		end
 		player.CharacterAdded:Connect(function(character)
+			clips[player] = nil -- al aparecer, cargadores llenos
+			cancelReload(player)
 			TwoHands.Setup(character)
 			giveWeapons(player)
 		end)
@@ -369,6 +486,8 @@ function WeaponService.Start()
 		lastShot[player] = nil
 		lastEmpty[player] = nil
 		lastUse[player] = nil
+		clips[player] = nil
+		reloading[player] = nil
 	end)
 end
 

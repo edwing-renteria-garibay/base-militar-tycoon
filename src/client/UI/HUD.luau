@@ -109,7 +109,8 @@ local function updateVault()
 	vaultLabel.Text = string.format("Caja fuerte %d / %d", health, max)
 end
 
--- Abajo a la izquierda: las balas del arma que traes en la mano (el Rifle no se acaba)
+-- Abajo a la derecha: las balas del cargador del arma que traes en la mano y las que te quedan
+-- (el Rifle no se acaba). Mientras recargas dice "Recargando..."
 local function updateAmmo()
 	local character = player.Character
 	local tool = character and character:FindFirstChildOfClass("Tool")
@@ -119,14 +120,19 @@ local function updateAmmo()
 		return
 	end
 	ammoLabel.Visible = true
-	if weapon.ammo then
-		local ammo = player:GetAttribute("Ammo_" .. weapon.id) or 0
-		ammoLabel.Text = string.format("%s: %d balas", weapon.name, ammo)
-		ammoLabel.TextColor3 = if ammo > 0 then Color3.new(1, 1, 1) else COLORS.bad
+	local clip = player:GetAttribute("Clip_" .. weapon.id) or 0
+	local reserve = if weapon.ammo then (player:GetAttribute("Ammo_" .. weapon.id) or 0) - clip else nil
+	local text = string.format("%s: %d", weapon.name, clip)
+	if reserve then
+		text ..= string.format(" / %d", math.max(reserve, 0))
 	else
-		ammoLabel.Text = weapon.name .. ": balas infinitas"
-		ammoLabel.TextColor3 = Color3.new(1, 1, 1)
+		text ..= " / ∞"
 	end
+	if player:GetAttribute("Reloading") == weapon.id then
+		text = weapon.name .. ": recargando..."
+	end
+	ammoLabel.Text = text
+	ammoLabel.TextColor3 = if clip > 0 then Color3.new(1, 1, 1) else COLORS.bad
 end
 
 local function showNotice(text: string, kind: string?)
@@ -224,7 +230,7 @@ function HUD.Start()
 	end
 
 	-- Las balas, abajo a la derecha (como en los juegos de disparos)
-	ammoLabel = newLabel(gui, UDim2.fromOffset(320, 36), 28)
+	ammoLabel = newLabel(gui, UDim2.fromOffset(440, 36), 28)
 	ammoLabel.AnchorPoint = Vector2.new(1, 1)
 	ammoLabel.Position = UDim2.new(1, -16, 1, -16)
 	ammoLabel.TextXAlignment = Enum.TextXAlignment.Right

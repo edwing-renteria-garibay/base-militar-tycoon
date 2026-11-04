@@ -19,6 +19,8 @@
 --   lives, nukes, strikes = vidas extra, bombas y ataques aéreos comprados con Robux
 --              (Config/Store) sin usar; starter = ya compró el paquete inicial
 --   freeUsed = ya usó su edificio gratis (TycoonService)
+--   freeSniper = ya le dieron su primer francotirador gratis (TycoonService)
+--   mods     = mejoras de armas compradas en la Armería: { Rifle = { Cargador = true }, ... }
 --   stats    = lo que se cuenta para rangos y medallas: { kills, headshots, bosses, ignites }
 --   medals   = las medallas que ganó: { [key] = true } (Config/Ranks)
 --   frequency = trae la frecuencia de la cura (laboratorio infestado, Config/Lab)
@@ -59,6 +61,8 @@ export type Profile = {
 	strikes: number,
 	starter: boolean,
 	freeUsed: boolean,
+	freeSniper: boolean,
+	mods: { [string]: { [string]: boolean } },
 	stats: { [string]: number },
 	medals: { [string]: boolean },
 	frequency: boolean,
@@ -148,6 +152,8 @@ function DataService.Load(player: Player): Profile
 		strikes = 0,
 		starter = false,
 		freeUsed = false,
+		freeSniper = false,
+		mods = {},
 		stats = {},
 		medals = {},
 		frequency = false,
@@ -178,6 +184,8 @@ function DataService.Load(player: Player): Profile
 			profile.strikes = tonumber(data.strikes) or 0
 			profile.starter = data.starter == true
 			profile.freeUsed = data.freeUsed == true
+			profile.freeSniper = data.freeSniper == true
+			profile.mods = if type(data.mods) == "table" then data.mods else {}
 			profile.stats = if type(data.stats) == "table" then data.stats else {}
 			profile.medals = if type(data.medals) == "table" then data.medals else {}
 			profile.frequency = data.frequency == true

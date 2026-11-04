@@ -313,6 +313,13 @@ local function spawnSniper(state: State, item)
 	end)
 end
 
+-- Ya usó su francotirador gratis: los letreros de las demás torres vuelven a decir el precio
+local function priceSnipers(state: State)
+	for _, hire in state.hirePrompts do
+		hire.ObjectText = Format.Money(Waves.sniper.price)
+	end
+end
+
 local function hireSniper(state: State, item)
 	local player = state.owner
 	local profile = DataService.Get(player)
@@ -323,13 +330,17 @@ local function hireSniper(state: State, item)
 		notice:FireClient(player, "Primero repara la torre", "bad")
 		return
 	end
-	if not DataService.Spend(player, Waves.sniper.price) then
+	-- El primero es gratis
+	local free = not profile.freeSniper
+	if not free and not DataService.Spend(player, Waves.sniper.price) then
 		notice:FireClient(player, "Te faltan " .. Format.Money(Waves.sniper.price - profile.money), "bad")
 		return
 	end
+	profile.freeSniper = true
+	priceSnipers(state)
 	profile.snipers[item.id] = true
 	spawnSniper(state, item)
-	notice:FireClient(player, "Contrataste un francotirador", "great")
+	notice:FireClient(player, if free then "¡Tu primer francotirador es gratis!" else "Contrataste un francotirador", "great")
 end
 
 -- La enfermería vende botiquines y antídotos (los usa WeaponService: salen en la barra de
@@ -406,7 +417,8 @@ local function build(state: State, item, animate: boolean)
 		local hire = prompt(spot, "Contratar francotirador", player, 0.5, function()
 			hireSniper(state, item)
 		end)
-		hire.ObjectText = Format.Money(Waves.sniper.price)
+		local owner = DataService.Get(player)
+		hire.ObjectText = if owner and not owner.freeSniper then "¡GRATIS!" else Format.Money(Waves.sniper.price)
 		state.hirePrompts[item.id] = hire
 		local profile = DataService.Get(player)
 		if profile and profile.snipers[item.id] then
@@ -488,6 +500,13 @@ local function buy(player: Player, item)
 		return
 	end
 	profile.owned[item.id] = true
+	if item.kind == "SniperTower" and not profile.freeSniper then
+		-- Tu primera torre de francotirador ya trae a su francotirador
+		profile.freeSniper = true
+		priceSnipers(state)
+		profile.snipers[item.id] = true
+		notice:FireClient(player, "¡Tu primera torre trae un francotirador gratis!", "great")
+	end
 	local button = state.buttons[item.id]
 	if button then
 		button.part:Destroy()
@@ -659,12 +678,37 @@ local function showFuel(trench: Model)
 	end
 end
 
--- Vacía el bidón en la zanja
+-- ¿Un bidón le alcanza para todas las zanjas? Si juega solo en el servidor, o si tiene Roblox
+-- Premium o el pase VIP. Si no, cada zanja se llena con su propio bidón
+local function fillsAll(player: Player): boolean
+	return #Players:GetPlayers() <= 1
+		or player.MembershipType == Enum.MembershipType.Premium
+		or player:GetAttribute("Pass_VIP") == true
+end
+
+-- Vacía el bidón en la zanja (o en todas)
 fillTrench = function(state: State, trench: Model)
 	local player = state.owner
 	local can = canOf(player)
-	if trench:GetAttribute("Filled") then
-		notice:FireClient(player, "Esta zanja ya está llena", "good")
+	local profile = DataService.Get(player)
+	local trenches = { trench }
+	if fillsAll(player) and profile then
+		trenches = {}
+		for _, item in Buildings.list do
+			local model = state.models[item.id]
+			if item.kind == "FireTrench" and profile.owned[item.id] and model then
+				table.insert(trenches, model)
+			end
+		end
+	end
+	local empty = {}
+	for _, model in trenches do
+		if not model:GetAttribute("Filled") then
+			table.insert(empty, model)
+		end
+	end
+	if #empty == 0 then
+		notice:FireClient(player, if #trenches > 1 then "Las zanjas ya están llenas" else "Esta zanja ya está llena", "good")
 		return
 	end
 	if not can then
@@ -672,9 +716,12 @@ fillTrench = function(state: State, trench: Model)
 		return
 	end
 	can:Destroy()
-	trench:SetAttribute("Filled", true)
-	showFuel(trench)
-	notice:FireClient(player, "Zanja llena: enciéndela en la gasolinera", "great")
+	for _, model in empty do
+		model:SetAttribute("Filled", true)
+		showFuel(model)
+	end
+	local text = if #trenches > 1 then "¡Llenaste todas las zanjas!" else "Zanja llena"
+	notice:FireClient(player, text .. ": enciéndelas en la gasolinera", "great")
 end
 
 -- Enciende las zanjas llenas un rato (Waves.fire); al apagarse quedan vacías

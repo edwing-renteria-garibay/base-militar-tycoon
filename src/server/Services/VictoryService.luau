@@ -33,6 +33,7 @@ local function transmit(player: Player)
 	profile.wave = 1
 	profile.vault = 0
 	profile.freeUsed = false -- ¡otro edificio gratis!
+	profile.freeSniper = false -- y otro francotirador gratis
 	DataService.Spend(player, profile.money)
 	DataService.AddMoney(player, if Settings.Testing.enabled then Settings.Testing.startMoney else Settings.startMoney)
 	TycoonService.Rebuild(player)
