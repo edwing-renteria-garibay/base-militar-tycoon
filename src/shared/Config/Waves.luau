@@ -36,8 +36,14 @@ function Waves.SidesOf(n: number): number -- por cuántos lados atacan (1 a 4)
 	return 4
 end
 
-Waves.spawnDistance = 105 -- a qué distancia del centro aparecen (afuera del terreno)
-Waves.spawnSpread = 50 -- se reparten a lo ancho: de -50 a 50
+-- Los zombis salen de las tumbas que rodean la base (Buildings.graves): a esta distancia del
+-- centro, repartidas a lo ancho de -spawnSpread a spawnSpread. Al salir son inmunes (un brillo
+-- los cubre) hasta que caminan immuneUntil studs (o pasan immuneMax segundos)
+Waves.graveDistance = 98
+Waves.spawnDistance = 95 -- donde aparecen: justo enfrente de su tumba
+Waves.spawnSpread = 48
+Waves.immuneUntil = 3
+Waves.immuneMax = 5
 Waves.spawnEvery = 1 -- segundos entre un zombi y el siguiente
 
 -- Lo que hacen los zombis

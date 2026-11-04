@@ -46,7 +46,7 @@ local BREAK_TIME = if testing then Waves.testingBreakTime else Waves.breakTime
 local REACH = 4 -- qué tan lejos alcanza a golpear un zombi lo que tiene enfrente
 local VAULT_REACH = 7 -- a esta distancia del centro ya está golpeando la caja fuerte
 local WIRE_HALF = Vector2.new(8.5, 2.5) -- medio ancho y medio fondo del alambre (Builder.Wire)
-local TRENCH_HALF = Vector2.new(91, 2.5) -- lo mismo para la zanja (Builder.FireTrench: un lado entero)
+local TRENCH_HALF = Vector2.new(76, 2.5) -- lo mismo para la zanja (Builder.FireTrench: un lado entero)
 
 local WaveService = {}
 
@@ -71,6 +71,8 @@ type Zombie = {
 	onTower: string?, -- el trepador ya está arriba de esta torre
 	exploded: boolean, -- el explosivo ya explotó (no da premio)
 	teleported: boolean, -- el teletransportador ya usó su salto
+	shield: ForceField?, -- recién salido de su tumba es inmune (hasta que camina un poco)
+	spawnPosition: Vector3,
 	ring: Vector3, -- dónde se pone junto a la caja fuerte (cada uno en su lugar, alrededor)
 	weapon: Weld?, -- lo que trae en la mano (tubo, palo o pico): se mueve al golpear
 }
@@ -282,7 +284,8 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		return
 	end
 	local sideFrame = plot.cframe * CFrame.Angles(0, math.rad(side.rot), 0)
-	local lane = math.random(-Waves.spawnSpread, Waves.spawnSpread)
+	-- Sale de una de las tumbas de su lado
+	local lane = math.random(0, 8) * (2 * Waves.spawnSpread / 8) - Waves.spawnSpread + (math.random() - 0.5) * 2
 	local model = base:Clone()
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
@@ -326,11 +329,21 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		onTower = nil,
 		exploded = false,
 		teleported = false,
+		shield = nil,
+		spawnPosition = root.Position,
 		ring = CFrame.Angles(0, math.random() * 2 * math.pi, 0).LookVector * (VAULT_REACH - 2),
 		-- El explosivo no trae nada: sostiene su bomba
 		weapon = if special and special.explode then nil else giveWeapon(model),
 	}
 	table.insert(state.zombies, zombie)
+	-- Inmune mientras sale de la tumba (el ForceField hace que no le entre el daño)
+	local shield = Instance.new("ForceField")
+	shield.Parent = model
+	zombie.shield = shield
+	Effects.Hit(root.Position - Vector3.new(0, 2, 0)) -- la tierra que levanta al salir
+	task.delay(Waves.immuneMax, function()
+		shield:Destroy()
+	end)
 	-- Empieza a caminar en seguida (si no, espera a que piense por primera vez)
 	humanoid:MoveTo((sideFrame * CFrame.new(lane, 0, -(Waves.wallInset - 10))).Position)
 	if special and special.boss then
@@ -708,6 +721,10 @@ local function think(player: Player, zombie: Zombie, center: Vector3, params: Ra
 	end
 	local special = zombie.special
 	local damage = zombie.dps * TICK
+	if zombie.shield and (not zombie.shield.Parent or flat(zombie.root.Position - zombie.spawnPosition).Magnitude > Waves.immuneUntil) then
+		zombie.shield:Destroy() -- ya salió de su tumba: ahora sí se le puede hacer daño
+		zombie.shield = nil
+	end
 	if zombie.onTower then
 		attackTower(player, zombie, damage)
 		return false
@@ -878,7 +895,7 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 			local best: Zombie? = nil
 			local bestDistance = stats.range
 			for _, zombie in state.zombies do
-				if isAlive(zombie) and (not facing or inSight(facing, from, zombie.root.Position)) then
+				if isAlive(zombie) and not zombie.shield and (not facing or inSight(facing, from, zombie.root.Position)) then
 					local distance = (zombie.root.Position - from).Magnitude
 					if distance < bestDistance then
 						best = zombie
@@ -923,7 +940,7 @@ local function squadFire(state: State, now: number)
 			local best: Zombie? = nil
 			local bestDistance = stats.range
 			for _, zombie in state.zombies do
-				if isAlive(zombie) then
+				if isAlive(zombie) and not zombie.shield then
 					local distance = (zombie.root.Position - head.Position).Magnitude
 					if distance < bestDistance then
 						best, bestDistance = zombie, distance

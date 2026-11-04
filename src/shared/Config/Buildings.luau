@@ -148,7 +148,7 @@ for i, side in Buildings.sides do
 		name = "Zanja de gasolina",
 		price = 1500,
 		kind = "FireTrench",
-		at = place(0, -89),
+		at = place(0, -74), -- pegada al muro, por fuera (Builder.FireTrench)
 		rot = side.rot,
 		button = place(0, -66),
 		requires = "Gasolinera",
@@ -160,7 +160,7 @@ for i, side in Buildings.sides do
 			name = "Mina",
 			price = 150,
 			kind = "Mine",
-			at = place(x, -95),
+			at = place(x, -88),
 			rot = side.rot,
 			button = place(x, -64),
 			effect = "mine",
@@ -174,8 +174,18 @@ end
 -- dos afuera junto a la puerta. Si les disparas se rompen (hasta que pases la ola)
 Buildings.lamps = {}
 for _, side in Buildings.sides do
-	for _, spot in { { -25, -50 }, { 25, -50 }, { -12, -75 }, { 12, -75 } } do
+	for _, spot in { { -25, -50 }, { 25, -50 }, { -12, -78.5 }, { 12, -78.5 } } do
 		table.insert(Buildings.lamps, turn(spot[1], spot[2], side.rot))
+	end
+end
+
+-- Las tumbas que rodean la base: de ahí salen los zombis (WaveService). De cada lado, una
+-- hilera a Waves.graveDistance del centro: { x, z, rot } con rot el giro de su lado
+Buildings.graves = {}
+for _, side in Buildings.sides do
+	for x = -48, 48, 12 do
+		local spot = turn(x, -98, side.rot)
+		table.insert(Buildings.graves, { spot[1], spot[2], side.rot })
 	end
 end
 

@@ -18,7 +18,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Defensas** en lugares marcados (sus botones están adentro, junto al muro):
   - torre en cada esquina donde contratas un francotirador (mantén **E** al pie; si muere, contratas otro; ¡tus balas también le pegan!) y una torreta por lado (dispara sola)
   - alambre de púas (frena y lastima)
-  - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina (cada una cubre un lado entero: las cuatro rodean toda la base)
+  - minas (explotan y se gastan; su botón vuelve a salir) y zanjas de gasolina pegadas al muro por fuera (cada una cubre un lado entero: las cuatro rodean toda la base)
 - **Edificios con función:** gasolinera (genera combustible para encender las zanjas) y depósito de combustible (lo guarda; si cualquiera de los dos está roto, no se encienden), armería (compra armas y munición), enfermería (te cura si estás cerca y vende botiquines y antídotos para usar donde sea), laboratorio (mantén **E** para investigar más daño de armas, torretas o explosivos, o muros blindados con más vida; tarda un rato y se ve encima) y radar (ves a los zombis a través de las paredes)
 - **Armas** (Config/Weapons): rifle con balas infinitas, y en la armería escopeta, ametralladora y rifle de francotirador. Mantén el clic para disparar seguido. Mismos modelos, sonidos y efectos de Escuadrón Cero (`src/shared/WeaponModels.luau`), y se agarran con las dos manos
 - **Cámara como Escuadrón Cero:** primera persona con el arma y los brazos en pantalla (`src/client/ViewModel.luau`), **V** cambia a tercera persona sobre el hombro, **Shift** para correr (en celular, botón Correr), mira en el centro que se pone roja al acertar, retroceso, y **clic derecho** con el francotirador hace zoom. **B** abre la tienda y **G** el menú de colocar; con un menú abierto el mouse queda libre (`src/client/Menus.luau`)
@@ -27,6 +27,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Tienda** (botón abajo a la izquierda): pases x2 dinero, auto-cobrar, VIP y munición x2, bolsa de dinero, **defensas premium** (torreta pesada, barricada de acero y minas), antídotos, bomba que mata a todos (**N**), ataque aéreo (**J**), vida extra, reparación total, refuerzos y paquete inicial. En Studio lo que no tiene ID se puede **Probar** gratis
 - **Defensas premium:** las compradas con Robux las colocas donde quieras con el botón **COLOCAR**, menos en los lugares marcados (`src/shared/Placement.luau`). En modo de prueba tienes 2 de cada una gratis
 - **Invitar amigos** (botón **INVITAR** o tecla **I**): el amigo entra a tu mismo servidor con su propio terreno y puede ayudarte a matar a tus zombis. En Studio dice "No disponible"; pruébalo en el juego publicado
+- **Tumbas** alrededor de la base: de ahí salen los zombis, inmunes (con brillo) hasta que caminan un poco (`Buildings.graves`, `Waves.immuneUntil`)
 - **De noche y con niebla**, con faroles que parpadean. Si les disparas (aunque sea por error) se rompen y se apagan hasta que pasas la ola (`src/server/Lamps.luau`; la luz está en `default.project.json`, Lighting)
 - **Premio diario** que sube si entras días seguidos
 - Se guardan tu dinero, tu base, la ola en la que vas y tu récord (DataStore)

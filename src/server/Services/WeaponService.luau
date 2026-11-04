@@ -277,7 +277,8 @@ local function onShoot(player: Player, target: any)
 				if victim.Health > 0 then
 					local headshot = result.Instance.Name == "Head"
 					victim:TakeDamage(if headshot then damage * Weapons.headshot else damage)
-					if not ally then
+					local immune = (victim.Parent :: Instance):FindFirstChildOfClass("ForceField") ~= nil
+					if not ally and not immune then
 						hitRemote:FireClient(player) -- la mira se pone roja y suena el aviso
 					end
 					if ally and now - (lastEmpty[player] or 0) > 3 then

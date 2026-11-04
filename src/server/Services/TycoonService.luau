@@ -782,6 +782,10 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		return
 	end
 	Lamps.Build(plot.cframe, plot.contents)
+	for i, grave in Buildings.graves do
+		local o = plot.cframe * CFrame.new(grave[1], 0, grave[2]) * CFrame.Angles(0, math.rad(grave[3]), 0)
+		Builder.Grave(o, i % 3 == 0).Parent = plot.contents
+	end
 	local vault, pad, vaultText = Builder.Vault(plot.cframe)
 	vault.Parent = plot.contents
 	pad.Touched:Connect(function(hit)

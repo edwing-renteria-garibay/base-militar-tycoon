@@ -28,7 +28,7 @@ local HALF_SIZE = {
 	SniperTower = Vector2.new(3.3, 4.5),
 	Turret = Vector2.new(3.5, 3.5),
 	Wire = Vector2.new(8.5, 1.5),
-	FireTrench = Vector2.new(91, 2), -- un lado entero (Builder.FireTrench)
+	FireTrench = Vector2.new(76, 2), -- un lado entero, pegada al muro (Builder.FireTrench)
 	Mine = Vector2.new(1.5, 1.5),
 }
 
@@ -50,6 +50,9 @@ end
 
 for _, lamp in Buildings.lamps do
 	table.insert(circles, { x = lamp[1], z = lamp[2], r = 1.5 }) -- los faroles
+end
+for _, grave in Buildings.graves do
+	table.insert(circles, { x = grave[1], z = grave[2], r = 3 }) -- las tumbas
 end
 
 -- Para dibujarlos en el piso mientras colocas algo (src/client/ReservedMarks.luau)

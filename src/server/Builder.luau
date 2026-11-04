@@ -617,9 +617,9 @@ end
 
 -- Zanja de gasolina: 60 de ancho y 4 de fondo. Las "Llama" son donde sale el fuego al
 -- encenderla (TycoonService)
--- La zanja ocupa un lado entero, de esquina a esquina: las cuatro juntas rodean toda la base
--- (WaveService, TRENCH_HALF, usa el mismo largo)
-local TRENCH_LENGTH = 182
+-- La zanja va pegada al muro por fuera y ocupa un lado entero, de esquina a esquina: las
+-- cuatro juntas rodean toda la base (WaveService, TRENCH_HALF, usa el mismo largo)
+local TRENCH_LENGTH = 152
 
 function Builder.kinds.FireTrench(m: Model, o: CFrame)
 	local length = TRENCH_LENGTH
@@ -637,8 +637,24 @@ function Builder.kinds.FireTrench(m: Model, o: CFrame)
 	end
 	-- Los barriles de gasolina, en medio de cada mitad
 	for _, x in { -length / 4, length / 4 } do
-		part(m, o, Vector3.new(3, 2.4, 2.4), at(x, 1.5, 4) * UPRIGHT, RED, Enum.Material.Metal, Enum.PartType.Cylinder)
+		part(m, o, Vector3.new(3, 2.4, 2.4), at(x, 1.5, -4) * UPRIGHT, RED, Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
+end
+
+-- Tumba (de ahí salen los zombis): lápida atrás y la tierra removida enfrente. Una de cada
+-- tres lleva cruz
+function Builder.Grave(o: CFrame, cross: boolean): Model
+	local m = Instance.new("Model")
+	m.Name = "Tumba"
+	local stone = Color3.fromRGB(95, 98, 100)
+	local tilt = CFrame.Angles(math.rad(math.random(-8, 8)), 0, math.rad(math.random(-6, 6))) -- chuecas, viejas
+	part(m, o, Vector3.new(3, 3.6, 0.7), at(0, 1.8, -2) * tilt, stone, Enum.Material.Slate)
+	part(m, o, Vector3.new(3.4, 0.5, 5), at(0, 0.25, 0.8), Color3.fromRGB(55, 42, 32), Enum.Material.Ground)
+	if cross then
+		part(m, o, Vector3.new(0.5, 2.4, 0.5), at(0, 4.6, -2), stone, Enum.Material.Slate)
+		part(m, o, Vector3.new(1.8, 0.5, 0.5), at(0, 5, -2), stone, Enum.Material.Slate)
+	end
+	return m
 end
 
 -- Mina: explota cuando un zombi pasa cerca (WaveService) y se gasta
