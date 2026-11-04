@@ -33,6 +33,7 @@ local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Effects = require(script.Parent.Parent.Effects)
 local DataService = require(script.Parent.DataService)
+local RankService = require(script.Parent.RankService)
 local TycoonService = require(script.Parent.TycoonService)
 local WallService = require(script.Parent.WallService)
 
@@ -294,6 +295,7 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 	humanoid.Health = humanoid.MaxHealth
 	humanoid.WalkSpeed = speed
 	humanoid.DisplayName = if special then "Zombi " .. special.name else "Zombi"
+	model:SetAttribute("Boss", special ~= nil and special.boss == true) -- para la medalla Cazajefes
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
 	CollectionService:AddTag(model, "Enemy") -- así le hacen daño las armas del jugador
 	-- Aparece afuera, mirando hacia la base
@@ -460,7 +462,7 @@ local function finishWave(player: Player, state: State, n: number)
 	local reward = Waves.WaveReward(n)
 	DataService.AddMoney(player, reward)
 	DataService.WaveCleared(player, n)
-	-- Al pasar la ola, el muro, las barricadas y los edificios se reparan solos (gratis)
+	RankService.Check(player) -- medallas de olas	-- Al pasar la ola, el muro, las barricadas y los edificios se reparan solos (gratis)
 	TycoonService.RepairEverything(player)
 	local text = string.format("¡Pasaste la ola %d! +%s y tus defensas quedaron como nuevas", n, Format.Money(reward))
 	notice:FireClient(player, text, "great")

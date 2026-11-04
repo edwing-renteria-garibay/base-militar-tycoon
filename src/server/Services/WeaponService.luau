@@ -20,6 +20,7 @@ local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Effects = require(script.Parent.Parent.Effects)
 local Lamps = require(script.Parent.Parent.Lamps)
+local RankService = require(script.Parent.RankService)
 local TwoHands = require(script.Parent.Parent.TwoHands)
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local DataService = require(script.Parent.DataService)
@@ -278,6 +279,10 @@ local function onShoot(player: Player, target: any)
 					local headshot = result.Instance.Name == "Head"
 					victim:TakeDamage(if headshot then damage * Weapons.headshot else damage)
 					local immune = (victim.Parent :: Instance):FindFirstChildOfClass("ForceField") ~= nil
+					if not ally and victim.Health <= 0 then
+						-- Lo mataste tú: cuenta para tu rango y tus medallas
+						RankService.Kill(player, headshot, (victim.Parent :: Instance):GetAttribute("Boss") == true)
+					end
 					if not ally and not immune then
 						hitRemote:FireClient(player) -- la mira se pone roja y suena el aviso
 					end

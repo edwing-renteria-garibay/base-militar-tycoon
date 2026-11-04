@@ -10,6 +10,7 @@ local Services = script.Services
 local DataService = require(Services.DataService)
 local InfectionService = require(Services.InfectionService)
 local PlotService = require(Services.PlotService)
+local RankService = require(Services.RankService)
 local ResearchService = require(Services.ResearchService)
 local StoreService = require(Services.StoreService)
 local TycoonService = require(Services.TycoonService)
@@ -46,6 +47,7 @@ local function onPlayerAdded(player: Player)
 	task.spawn(WeaponService.Give, player)
 	ResearchService.Publish(player)
 	StoreService.GiveDaily(player)
+	RankService.Check(player) -- su rango y medallas (y las que ya le tocaban)
 end
 
 local function onPlayerRemoving(player: Player)

@@ -29,6 +29,7 @@ Plan de diseño: https://claude.ai/artifact/3Gw8f2RDgqLrFddtKvoat1
 - **Invitar amigos** (botón **INVITAR** o tecla **I**): el amigo entra a tu mismo servidor con su propio terreno y puede ayudarte a matar a tus zombis. En Studio dice "No disponible"; pruébalo en el juego publicado
 - **Tumbas** alrededor de la base: de ahí salen los zombis, inmunes (con brillo) hasta que caminan un poco (`Buildings.graves`, `Waves.immuneUntil`)
 - **De noche y con niebla**, con faroles que parpadean. Si les disparas (aunque sea por error) se rompen y se apagan hasta que pasas la ola (`src/server/Lamps.luau`; la luz está en `default.project.json`, Lighting)
+- **Rangos y medallas** (botón **MEDALLAS** o tecla **M**): el rango sube con los zombis que matas (de Recluta a General) y las medallas se ganan con metas (pasar olas, matar un jefe, construir...). Se cambian en `Config/Ranks.luau`
 - **Premio diario** que sube si entras días seguidos
 - Se guardan tu dinero, tu base, la ola en la que vas y tu récord (DataStore)
 

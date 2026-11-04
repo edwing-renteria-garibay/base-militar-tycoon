@@ -46,6 +46,7 @@ local Lamps = require(script.Parent.Parent.Lamps)
 local TwoHands = require(script.Parent.Parent.TwoHands)
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local DataService = require(script.Parent.DataService)
+local RankService = require(script.Parent.RankService)
 local PlotService = require(script.Parent.PlotService)
 local WallService = require(script.Parent.WallService)
 
@@ -501,6 +502,7 @@ local function buy(player: Player, item)
 	end
 	notice:FireClient(player, text, "good")
 	refreshButtons(player)
+	RankService.Check(player) -- medallas de construir
 end
 
 local function makeButton(player: Player, state: State, item)
@@ -706,6 +708,7 @@ ignite = function(player: Player)
 		return
 	end
 	state.fireUntil = now + Waves.fire.duration
+	RankService.Count(player, "ignites")
 	for _, model in trenches do
 		model:SetAttribute("Burning", true)
 		task.delay(Waves.fire.duration, function()

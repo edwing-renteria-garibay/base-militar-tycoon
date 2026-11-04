@@ -16,6 +16,7 @@ local BossBar = require(script.UI.BossBar)
 local HUD = require(script.UI.HUD)
 local InviteUI = require(script.UI.Invite)
 local LabUI = require(script.UI.Lab)
+local MedalsUI = require(script.UI.Medals)
 local PlacementUI = require(script.UI.Placement)
 local PowersUI = require(script.UI.Powers)
 local StoreUI = require(script.UI.Store)
@@ -35,6 +36,7 @@ local parts = {
 	PowersUI,
 	BossBar,
 	InviteUI,
+	MedalsUI,
 	Weapon,
 	Fx,
 	Spinner,
