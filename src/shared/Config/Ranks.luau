@@ -32,6 +32,8 @@ Ranks.medals = {
 	{ key = "Cazajefes", name = "Cazajefes", description = "Mata a un JEFE", stat = "bosses", goal = 1 },
 	{ key = "Constructor", name = "Constructor", description = "Compra 15 cosas para tu base", stat = "buildings", goal = 15 },
 	{ key = "Fortaleza", name = "Fortaleza", description = "Ten el muro reforzado", stat = "wall", goal = 3 },
+	{ key = "Asaltante", name = "Asaltante", description = "Saca la frecuencia del laboratorio infestado", stat = "frequencies", goal = 1 },
+	{ key = "Salvador", name = "Salvador", description = "Transmite la cura desde tu antena", stat = "victories", goal = 1 },
 	{ key = "Piromano", name = "Pirómano", description = "Enciende las zanjas 10 veces", stat = "ignites", goal = 10 },
 }
 

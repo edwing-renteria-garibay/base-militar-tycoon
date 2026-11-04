@@ -34,6 +34,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Barricades = require(ReplicatedStorage.Shared.Config.Barricades)
+local Lab = require(ReplicatedStorage.Shared.Config.Lab)
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
 local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Placement = require(ReplicatedStorage.Shared.Placement)
@@ -118,6 +119,8 @@ local function incomeOf(player: Player, profile: DataService.Profile): number
 	end
 	-- Mientras más lejos vas en las olas, más junta
 	multiplier *= 1 + Waves.incomePerWave * (profile.wave - 1)
+	-- y cada vez que transmitiste la cura (Config/Lab), para siempre
+	multiplier *= 1 + Lab.victoryBonus * profile.victories
 	return math.floor(base * multiplier)
 end
 
@@ -907,6 +910,24 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 	local repairPrompt = prompt(body, "Reparar defensas", player, 0.5, function()
 		repair(player)
 	end)
+	-- Con la frecuencia de la cura (laboratorio infestado) la caja se vuelve antena
+	local function showAntenna()
+		if not profile.frequency or vault:FindFirstChild("Antena") then
+			return
+		end
+		local antenna = Builder.Antenna(plot.cframe)
+		antenna.Parent = vault
+		local transmit = prompt(body, "Transmitir la cura", player, 5, function()
+			if profile.frequency and TycoonService.OnTransmit then
+				TycoonService.OnTransmit(player)
+			end
+		end)
+		transmit.ObjectText = "Antena · tu base vuelve a empezar con +50% de dinero"
+		transmit.UIOffset = Vector2.new(0, 80)
+	end
+	player:SetAttribute("Frequency", profile.frequency or nil)
+	player:GetAttributeChangedSignal("Frequency"):Connect(showAntenna)
+	showAntenna()
 	local state: State = {
 		owner = player,
 		plot = plot,
@@ -1163,6 +1184,21 @@ function TycoonService.Defenders(player: Player): { { id: string, model: Model, 
 		end
 	end
 	return list
+end
+
+-- Lo pone VictoryService: qué pasa al transmitir la cura desde la antena
+TycoonService.OnTransmit = nil :: ((Player) -> ())?
+
+-- Borra todo lo construido y vuelve a armar el terreno según el perfil (después de la victoria)
+function TycoonService.Rebuild(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	local plot = state.plot
+	TycoonService.Cleanup(player)
+	plot.contents:ClearAllChildren()
+	TycoonService.Setup(player, plot)
 end
 
 function TycoonService.Cleanup(player: Player)

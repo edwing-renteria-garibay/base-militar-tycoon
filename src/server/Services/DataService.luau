@@ -21,6 +21,8 @@
 --   freeUsed = ya usó su edificio gratis (TycoonService)
 --   stats    = lo que se cuenta para rangos y medallas: { kills, headshots, bosses, ignites }
 --   medals   = las medallas que ganó: { [key] = true } (Config/Ranks)
+--   frequency = trae la frecuencia de la cura (laboratorio infestado, Config/Lab)
+--   victories = cuántas veces transmitió la cura (cada una da más dinero para siempre)
 --   barricades = las hileras de barricadas: { { ax, az, bx, bz, pedazos }, ... }
 --   daily    = premio diario: el último día que lo cobró y cuántos días seguidos lleva
 --   receipts = compras con Robux ya entregadas (para no darlas dos veces)
@@ -59,6 +61,8 @@ export type Profile = {
 	freeUsed: boolean,
 	stats: { [string]: number },
 	medals: { [string]: boolean },
+	frequency: boolean,
+	victories: number,
 	daily: { last: number, streak: number },
 	receipts: { string },
 }
@@ -146,6 +150,8 @@ function DataService.Load(player: Player): Profile
 		freeUsed = false,
 		stats = {},
 		medals = {},
+		frequency = false,
+		victories = 0,
 	}
 	if store then
 		local ok, data = pcall(function()
@@ -174,6 +180,8 @@ function DataService.Load(player: Player): Profile
 			profile.freeUsed = data.freeUsed == true
 			profile.stats = if type(data.stats) == "table" then data.stats else {}
 			profile.medals = if type(data.medals) == "table" then data.medals else {}
+			profile.frequency = data.frequency == true
+			profile.victories = tonumber(data.victories) or 0
 			if type(data.daily) == "table" then
 				profile.daily.last = tonumber(data.daily.last) or 0
 				profile.daily.streak = tonumber(data.daily.streak) or 0

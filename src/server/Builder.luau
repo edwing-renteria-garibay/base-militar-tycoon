@@ -642,6 +642,22 @@ function Builder.kinds.FireTrench(m: Model, o: CFrame)
 	end
 end
 
+-- La antena que sale encima de la caja fuerte cuando traes la frecuencia de la cura
+function Builder.Antenna(o: CFrame): Model
+	local m = Instance.new("Model")
+	m.Name = "Antena"
+	local green = Color3.fromRGB(90, 255, 140)
+	part(m, o, Vector3.new(0.6, 14, 0.6), at(0, 14, 0), DARK_METAL, Enum.Material.Metal)
+	for _, y in { 10, 14, 18 } do
+		part(m, o, Vector3.new(4 - y / 8, 0.3, 0.3), at(0, y, 0), DARK_METAL, Enum.Material.Metal)
+	end
+	part(m, o, Vector3.new(0.4, 4, 4), at(0, 19, 1) * CFrame.Angles(math.rad(-30), 0, 0) * UPRIGHT, METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	local tip = part(m, o, Vector3.new(1, 1, 1), at(0, 21.5, 0), green, Enum.Material.Neon, Enum.PartType.Ball)
+	tip.CanCollide = false
+	light(tip, green, 30)
+	return m
+end
+
 -- Tumba (de ahí salen los zombis): lápida atrás y la tierra removida enfrente. Una de cada
 -- tres lleva cruz
 function Builder.Grave(o: CFrame, cross: boolean): Model

@@ -1108,6 +1108,34 @@ local function onPower(player: Player, what: any)
 	end
 end
 
+-- Termina la ola que haya y empieza de nuevo la cuenta (después de la victoria)
+function WaveService.Reset(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	state.active = false
+	state.spawning = false
+	state.waveId += 1
+	for _, zombie in state.zombies do
+		zombie.model:Destroy()
+	end
+	state.zombies = {}
+	for _, soldier in state.squad do
+		soldier.model:Destroy()
+	end
+	state.squad = {}
+	state.lastShot = {}
+	state.nextWave = os.clock() + FIRST_DELAY
+	player:SetAttribute("WaveEnemies", nil)
+	player:SetAttribute("BossHealth", nil)
+end
+
+-- Un zombi normal para clonarlo (lo usa el laboratorio infestado, LabService)
+function WaveService.ZombieTemplate(): Model?
+	return getTemplate(nil)
+end
+
 function WaveService.Start()
 	powerRemote.OnServerEvent:Connect(onPower)
 	-- Arma de una vez un zombi de cada tipo (tarda un poco): así la primera ola no se atora

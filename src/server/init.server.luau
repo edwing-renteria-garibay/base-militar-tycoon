@@ -9,11 +9,13 @@ local Lamps = require(script.Lamps)
 local Services = script.Services
 local DataService = require(Services.DataService)
 local InfectionService = require(Services.InfectionService)
+local LabService = require(Services.LabService)
 local PlotService = require(Services.PlotService)
 local RankService = require(Services.RankService)
 local ResearchService = require(Services.ResearchService)
 local StoreService = require(Services.StoreService)
 local TycoonService = require(Services.TycoonService)
+local VictoryService = require(Services.VictoryService)
 local WallService = require(Services.WallService)
 local WaveService = require(Services.WaveService)
 local WeaponService = require(Services.WeaponService)
@@ -30,6 +32,8 @@ WaveService.Start()
 ResearchService.Start()
 InfectionService.Start() -- la infección del zombi corrosivo
 Lamps.Start() -- los faroles parpadean
+LabService.Start() -- el laboratorio infestado al final de la calle (después de PlotService)
+VictoryService.Start() -- transmitir la cura desde la antena
 
 local function onPlayerAdded(player: Player)
 	DataService.Load(player)

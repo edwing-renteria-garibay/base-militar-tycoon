@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Settings = require(ReplicatedStorage.Shared.Config.Settings)
 
 local PlotService = {}
+PlotService.roadEnd = 0
 
 export type Plot = {
 	index: number,
@@ -65,6 +66,7 @@ local function buildWorld()
 	spawn.Neutral = true
 	spawn.Duration = 0 -- sin escudo al aparecer
 	spawn.Parent = world
+	PlotService.roadEnd = length / 2 -- ahí empieza el laboratorio infestado (LabService)
 	return world, perSide
 end
 
