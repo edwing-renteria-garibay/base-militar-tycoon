@@ -26,6 +26,23 @@ Lab.zombies = {
 	infectColor = Color3.fromRGB(90, 200, 60),
 }
 
+-- Las tarjetas: están escondidas en callejones sin salida del laberinto. Sin las "count" no
+-- pasas la puerta láser del laboratorio. Hay que juntarlas otra vez para cada frecuencia
+Lab.cards = { count = 3, holdTime = 1 }
+
+-- El guardián: un zombi enorme que cuida la terminal (mientras viva, no puedes tomar la
+-- frecuencia). Su golpe infecta. Si lo matan, vuelve a salir a los "respawn" segundos
+Lab.guardian = { health = 6000, speed = 11, damage = 45, scale = 2.2, respawn = 90, reward = 20000 }
+
+-- La alarma: al tomar la frecuencia suena y por "duration" segundos todos los zombis del
+-- laberinto te huelen (te persiguen aunque haya paredes) y salen "extra" más
+Lab.alarm = { duration = 45, extra = 16, smell = 250 }
+
+-- La transmisión: en la antena se tarda "duration" segundos y mientras tanto llega a tu base
+-- una ola final (zombis de la ola "level", uno cada "spawnEvery" s, y jefes). Si destruyen tu
+-- caja fuerte, la transmisión falla (no pierdes la frecuencia: puedes volver a intentarlo)
+Lab.final = { duration = 60, zombies = 40, spawnEvery = 1.4, level = 30, bosses = 2 }
+
 -- La victoria: tu base vuelve a empezar, pero cada victoria da para siempre este extra de dinero
 Lab.victoryBonus = 0.5 -- +50% por cada vez que transmites la cura
 

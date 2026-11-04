@@ -1,5 +1,7 @@
--- La victoria: con la frecuencia de la cura (laboratorio infestado, LabService) mantienes E en
--- la antena de tu caja fuerte y transmites la cura. Tu base vuelve a empezar desde cero, pero
+-- La victoria: con la frecuencia de la cura (laboratorio infestado, LabService) mantienes F en
+-- la antena de tu caja fuerte y empieza la transmisión: tarda Lab.final.duration segundos y
+-- mientras tanto llega la ola final (WaveService.FinalWave). Si tu caja aguanta, transmites la
+-- cura. Tu base vuelve a empezar desde cero, pero
 -- para siempre juntas más dinero (Lab.victoryBonus por cada victoria) y te quedas con tus
 -- medallas, tu rango, tu récord, tus armas, lo investigado y lo comprado con Robux.
 
@@ -16,7 +18,9 @@ local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
 local VictoryService = {}
 
-local function transmit(player: Player)
+local transmitting: { [Player]: boolean } = {}
+
+local function win(player: Player)
 	local profile = DataService.Get(player)
 	if not profile or not profile.frequency then
 		return
@@ -47,8 +51,44 @@ local function transmit(player: Player)
 	notice:FireClient(player, text, "great")
 end
 
+-- Empieza la transmisión (y la ola final)
+local function transmit(player: Player)
+	local profile = DataService.Get(player)
+	if not profile or not profile.frequency or transmitting[player] then
+		return
+	end
+	transmitting[player] = true
+	local config = Lab.final
+	player:SetAttribute("Transmitting", workspace:GetServerTimeNow() + config.duration)
+	notice:FireClient(player, string.format("Transmitiendo la cura: tu caja fuerte debe aguantar %d segundos", config.duration), "great")
+	-- Cuánto falta, cada 15 segundos
+	task.spawn(function()
+		local left = config.duration
+		while transmitting[player] and left > 15 do
+			task.wait(15)
+			left -= 15
+			if transmitting[player] then
+				notice:FireClient(player, string.format("Transmitiendo... faltan %d s", left), "good")
+			end
+		end
+	end)
+	WaveService.FinalWave(player, config, function(success: boolean)
+		transmitting[player] = nil
+		player:SetAttribute("Transmitting", nil)
+		if success then
+			win(player)
+		else
+			local text = "¡La transmisión falló! Destruyeron tu caja fuerte. Todavía tienes la frecuencia: inténtalo otra vez"
+			notice:FireClient(player, text, "bad")
+		end
+	end)
+end
+
 function VictoryService.Start()
 	TycoonService.OnTransmit = transmit
+	game:GetService("Players").PlayerRemoving:Connect(function(player)
+		transmitting[player] = nil
+	end)
 end
 
 return VictoryService

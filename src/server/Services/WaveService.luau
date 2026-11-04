@@ -86,6 +86,7 @@ type State = {
 	waveId: number, -- cambia en cada ola, para que el que va saliendo sepa si ya acabó
 	lastShot: { [string]: number }, -- última vez que disparó cada torre o torreta
 	squad: { Soldier }, -- los refuerzos (Store.squad)
+	final: { endsAt: number, onDone: (boolean) -> () }?, -- la ola final (WaveService.FinalWave)
 }
 -- Un soldado de refuerzo: se va al terminar la ola forWave (el waveId de esa ola)
 type Soldier = { model: Model, forWave: number, lastShot: number }
@@ -487,6 +488,11 @@ end
 -- Destruyeron la caja fuerte: se acaba la ola y vuelve a la 1. Con una vida extra (Robux) no
 -- pierde nada: todo queda como nuevo y repite la misma ola
 local function defeat(player: Player, state: State)
+	local final = state.final
+	state.final = nil
+	if final then
+		task.spawn(final.onDone, false) -- la transmisión de la cura falló
+	end
 	dismissSquad(state)
 	state.active = false
 	state.spawning = false
@@ -1029,9 +1035,16 @@ local function tick(player: Player, state: State)
 	defend(player, state, now, Research.Bonus(profile.research, "Torretas"))
 	squadFire(state, now)
 
+	-- La ola final: si aguantaste hasta el final, se transmitió la cura
+	local final = state.final
+	if final and now >= final.endsAt then
+		state.final = nil
+		final.onDone(true)
+		return
+	end
 	local alive = aliveCount(state)
-	player:SetAttribute("WaveEnemies", if state.spawning then math.max(alive, 1) else alive)
-	if not state.spawning and alive == 0 then
+	player:SetAttribute("WaveEnemies", if state.spawning or final then math.max(alive, 1) else alive)
+	if not state.spawning and not final and alive == 0 then
 		finishWave(player, state, n)
 	end
 end
@@ -1139,6 +1152,7 @@ function WaveService.Reset(player: Player)
 	if not state then
 		return
 	end
+	state.final = nil
 	state.active = false
 	state.spawning = false
 	state.waveId += 1
@@ -1154,6 +1168,37 @@ function WaveService.Reset(player: Player)
 	state.nextWave = os.clock() + FIRST_DELAY
 	player:SetAttribute("WaveEnemies", nil)
 	player:SetAttribute("BossHealth", nil)
+end
+
+-- La ola final (al transmitir la cura, VictoryService): durante config.duration segundos llegan
+-- zombis por los cuatro lados (y jefes) además de la ola normal. Al final llama onDone(true);
+-- si destruyen la caja fuerte antes, onDone(false)
+function WaveService.FinalWave(player: Player, config, onDone: (boolean) -> ())
+	local state = states[player]
+	local profile = DataService.Get(player)
+	if not state or not profile or state.final then
+		onDone(false)
+		return
+	end
+	if not state.active then
+		startWave(player, state, profile.wave)
+	end
+	state.final = { endsAt = os.clock() + config.duration, onDone = onDone }
+	local final = state.final
+	notice:FireClient(player, "¡OLA FINAL! Vienen por todos lados: aguanta mientras se transmite la cura", "bad")
+	for b = 1, config.bosses do
+		spawnZombie(player, state, Buildings.sides[(b - 1) % #Buildings.sides + 1], config.level, Waves.boss)
+	end
+	task.spawn(function()
+		for i = 1, config.zombies do
+			if states[player] ~= state or state.final ~= final then
+				return -- ya acabó (ganó, perdió o salió)
+			end
+			local side = Buildings.sides[(i - 1) % #Buildings.sides + 1]
+			spawnZombie(player, state, side, config.level, specialOf(i, config.level))
+			task.wait(config.spawnEvery)
+		end
+	end)
 end
 
 -- Un zombi normal para clonarlo (lo usa el laboratorio infestado, LabService)

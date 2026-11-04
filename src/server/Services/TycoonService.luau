@@ -1096,7 +1096,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 				TycoonService.OnTransmit(player)
 			end
 		end)
-		transmit.ObjectText = "Antena · tu base vuelve a empezar con +50% de dinero"
+		transmit.ObjectText = string.format("Antena · %d s aguantando la ola final", Lab.final.duration)
 		transmit.UIOffset = Vector2.new(0, 80)
 		-- Está en la misma pieza que "Reparar defensas": Roblox solo enseña un letrero por tecla,
 		-- así que este va con la F (botón Y en control) y siempre se ve
