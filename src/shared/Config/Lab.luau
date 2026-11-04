@@ -1,6 +1,6 @@
 -- El laboratorio infestado (src/server/Services/LabService.luau): uno por servidor, al final de
--- la calle. Para llegar a la frecuencia de la cura hay que cruzar un laberinto de metal lleno
--- de zombis. Solo entra quien ya pasó la ola "minRecord" (en Studio entra cualquiera, para
+-- la calle. Para llegar a la frecuencia de la cura hay que cruzar un laberinto de túneles de
+-- metal (con techo) lleno de zombis. Solo entra quien ya pasó la ola "minRecord" (en Studio entra cualquiera, para
 -- probarlo). Con la frecuencia, tu caja fuerte se vuelve antena y transmite la cura (victoria).
 
 local Lab = {}
@@ -20,6 +20,10 @@ Lab.zombies = {
 	damage = 20, -- por golpe a un jugador (uno por segundo)
 	sight = 60, -- a esta distancia te ven (si no hay pared en medio)
 	respawn = 2, -- segundos entre uno nuevo y el siguiente
+	-- Parte de ellos son infecciosos (verdes): su golpe te infecta (pierdes vida hasta usar un
+	-- antídoto, Waves.infection). ¡Lleva antídotos!
+	infectShare = 0.5,
+	infectColor = Color3.fromRGB(90, 200, 60),
 }
 
 -- La victoria: tu base vuelve a empezar, pero cada victoria da para siempre este extra de dinero

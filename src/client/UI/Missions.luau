@@ -1,5 +1,5 @@
--- Las misiones (Config/Missions), a la izquierda debajo de tus barras: las que siguen, con
--- cuánto llevas y su premio. Las cumplidas se pagan solas (RankService publica el atributo
+-- Las misiones (Config/Missions), a la izquierda debajo de tus barras: arriba el objetivo
+-- principal y abajo las misiones que siguen, con cuánto llevas y su premio. Las cumplidas se pagan solas (RankService publica el atributo
 -- "Missions").
 
 local HttpService = game:GetService("HttpService")
@@ -11,6 +11,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local player = Players.LocalPlayer
 
 local GOLD = Color3.fromRGB(230, 180, 50)
+local OBJECTIVE = Color3.fromRGB(255, 110, 80)
 
 local MissionsUI = {}
 
@@ -65,11 +66,23 @@ function MissionsUI.Start()
 			end
 		end
 		local ok, list = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("Missions") or "[]")
-		if not ok or type(list) ~= "table" or #list == 0 then
-			panel.Visible = false
+		local okMain, main = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("MainObjective") or "null")
+		if not ok or type(list) ~= "table" then
+			list = {}
+		end
+		local hasMain = okMain and type(main) == "table"
+		panel.Visible = hasMain or #list > 0
+		if hasMain then
+			label(-3, "OBJETIVO", 16, OBJECTIVE).Font = Enum.Font.GothamBlack
+			local text = main.text
+			if main.goal and main.goal > 1 then
+				text ..= string.format(" (%d/%d)", main.have, main.goal)
+			end
+			label(-2, text, 15, Color3.new(1, 1, 1))
+		end
+		if #list == 0 then
 			return
 		end
-		panel.Visible = true
 		label(0, "MISIONES", 16, GOLD).Font = Enum.Font.GothamBlack
 		for i, mission in list do
 			local text = string.format("• %s (%d/%d) · %s", mission.text, mission.have, mission.goal, Format.Money(mission.reward))
@@ -77,6 +90,7 @@ function MissionsUI.Start()
 		end
 	end
 	player:GetAttributeChangedSignal("Missions"):Connect(redraw)
+	player:GetAttributeChangedSignal("MainObjective"):Connect(redraw)
 	redraw()
 end
 

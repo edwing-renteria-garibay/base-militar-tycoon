@@ -53,6 +53,13 @@ Research.lines = {
 		bonus = 0,
 		levels = { { price = 30000, time = 90 } },
 	},
+	{
+		key = "Cargar",
+		name = "Cargar más cosas",
+		description = "Puedes llevar hasta 10 botiquines y 10 antídotos",
+		bonus = 0,
+		levels = { { price = 15000, time = 60 } },
+	},
 }
 
 Research.byKey = {}
@@ -64,6 +71,16 @@ end
 function Research.Bonus(levels: { [string]: number }, key: string): number
 	local line = Research.byKey[key]
 	return 1 + (if line then line.bonus * (levels[key] or 0) else 0)
+end
+
+-- ¿Ya investigó todo hasta el máximo? (entonces las olas se calman: Waves.calmLevel)
+function Research.AllDone(levels: { [string]: number }): boolean
+	for _, line in Research.lines do
+		if (levels[line.key] or 0) < #line.levels then
+			return false
+		end
+	end
+	return true
 end
 
 return Research

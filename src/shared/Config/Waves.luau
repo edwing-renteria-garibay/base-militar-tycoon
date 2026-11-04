@@ -83,11 +83,16 @@ Waves.heal = 20
 Waves.healRange = 16
 -- Botiquines: se compran en la enfermería (mantén E) y se usan desde la barra de abajo, donde
 -- sea. Cada uno cura "heal" de vida. Puedes cargar hasta "max"
-Waves.medkit = { price = 200, heal = 60, max = 5 }
+Waves.medkit = { price = 200, heal = 60, max = 5, maxResearched = 10 } -- 10 con "Cargar más cosas"
 -- Infección (la del zombi corrosivo): te quita dps de vida por segundo hasta que usas un
 -- antídoto (se compran en la enfermería) o mueres. Los botiquines curan vida, no la infección
 Waves.infection = { dps = 2 }
-Waves.antidote = { price = 300, max = 3 }
+Waves.antidote = { price = 300, max = 3, maxResearched = 10 }
+
+-- Con TODO investigado en el laboratorio, las olas ya no se ponen más difíciles: desde esta
+-- ola todas son como esta (y sin jefe), para que la base se defienda sola y siga juntando
+-- dinero aunque no estés. El número de ola sigue subiendo
+Waves.calmLevel = 10
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
 Waves.wallHealth = { 500, 1500, 4000 }

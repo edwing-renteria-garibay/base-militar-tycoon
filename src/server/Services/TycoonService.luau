@@ -411,8 +411,11 @@ local function buyItem(player: Player, field: string, attribute: string, config,
 		return
 	end
 	local count = profile[field] or 0
-	if count >= config.max then
-		notice:FireClient(player, string.format("Ya cargas el máximo (%d)", config.max), "bad")
+	-- Con la investigación "Cargar más cosas" cabe más
+	local max = if (profile.research.Cargar or 0) >= 1 then config.maxResearched else config.max
+	if count >= max then
+		local hint = if max < config.maxResearched then " (investiga \"Cargar más cosas\")" else ""
+		notice:FireClient(player, string.format("Ya cargas el máximo (%d)%s", max, hint), "bad")
 		return
 	end
 	if not DataService.Spend(player, config.price) then

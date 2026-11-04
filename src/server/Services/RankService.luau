@@ -55,6 +55,16 @@ local function publish(player: Player, profile: DataService.Profile)
 		end
 	end
 	player:SetAttribute("Missions", HttpService:JSONEncode(upcoming))
+	-- El objetivo principal
+	local main = { text = Missions.done }
+	for _, goal in Missions.main do
+		local have = statOf(profile, goal.stat)
+		if have < goal.goal then
+			main = { text = goal.text, have = have, goal = goal.goal }
+			break
+		end
+	end
+	player:SetAttribute("MainObjective", HttpService:JSONEncode(main))
 	local stats = player:FindFirstChild("leaderstats")
 	local value = stats and stats:FindFirstChild("Rango") :: StringValue?
 	if stats and not value then

@@ -415,9 +415,13 @@ local function specialOf(i: number, n: number)
 end
 
 local function startWave(player: Player, state: State, n: number)
-	local count = Waves.CountOf(n)
-	local sides, sideText = pickSides(Waves.SidesOf(n))
-	local bossWave = n % Waves.boss.every == 0
+	-- Con todo investigado, las olas se calman: son como la ola Waves.calmLevel
+	local profile = DataService.Get(player)
+	local calm = profile ~= nil and n > Waves.calmLevel and Research.AllDone(profile.research)
+	local level = if calm then Waves.calmLevel else n
+	local count = Waves.CountOf(level)
+	local sides, sideText = pickSides(Waves.SidesOf(level))
+	local bossWave = not calm and n % Waves.boss.every == 0
 	-- No se avisa qué tipos de zombis vienen: hay que fijarse en quién te ataca
 	state.active = true
 	state.spawning = true
@@ -427,6 +431,9 @@ local function startWave(player: Player, state: State, n: number)
 	player:SetAttribute("WaveIn", nil)
 	player:SetAttribute("WaveEnemies", count + (if bossWave then 1 else 0))
 	notice:FireClient(player, string.format("¡Ola %d! %d zombis por %s", n, count, sideText), "bad")
+	if calm then
+		notice:FireClient(player, "Ola tranquila: con todo investigado, tu base se defiende sola", "good")
+	end
 	if bossWave then
 		notice:FireClient(player, "¡CUIDADO! Viene el JEFE", "bad")
 		spawnZombie(player, state, sides[1], n, Waves.boss)
@@ -436,7 +443,7 @@ local function startWave(player: Player, state: State, n: number)
 			if states[player] ~= state or state.waveId ~= waveId or not state.spawning then
 				return -- el jugador se fue, perdió o usó la bomba
 			end
-			spawnZombie(player, state, sides[(i - 1) % #sides + 1], n, specialOf(i, n))
+			spawnZombie(player, state, sides[(i - 1) % #sides + 1], level, specialOf(i, level))
 			task.wait(Waves.spawnEvery)
 		end
 		state.spawning = false

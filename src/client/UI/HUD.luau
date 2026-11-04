@@ -199,24 +199,33 @@ function HUD.Start()
 	end
 	updateWall()
 	player:GetAttributeChangedSignal("WallHealth"):Connect(updateWall)
+	-- Tu vida: siempre a la vista, abajo en medio y más grande
 	local lifeBar, lifeFill, lifeLabel = makeBar(3)
-	lifeBar.Visible = false
+	lifeBar.Parent = gui
+	lifeBar.AnchorPoint = Vector2.new(0.5, 1)
+	lifeBar.Position = UDim2.new(0.5, 0, 1, -80)
+	lifeBar.Size = UDim2.fromOffset(340, 26)
+	lifeLabel.TextSize = 17
+	local lifeCorner = Instance.new("UICorner")
+	lifeCorner.CornerRadius = UDim.new(0, 6)
+	lifeCorner.Parent = lifeBar
+	lifeLabel.Text = "Tu vida"
 	local function watchLife(character: Model)
 		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
 		if not humanoid then
 			return
 		end
 		local function updateLife()
-			lifeBar.Visible = true
 			paint(lifeFill, humanoid.Health / humanoid.MaxHealth)
 			lifeLabel.Text = string.format("Tu vida %d / %d", math.ceil(humanoid.Health), humanoid.MaxHealth)
 		end
 		updateLife()
 		humanoid.HealthChanged:Connect(updateLife)
 	end
-	-- Infectado por el zombi corrosivo: un aviso verde debajo de tu vida
-	local infected = newLabel(bars, UDim2.fromOffset(240, 20), 16)
-	infected.LayoutOrder = 4
+	-- Infectado (zombi corrosivo o infeccioso del laboratorio): un aviso verde arriba de tu vida
+	local infected = newLabel(gui, UDim2.fromOffset(340, 22), 18)
+	infected.AnchorPoint = Vector2.new(0.5, 1)
+	infected.Position = UDim2.new(0.5, 0, 1, -110)
 	infected.Text = "¡INFECTADO! Usa un antídoto"
 	infected.TextColor3 = Color3.fromRGB(120, 255, 60)
 	local function updateInfected()

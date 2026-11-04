@@ -10,9 +10,25 @@
 --
 -- No cambies la key de una misión después de publicar: así se guarda cuáles cumpliste.
 
+local Research = require(script.Parent.Research)
+
 local Missions = {}
 
 Missions.shown = 3
+
+-- El objetivo principal: sale arriba de las misiones, uno a la vez y en este orden. Al
+-- cumplirlo todo sale "done"
+local allResearch = 0
+for _, line in Research.lines do
+	allResearch += #line.levels
+end
+Missions.main = {
+	{ text = "Aguanta hasta la ola 25", stat = "record", goal = 25 },
+	{ text = "Investiga todo en el laboratorio: las olas se calman y tu base se defiende sola", stat = "research", goal = allResearch },
+	{ text = "Cruza los túneles infestados al final de la calle y saca la frecuencia de la cura", stat = "frequencies", goal = 1 },
+	{ text = "Transmite la cura desde la antena de tu caja fuerte", stat = "victories", goal = 1 },
+}
+Missions.done = "¡Salvaste a todos! Saca otra frecuencia para ganar todavía más dinero"
 
 Missions.list = {
 	{ key = "M1", text = "Mata 10 zombis", stat = "kills", goal = 10, reward = 500 },

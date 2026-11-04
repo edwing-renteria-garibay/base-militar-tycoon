@@ -1,5 +1,5 @@
--- El laboratorio infestado (Config/Lab): al final de la calle, un laberinto de metal lleno de
--- zombis. Al fondo, en el laboratorio, está la terminal con la frecuencia de la cura (mantén
+-- El laboratorio infestado (Config/Lab): al final de la calle, un laberinto de túneles de metal
+-- lleno de zombis (la mitad, infecciosos: te contagian y necesitas antídotos). Al fondo, en el laboratorio, está la terminal con la frecuencia de la cura (mantén
 -- E). Quien la tiene (profile.frequency) puede transmitir la cura desde su caja fuerte, que se
 -- vuelve antena (VictoryService).
 --
@@ -30,7 +30,14 @@ local CURE = Color3.fromRGB(90, 255, 140)
 
 local LabService = {}
 
-type LabZombie = { model: Model, humanoid: Humanoid, root: BasePart, home: Vector3, lastHit: number }
+type LabZombie = {
+	model: Model,
+	humanoid: Humanoid,
+	root: BasePart,
+	home: Vector3,
+	lastHit: number,
+	infects: boolean,
+}
 
 local origin: CFrame -- el centro del laberinto
 local half: number -- medio ancho del laberinto
@@ -135,16 +142,16 @@ local function build()
 			if j < n - 1 and not open[i][j].south then
 				wall(c * CFrame.new(0, 0, size / 2), size, true)
 			end
-			-- Luz roja de alarma en algunos cuadros
-			if (i + j) % 3 == 0 then
-				local lamp = block(Vector3.new(1, 1, 1), c * CFrame.new(0, Lab.wallHeight - 1, 0), ALARM, Enum.Material.Neon)
-				lamp.CanCollide = false
-				local light = Instance.new("PointLight")
-				light.Color = ALARM
-				light.Range = 22
-				light.Brightness = 1.5
-				light.Parent = lamp
-			end
+			-- Una lámpara en el techo de cada cuadro: roja de alarma o blanca que apenas alumbra
+			local alarm = (i + j) % 2 == 0
+			local color = if alarm then ALARM else Color3.fromRGB(200, 210, 220)
+			local lamp = block(Vector3.new(1.4, 0.4, 1.4), c * CFrame.new(0, Lab.wallHeight - 0.2, 0), color, Enum.Material.Neon)
+			lamp.CanCollide = false
+			local light = Instance.new("PointLight")
+			light.Color = color
+			light.Range = 20
+			light.Brightness = if alarm then 1.5 else 0.8
+			light.Parent = lamp
 		end
 	end
 	-- El borde, con la entrada al oeste y la salida al este (en el cuadro de en medio)
@@ -156,6 +163,8 @@ local function build()
 		wall(cellCenter(k, 0) * CFrame.new(0, 0, -size / 2), size, true)
 		wall(cellCenter(k, n - 1) * CFrame.new(0, 0, size / 2), size, true)
 	end
+	-- El techo: son túneles (no se ve el cielo ni se puede saltar por arriba)
+	block(Vector3.new(2 * half + 2, 1, 2 * half + 2), origin * CFrame.new(0, Lab.wallHeight + 0.5, 0), DARK, Enum.Material.DiamondPlate)
 	-- Letrero en la entrada
 	local sign = block(Vector3.new(16, 4, 0.5), origin * CFrame.new(-half - 4, Lab.wallHeight + 3, 0) * CFrame.Angles(0, math.rad(90), 0), DARK, Enum.Material.Metal)
 	local gui = Instance.new("SurfaceGui")
@@ -254,13 +263,30 @@ local function spawnZombie()
 	humanoid.MaxHealth = Lab.zombies.health
 	humanoid.Health = Lab.zombies.health
 	humanoid.WalkSpeed = Lab.zombies.speed
-	humanoid.DisplayName = "Zombi del laboratorio"
+	local infects = math.random() < Lab.zombies.infectShare
+	humanoid.DisplayName = if infects then "Zombi infeccioso" else "Zombi del laboratorio"
+	if infects then
+		-- Verdes y con un brillo: estos te contagian
+		local colors = model:FindFirstChildOfClass("BodyColors")
+		if colors then
+			colors:Destroy() -- si no, Roblox les vuelve a poner sus colores
+		end
+		for _, piece in model:GetDescendants() do
+			if piece:IsA("BasePart") and piece.Name ~= "HumanoidRootPart" and not piece:FindFirstAncestorOfClass("Accessory") then
+				piece.Color = piece.Color:Lerp(Lab.zombies.infectColor, 0.6)
+			end
+		end
+		local glow = Instance.new("PointLight")
+		glow.Color = Lab.zombies.infectColor
+		glow.Range = 8
+		glow.Parent = root
+	end
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
 	CollectionService:AddTag(model, "Enemy")
 	model:PivotTo(CFrame.new(spot))
 	model.Parent = folder
 	root:SetNetworkOwner(nil)
-	local zombie = { model = model, humanoid = humanoid, root = root, home = spot, lastHit = 0 }
+	local zombie = { model = model, humanoid = humanoid, root = root, home = spot, lastHit = 0, infects = infects }
 	table.insert(zombies, zombie)
 	humanoid.Died:Connect(function()
 		Debris:AddItem(model, 2)
@@ -286,7 +312,7 @@ local function think(zombie: LabZombie, now: number)
 		if root and humanoid and humanoid.Health > 0 then
 			local distance = (root.Position - zombie.root.Position).Magnitude
 			if distance < bestDistance and sees(zombie, root) then
-				best, bestDistance = { root = root, humanoid = humanoid }, distance
+				best, bestDistance = { root = root, humanoid = humanoid, player = player }, distance
 			end
 		end
 	end
@@ -295,6 +321,10 @@ local function think(zombie: LabZombie, now: number)
 		if bestDistance < 5 and now - zombie.lastHit >= 1 then
 			zombie.lastHit = now
 			best.humanoid:TakeDamage(Lab.zombies.damage)
+			if zombie.infects and not best.player:GetAttribute("Infected") and best.humanoid.Health > 0 then
+				best.player:SetAttribute("Infected", true) -- InfectionService le quita vida
+				notice:FireClient(best.player, "¡Te infectaron! Usa un antídoto", "bad")
+			end
 		end
 	elseif (zombie.root.Position - zombie.home).Magnitude > 6 or math.random() < 0.1 then
 		local wander = Vector3.new(math.random(-5, 5), 0, math.random(-5, 5))
