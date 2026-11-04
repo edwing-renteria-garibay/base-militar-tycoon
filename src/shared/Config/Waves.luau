@@ -219,6 +219,7 @@ Waves.boss = {
 	reward = 20,
 	shirt = Color3.fromRGB(40, 40, 45),
 	scale = 2.5,
+	headScale = 1.7, -- la cabeza aún más grande, para atinarle desde abajo
 }
 
 Waves.climbTime = 2 -- segundos que tarda un trepador en subir el muro o una torre

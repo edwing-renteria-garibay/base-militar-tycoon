@@ -32,8 +32,9 @@ local function add(
 		return nil
 	end
 	local scale = body.Size
-	local head = model:FindFirstChild("Head") :: BasePart?
-	local factor = if head then head.Size.Y / 1.2 else 1
+	-- Lo de la cabeza crece con la cabeza (la del jefe es más grande); lo demás, con el cuerpo
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local factor = if partName == "Head" then scale.Y / 1.2 elseif root then root.Size.Y / 2 else 1
 	local p = Instance.new("Part")
 	p.Name = "Detalle"
 	p.Size = size * factor

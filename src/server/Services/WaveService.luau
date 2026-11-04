@@ -194,7 +194,15 @@ local function getTemplate(special): Model?
 		glow.Range = 8
 		glow.Parent = bomb
 	end
-	ZombieLooks.Dress(model, key) -- su ropa y sus detalles (src/server/ZombieLooks.luau)
+	-- El jefe: la cabeza más grande, para que se le pueda atinar desde abajo
+	local head = model:FindFirstChild("Head") :: BasePart?
+	local neck = head and head:FindFirstChild("Neck") :: Motor6D?
+	if special and special.boss and head and neck then
+		local grow = special.headScale or 1
+		head.Size *= grow
+		neck.C1 = CFrame.new(neck.C1.Position * grow) * neck.C1.Rotation
+	end
+		ZombieLooks.Dress(model, key) -- su ropa y sus detalles (src/server/ZombieLooks.luau)
 	ZombieLooks.Pose(model) -- encorvado y con el brazo estirado
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	if humanoid then
@@ -209,41 +217,76 @@ end
 
 -- Lo que traen en la mano para golpear. Cada pieza: tamaño, dónde va (medido desde la mano,
 -- -Z = hacia el frente), color y material
+local METAL_GRAY = Color3.fromRGB(85, 88, 92)
 local ZOMBIE_WEAPONS = {
-	-- Tubo de metal oxidado
-	{
+	Tubo = { -- tubo de metal oxidado
 		{ Vector3.new(0.35, 0.35, 4.2), CFrame.new(0, 0, -1.4), Color3.fromRGB(105, 95, 85), Enum.Material.CorrodedMetal },
 		{ Vector3.new(0.5, 0.5, 0.4), CFrame.new(0, 0, -3.4), Color3.fromRGB(80, 75, 70), Enum.Material.Metal },
 	},
-	-- Palo con clavos
-	{
+	Palo = { -- palo con clavos
 		{ Vector3.new(0.45, 0.45, 4), CFrame.new(0, 0, -1.3), Color3.fromRGB(110, 75, 45), Enum.Material.Wood },
 		{ Vector3.new(0.9, 0.08, 0.08), CFrame.new(0, 0.1, -2.7), Color3.fromRGB(160, 160, 165), Enum.Material.Metal },
 		{ Vector3.new(0.08, 0.9, 0.08), CFrame.new(0, 0, -2.9), Color3.fromRGB(160, 160, 165), Enum.Material.Metal },
 		{ Vector3.new(0.9, 0.08, 0.08), CFrame.new(0, -0.1, -3.1), Color3.fromRGB(160, 160, 165), Enum.Material.Metal },
 	},
-	-- Pico de minero
-	{
+	Pico = { -- pico de minero
 		{ Vector3.new(0.3, 0.3, 4), CFrame.new(0, 0, -1.3), Color3.fromRGB(120, 85, 50), Enum.Material.Wood },
-		{ Vector3.new(0.3, 3, 0.4), CFrame.new(0, 0, -3.2), Color3.fromRGB(85, 88, 92), Enum.Material.Metal },
-		{ Vector3.new(0.2, 0.5, 0.3), CFrame.new(0, 1.65, -3.1), Color3.fromRGB(85, 88, 92), Enum.Material.Metal },
-		{ Vector3.new(0.2, 0.5, 0.3), CFrame.new(0, -1.65, -3.1), Color3.fromRGB(85, 88, 92), Enum.Material.Metal },
+		{ Vector3.new(0.3, 3, 0.4), CFrame.new(0, 0, -3.2), METAL_GRAY, Enum.Material.Metal },
+		{ Vector3.new(0.2, 0.5, 0.3), CFrame.new(0, 1.65, -3.1), METAL_GRAY, Enum.Material.Metal },
+		{ Vector3.new(0.2, 0.5, 0.3), CFrame.new(0, -1.65, -3.1), METAL_GRAY, Enum.Material.Metal },
+	},
+	Mazo = { -- el del demoledor: mazo de obra
+		{ Vector3.new(0.35, 0.35, 4.4), CFrame.new(0, 0, -1.5), Color3.fromRGB(150, 110, 60), Enum.Material.Wood },
+		{ Vector3.new(1.6, 1, 1), CFrame.new(0, 0, -3.7), Color3.fromRGB(60, 62, 66), Enum.Material.Metal },
+	},
+	Llave = { -- la del saboteador: llave inglesa enorme
+		{ Vector3.new(0.3, 0.15, 3), CFrame.new(0, 0, -1), Color3.fromRGB(150, 155, 160), Enum.Material.Metal },
+		{ Vector3.new(1, 0.2, 0.5), CFrame.new(0, 0, -2.6), Color3.fromRGB(150, 155, 160), Enum.Material.Metal },
+		{ Vector3.new(0.25, 0.2, 0.6), CFrame.new(0.38, 0, -3), Color3.fromRGB(150, 155, 160), Enum.Material.Metal },
+		{ Vector3.new(0.25, 0.2, 0.6), CFrame.new(-0.38, 0, -3), Color3.fromRGB(150, 155, 160), Enum.Material.Metal },
+	},
+	Viga = { -- la del jefe: un pedazo de viga de acero con concreto pegado
+		{ Vector3.new(0.5, 1, 5), CFrame.new(0, 0, -1.8), Color3.fromRGB(110, 60, 40), Enum.Material.CorrodedMetal },
+		{ Vector3.new(1.2, 0.15, 5), CFrame.new(0, 0.5, -1.8), Color3.fromRGB(110, 60, 40), Enum.Material.CorrodedMetal },
+		{ Vector3.new(1.2, 0.15, 5), CFrame.new(0, -0.5, -1.8), Color3.fromRGB(110, 60, 40), Enum.Material.CorrodedMetal },
+		{ Vector3.new(1.6, 1.6, 1.4), CFrame.new(0, 0, -4.2), Color3.fromRGB(140, 140, 135), Enum.Material.Concrete },
 	},
 }
+-- Los demás traen al azar uno de estos (el trepador ataca con las garras y los que explotan
+-- no traen nada)
+local COMMON_WEAPONS = { "Tubo", "Palo", "Pico" }
+local WEAPON_OF = { Demoledor = "Mazo", Saboteador = "Llave", Jefe = "Viga", Trepador = false }
 
--- Le pone en la mano derecha un tubo, un palo o un pico (al azar). Devuelve la Weld que lo
--- sostiene, para moverlo al golpear (swing)
-local function giveWeapon(model: Model): Weld?
-	local hand = model:FindFirstChild("RightHand") :: BasePart?
-	if not hand then
+-- Qué arma le toca a un tipo (nil = ninguna). which: para escoger una en particular
+local function weaponOf(special, which: string?): string?
+	if special and special.explode then
 		return nil
 	end
-	local pieces = ZOMBIE_WEAPONS[math.random(#ZOMBIE_WEAPONS)]
+	local fixed = special and WEAPON_OF[special.key]
+	if fixed == false then
+		return nil
+	end
+	return which or fixed or COMMON_WEAPONS[math.random(#COMMON_WEAPONS)]
+end
+
+-- Le pone en la mano derecha su arma (Config arriba). Devuelve la Weld que la sostiene, para
+-- moverla al golpear (swing). En los zombis grandes el arma también es más grande
+local function giveWeapon(model: Model, name: string?): Weld?
+	local hand = model:FindFirstChild("RightHand") :: BasePart?
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not hand or not name or not ZOMBIE_WEAPONS[name] then
+		return nil
+	end
+	local size = if root then root.Size.Y / 2 else 1 -- (el HumanoidRootPart mide 2 de alto en uno normal)
+	local pieces = ZOMBIE_WEAPONS[name]
+	local function scaled(c: CFrame): CFrame
+		return CFrame.new(c.Position * size) * c.Rotation
+	end
 	local handle: BasePart? = nil
 	for _, piece in pieces do
 		local p = Instance.new("Part")
 		p.Name = "ArmaZombi"
-		p.Size = piece[1]
+		p.Size = piece[1] * size
 		p.Color = piece[3]
 		p.Material = piece[4]
 		p.CanCollide = false
@@ -254,7 +297,7 @@ local function giveWeapon(model: Model): Weld?
 			local weld = Instance.new("Weld")
 			weld.Part0 = handle
 			weld.Part1 = p
-			weld.C0 = (pieces[1][2] :: CFrame):Inverse() * piece[2]
+			weld.C0 = scaled(pieces[1][2]):Inverse() * scaled(piece[2])
 			weld.Parent = p
 		else
 			handle = p
@@ -265,7 +308,7 @@ local function giveWeapon(model: Model): Weld?
 	grip.Name = "AgarreArma"
 	grip.Part0 = hand
 	grip.Part1 = handle
-	grip.C0 = CFrame.new(0, -0.2, 0) * pieces[1][2]
+	grip.C0 = CFrame.new(0, -0.2 * size, 0) * scaled(pieces[1][2])
 	grip.Parent = handle
 	return grip
 end
@@ -392,7 +435,7 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		spawnPosition = root.Position,
 		ring = CFrame.Angles(0, math.random() * 2 * math.pi, 0).LookVector * (VAULT_REACH - 2),
 		-- El explosivo no trae nada: sostiene su bomba
-		weapon = if special and special.explode then nil else giveWeapon(model),
+		weapon = giveWeapon(model, weaponOf(special)),
 	}
 	table.insert(state.zombies, zombie)
 	-- Inmune mientras sale de la tumba (el ForceField hace que no le entre el daño)
@@ -1057,12 +1100,18 @@ end
 -- Solo en Studio (Waves.showcase): un zombi de cada tipo en fila frente a donde apareces,
 -- quietos, sin hacer daño y con su nombre encima
 local function showcase(plot)
-	local kinds = { { key = "Normal", name = "Normal (soldado)" } }
-	for _, special in Waves.special do
-		table.insert(kinds, { key = special.key, name = special.name, special = special })
+	local kinds = {}
+	for _, weapon in COMMON_WEAPONS do -- el normal, con cada una de sus armas
+		table.insert(kinds, { key = "Normal", name = "Normal · " .. string.lower(weapon), weapon = weapon })
 	end
-	table.insert(kinds, { key = "Cientifico", name = "Científico (laboratorio)", special = SCIENTIST })
-	table.insert(kinds, { key = "Jefe", name = Waves.boss.name, special = Waves.boss })
+	for _, special in Waves.special do
+		local weapon = weaponOf(special, nil)
+		local what = if special.explode then "explota" elseif special.key == "Trepador" then "garras" else nil
+		local label = special.name .. " · " .. (what or string.lower(weapon or COMMON_WEAPONS[1]))
+		table.insert(kinds, { key = special.key, name = label, special = special, weapon = weapon })
+	end
+	table.insert(kinds, { key = "Cientifico", name = "Científico · " .. "tubo", special = SCIENTIST, weapon = "Tubo" })
+	table.insert(kinds, { key = "Jefe", name = Waves.boss.name .. " · viga", special = Waves.boss, weapon = "Viga" })
 	local folder = Instance.new("Folder")
 	folder.Name = "VitrinaZombis"
 	folder.Parent = workspace
@@ -1070,12 +1119,15 @@ local function showcase(plot)
 		local base = getTemplate(kind.special)
 		if base then
 			local model = base:Clone()
-			local x = -36 + (i - 1) * (72 / (#kinds - 1))
+			local x = -40 + (i - 1) * (80 / (#kinds - 1))
 			local spot = plot.cframe * CFrame.new(x, 4, -44)
 			if kind.key == "Jefe" then
 				spot *= CFrame.new(0, 3, -4)
 			end
 			model:PivotTo(CFrame.lookAt(spot.Position, spot.Position + plot.cframe.LookVector * -1))
+			if kind.weapon and (not kind.special or not kind.special.explode) then
+				giveWeapon(model, kind.weapon)
+			end
 			for _, piece in model:GetDescendants() do
 				if piece:IsA("BasePart") then
 					piece.Anchored = true -- quietos
