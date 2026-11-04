@@ -1154,6 +1154,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 	-- La primera vez: cómo se juega, en pocas palabras
 	if profile.record == 0 and profile.wave == 1 and next(profile.owned) == nil then
 		local tips = {
+			"¡Bienvenido a Frecuencia Cero! Defiende tu base y encuentra la cura",
 			"Tu caja fuerte junta dinero solo: pisa su botón verde para cobrarlo",
 			"Pisa los botones del piso para construir. Todo lo que compres sube lo que junta tu base",
 			"Tienes UN edificio gratis: el primero que pises de los que dicen ¡GRATIS! Elige bien",

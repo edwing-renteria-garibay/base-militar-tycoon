@@ -37,7 +37,9 @@ function InviteUI.Start()
 		local ok, can = pcall(SocialService.CanSendGameInviteAsync, SocialService, player)
 		if ok and can then
 			Menus.SetOpen("Invitar", true) -- suelta el mouse para usar la ventana
-			SocialService:PromptGameInvite(player)
+			local options = Instance.new("ExperienceInviteOptions")
+			options.PromptMessage = "¡Ayúdame a defender mi base en Frecuencia Cero!"
+			SocialService:PromptGameInvite(player, options)
 		else
 			button.Text = "No disponible"
 			task.delay(2, function()

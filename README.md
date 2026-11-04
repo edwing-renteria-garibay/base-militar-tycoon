@@ -1,4 +1,6 @@
-# Base Militar Tycoon
+# Frecuencia Cero: Base Militar Zombi Tycoon
+
+(El repositorio y el DataStore "BaseMilitarPerfiles" conservan el nombre de antes, para no perder nada.)
 
 Juego de defensa para Roblox: cada jugador recibe un terreno con una caja fuerte en el centro
 que junta dinero. Con ese dinero construyes muros, trampas y defensas para aguantar olas de
