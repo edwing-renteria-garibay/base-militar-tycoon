@@ -1457,7 +1457,9 @@ function TycoonService.Start()
 					end
 					-- La gasolinera genera combustible y el depósito lo guarda
 					if working(state.models.Gasolinera) and working(state.models.Taller) then
-						state.fuel = math.min(state.fuel + Waves.fuel.perSecond, Waves.fuel.capacity)
+						local deep = (profile.research.Hidrocarburos or 0) >= 1 -- investigación
+						local produced = if deep then Waves.fuel.deepPerSecond else Waves.fuel.perSecond
+						state.fuel = math.min(state.fuel + produced, Waves.fuel.capacity)
 					end
 					-- Con la tubería, las zanjas encendidas gastan combustible
 					if state.pipeOn then

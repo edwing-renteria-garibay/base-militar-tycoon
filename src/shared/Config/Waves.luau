@@ -89,9 +89,10 @@ Waves.medkit = { price = 200, heal = 60, max = 5, maxResearched = 10 } -- 10 con
 Waves.infection = { dps = 2 }
 Waves.antidote = { price = 300, max = 3, maxResearched = 10 }
 
--- Con TODO investigado en el laboratorio, las olas ya no se ponen más difíciles: desde esta
--- ola todas son como esta (y sin jefe), para que la base se defienda sola y siga juntando
--- dinero aunque no estés. El número de ola sigue subiendo
+-- Con TODO investigado en el laboratorio y ya pasada la ola calmFrom (el objetivo principal),
+-- las olas ya no se ponen más difíciles: todas son como la calmLevel (y sin jefe), para que la
+-- base se defienda sola y siga juntando dinero aunque no estés. El número de ola sigue subiendo
+Waves.calmFrom = 25
 Waves.calmLevel = 10
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
@@ -257,7 +258,7 @@ end
 -- capacity). En el depósito tomas un bidón (gasta cost), lo llevas a una zanja y la llenas;
 -- luego en la gasolinera enciendes las zanjas llenas (se vacían al apagarse). Si la gasolinera
 -- está rota no se enciende nada ni se genera; si el depósito está roto no hay bidones
-Waves.fuel = { perSecond = 0.5, capacity = 100, cost = 20 }
+Waves.fuel = { perSecond = 0.5, capacity = 100, cost = 20, deepPerSecond = 2 } -- deep: con "Hidrocarburos"
 -- Con la tubería (Buildings "Tuberia") las zanjas encendidas gastan burnPerSecond de combustible
 -- del depósito cada segundo y se apagan cuando se acaba (o si se rompe la tubería, la
 -- gasolinera o el depósito). Para volver a encender hace falta al menos minFuel

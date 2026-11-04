@@ -60,6 +60,13 @@ Research.lines = {
 		bonus = 0,
 		levels = { { price = 15000, time = 60 } },
 	},
+	{
+		key = "Hidrocarburos",
+		name = "Extracción profunda de hidrocarburos",
+		description = "La gasolinera produce 2 de combustible por segundo: más de lo que gastan las zanjas con la tubería",
+		bonus = 0,
+		levels = { { price = 40000, time = 120 } },
+	},
 }
 
 Research.byKey = {}

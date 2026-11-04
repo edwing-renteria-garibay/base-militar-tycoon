@@ -417,7 +417,10 @@ end
 local function startWave(player: Player, state: State, n: number)
 	-- Con todo investigado, las olas se calman: son como la ola Waves.calmLevel
 	local profile = DataService.Get(player)
-	local calm = profile ~= nil and n > Waves.calmLevel and Research.AllDone(profile.research)
+	local calm = profile ~= nil
+		and n > Waves.calmLevel
+		and profile.record >= Waves.calmFrom
+		and Research.AllDone(profile.research)
 	local level = if calm then Waves.calmLevel else n
 	local count = Waves.CountOf(level)
 	local sides, sideText = pickSides(Waves.SidesOf(level))
