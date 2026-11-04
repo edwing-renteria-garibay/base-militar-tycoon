@@ -18,6 +18,7 @@ local InviteUI = require(script.UI.Invite)
 local LabUI = require(script.UI.Lab)
 local MedalsUI = require(script.UI.Medals)
 local MissionsUI = require(script.UI.Missions)
+local ObjectiveMarker = require(script.ObjectiveMarker)
 local PlacementUI = require(script.UI.Placement)
 local PowersUI = require(script.UI.Powers)
 local StoreUI = require(script.UI.Store)
@@ -39,6 +40,7 @@ local parts = {
 	InviteUI,
 	MedalsUI,
 	MissionsUI,
+	ObjectiveMarker,
 	Weapon,
 	Fx,
 	Spinner,

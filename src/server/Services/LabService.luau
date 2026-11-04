@@ -117,6 +117,43 @@ local function wall(center: CFrame, length: number, alongX: boolean)
 	block(trim, center * CFrame.new(0, 0.6, 0), DARK, Enum.Material.CorrodedMetal)
 end
 
+-- Como pista de aterrizaje: focos rojos a las orillas de la calle, de los terrenos hasta la
+-- entrada del laberinto, y una hilera al centro en la última parte
+local function runway()
+	local lights = Instance.new("Folder")
+	lights.Name = "Pista"
+	lights.Parent = folder
+	local entrance = origin.Position.X - half
+	local count = 0
+	local function bulb(x: number, z: number)
+		count += 1
+		local p = Instance.new("Part")
+		p.Name = "Foco"
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.Size = Vector3.new(0.9, 0.5, 0.9)
+		p.CFrame = CFrame.new(x, 0.45, z)
+		p.Color = ALARM
+		p.Material = Enum.Material.Neon
+		p.Parent = lights
+		if count % 4 == 0 then -- luz en uno de cada cuatro (muchas luces hacen lento el juego)
+			local light = Instance.new("PointLight")
+			light.Color = ALARM
+			light.Range = 9
+			light.Brightness = 1.2
+			light.Parent = p
+		end
+	end
+	for x = -PlotService.roadEnd + 10, entrance - 4, 16 do
+		bulb(x, -21)
+		bulb(x, 21)
+	end
+	for x = PlotService.roadEnd - 120, entrance - 8, 8 do
+		bulb(x, 0)
+	end
+end
+
 local function build()
 	local n, size = Lab.cells, Lab.cellSize
 	half = n * size / 2
@@ -165,6 +202,7 @@ local function build()
 	end
 	-- El techo: son túneles (no se ve el cielo ni se puede saltar por arriba)
 	block(Vector3.new(2 * half + 2, 1, 2 * half + 2), origin * CFrame.new(0, Lab.wallHeight + 0.5, 0), DARK, Enum.Material.DiamondPlate)
+	runway()
 	-- Letrero en la entrada
 	local sign = block(Vector3.new(16, 4, 0.5), origin * CFrame.new(-half - 4, Lab.wallHeight + 3, 0) * CFrame.Angles(0, math.rad(90), 0), DARK, Enum.Material.Metal)
 	local gui = Instance.new("SurfaceGui")
@@ -192,6 +230,7 @@ local function build()
 	block(Vector3.new(1, 12, 30), labCenter * CFrame.new(17, 6, 0), Color3.fromRGB(220, 222, 220), Enum.Material.SmoothPlastic)
 	block(Vector3.new(34, 1, 31), labCenter * CFrame.new(0, 12.5, 0), DARK, Enum.Material.Metal)
 	local terminal = block(Vector3.new(3, 5, 6), labCenter * CFrame.new(12, 3.5, 0), DARK, Enum.Material.Metal)
+	terminal.Name = "Terminal" -- la marca de OBJETIVO apunta aquí (client/ObjectiveMarker)
 	local screen = block(Vector3.new(0.2, 3, 5), labCenter * CFrame.new(10.4, 4, 0), CURE, Enum.Material.Neon)
 	screen.CanCollide = false
 	local glow = Instance.new("PointLight")
@@ -217,7 +256,7 @@ local function build()
 		end
 		profile.frequency = true
 		player:SetAttribute("Frequency", true)
-		RankService.Count(player, "frequencies")
+		RankService.Count(player, "frequencies") -- (y la marca de objetivo pasa a tu caja)
 		notice:FireClient(player, "¡Tienes la frecuencia de la cura! Vuelve a tu base y mantén F junto a la antena", "great")
 	end)
 end

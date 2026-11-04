@@ -57,14 +57,21 @@ local function publish(player: Player, profile: DataService.Profile)
 	player:SetAttribute("Missions", HttpService:JSONEncode(upcoming))
 	-- El objetivo principal
 	local main = { text = Missions.done }
+	local target = nil
 	for _, goal in Missions.main do
 		local have = statOf(profile, goal.stat)
 		if have < goal.goal then
 			main = { text = goal.text, have = have, goal = goal.goal }
+			target = goal.target
 			break
 		end
 	end
+	-- Ya tiene la frecuencia: ahora va a su caja (aunque el contador diga otra cosa)
+	if profile.frequency then
+		target = "vault"
+	end
 	player:SetAttribute("MainObjective", HttpService:JSONEncode(main))
+	player:SetAttribute("ObjectiveTarget", target) -- la marca en la pantalla (ObjectiveMarker)
 	local stats = player:FindFirstChild("leaderstats")
 	local value = stats and stats:FindFirstChild("Rango") :: StringValue?
 	if stats and not value then

@@ -104,7 +104,7 @@ local function redraw()
 		elseif busyKey then
 			row(i, name, line.description, "Espera a que\ntermine", OWNED, nil)
 		else
-			local label = string.format("%s\n%d s", Format.Money(nextLevel.price), nextLevel.time)
+			local label = string.format("%s\n%d:%02d min", Format.Money(nextLevel.price), nextLevel.time // 60, nextLevel.time % 60)
 			row(i, name, line.description, label, BUY, function()
 				researchRemote:FireServer("start", line.key)
 			end)

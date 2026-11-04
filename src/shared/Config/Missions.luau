@@ -17,16 +17,17 @@ local Missions = {}
 Missions.shown = 3
 
 -- El objetivo principal: sale arriba de las misiones, uno a la vez y en este orden. Al
--- cumplirlo todo sale "done"
+-- cumplirlo todo sale "done". target: a dónde apunta la marca de OBJETIVO en la pantalla
+-- ("lab" = tu laboratorio, "infested" = la terminal del laboratorio infestado, "vault" = tu caja)
 local allResearch = 0
 for _, line in Research.lines do
 	allResearch += #line.levels
 end
 Missions.main = {
 	{ text = "Aguanta hasta la ola 25", stat = "record", goal = 25 },
-	{ text = "Investiga todo en el laboratorio: las olas se calman y tu base se defiende sola", stat = "research", goal = allResearch },
-	{ text = "Cruza los túneles infestados al final de la calle y saca la frecuencia de la cura", stat = "frequencies", goal = 1 },
-	{ text = "Transmite la cura desde la antena de tu caja fuerte", stat = "victories", goal = 1 },
+	{ text = "Investiga todo en el laboratorio: las olas se calman y tu base se defiende sola", stat = "research", goal = allResearch, target = "lab" },
+	{ text = "Cruza los túneles infestados al final de la calle y saca la frecuencia de la cura", stat = "frequencies", goal = 1, target = "infested" },
+	{ text = "Transmite la cura desde la antena de tu caja fuerte (mantén F)", stat = "victories", goal = 1, target = "vault" },
 }
 Missions.done = "¡Salvaste a todos! Saca otra frecuencia para ganar todavía más dinero"
 

@@ -69,6 +69,14 @@ Research.lines = {
 	},
 }
 
+-- Todos los tiempos de arriba se multiplican por esto (para que investigar tarde más o menos)
+Research.timeScale = 2
+for _, line in Research.lines do
+	for _, level in line.levels do
+		level.time *= Research.timeScale
+	end
+end
+
 Research.byKey = {}
 for _, line in Research.lines do
 	Research.byKey[line.key] = line
