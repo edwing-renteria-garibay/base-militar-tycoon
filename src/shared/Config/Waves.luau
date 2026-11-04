@@ -93,6 +93,10 @@ Waves.antidote = { price = 300, max = 3, maxResearched = 10 }
 -- las olas ya no se ponen más difíciles: todas son como la calmLevel (y sin jefe), para que la
 -- base se defienda sola y siga juntando dinero aunque no estés. El número de ola sigue subiendo
 Waves.calmFrom = 25
+
+-- Solo en Studio: pone en tu base una fila con un zombi de cada tipo, quietos y con su nombre,
+-- para ver cómo se ven (src/server/ZombieLooks.luau). Ponlo en false para quitarla
+Waves.showcase = true
 Waves.calmLevel = 10
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)

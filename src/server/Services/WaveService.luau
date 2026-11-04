@@ -88,6 +88,7 @@ type State = {
 	lastShot: { [string]: number }, -- última vez que disparó cada torre o torreta
 	squad: { Soldier }, -- los refuerzos (Store.squad)
 	final: { endsAt: number, onDone: (boolean) -> (), spawning: boolean, warned: boolean }?, -- la ola final (WaveService.FinalWave)
+	showcased: boolean?, -- ya se puso la fila de zombis para verlos (Waves.showcase)
 }
 -- Un soldado de refuerzo: se va al terminar la ola forWave (el waveId de esa ola)
 type Soldier = { model: Model, forWave: number, lastShot: number }
@@ -96,6 +97,9 @@ local states: { [Player]: State } = {}
 local templates: { [string]: Model } = {} -- un zombi de cada tipo, para clonarlo
 
 -- El zombi de cada tipo: piel verde, y la camisa y el tamaño de su tipo
+-- El zombi científico del laboratorio infestado (WaveService.ZombieTemplate)
+local SCIENTIST = { key = "Cientifico", shirt = Color3.fromRGB(220, 220, 215), scale = 1 }
+
 local function getTemplate(special): Model?
 	local key = if special then special.key else "Normal"
 	if templates[key] then
@@ -1000,6 +1004,43 @@ local function squadFire(state: State, now: number)
 	end
 end
 
+-- Solo en Studio (Waves.showcase): un zombi de cada tipo en fila frente a donde apareces,
+-- quietos, sin hacer daño y con su nombre encima
+local function showcase(plot)
+	local kinds = { { key = "Normal", name = "Normal (soldado)" } }
+	for _, special in Waves.special do
+		table.insert(kinds, { key = special.key, name = special.name, special = special })
+	end
+	table.insert(kinds, { key = "Cientifico", name = "Científico (laboratorio)", special = SCIENTIST })
+	table.insert(kinds, { key = "Jefe", name = Waves.boss.name, special = Waves.boss })
+	local folder = Instance.new("Folder")
+	folder.Name = "VitrinaZombis"
+	folder.Parent = workspace
+	for i, kind in kinds do
+		local base = getTemplate(kind.special)
+		if base then
+			local model = base:Clone()
+			local x = -36 + (i - 1) * (72 / (#kinds - 1))
+			local spot = plot.cframe * CFrame.new(x, 4, -44)
+			if kind.key == "Jefe" then
+				spot *= CFrame.new(0, 3, -4)
+			end
+			model:PivotTo(CFrame.lookAt(spot.Position, spot.Position + plot.cframe.LookVector * -1))
+			for _, piece in model:GetDescendants() do
+				if piece:IsA("BasePart") then
+					piece.Anchored = true -- quietos
+				end
+			end
+			local humanoid = model:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.DisplayName = kind.name
+				humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+			end
+			model.Parent = folder
+		end
+	end
+end
+
 local function tick(player: Player, state: State)
 	local profile = DataService.Get(player)
 	local plot = TycoonService.GetPlot(player)
@@ -1008,6 +1049,10 @@ local function tick(player: Player, state: State)
 		player:SetAttribute("WaveIn", nil)
 		state.nextWave = os.clock() + FIRST_DELAY -- la cuenta empieza cuando ya tiene terreno
 		return
+	end
+	if testing and Waves.showcase and not state.showcased then
+		state.showcased = true
+		showcase(plot)
 	end
 	local n = profile.wave
 	player:SetAttribute("Wave", n)
@@ -1210,7 +1255,6 @@ function WaveService.FinalWave(player: Player, config, onDone: (boolean) -> ())
 end
 
 -- Un zombi científico para clonarlo (lo usa el laboratorio infestado, LabService)
-local SCIENTIST = { key = "Cientifico", shirt = Color3.fromRGB(220, 220, 215), scale = 1 }
 function WaveService.ZombieTemplate(): Model?
 	return getTemplate(SCIENTIST)
 end
