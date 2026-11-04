@@ -33,6 +33,7 @@ local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Effects = require(script.Parent.Parent.Effects)
 local Pickups = require(script.Parent.Parent.Pickups)
+local ZombieLooks = require(script.Parent.Parent.ZombieLooks)
 local DataService = require(script.Parent.DataService)
 local RankService = require(script.Parent.RankService)
 local TycoonService = require(script.Parent.TycoonService)
@@ -145,6 +146,7 @@ local function getTemplate(special): Model?
 		glow.Range = 8
 		glow.Parent = bomb
 	end
+	ZombieLooks.Dress(model, key) -- su ropa y sus detalles (src/server/ZombieLooks.luau)
 	if special and special.boss then
 		model:ScaleTo(special.scale) -- la descripción no deja hacerlo tan grande
 	end
@@ -1207,9 +1209,10 @@ function WaveService.FinalWave(player: Player, config, onDone: (boolean) -> ())
 	end)
 end
 
--- Un zombi normal para clonarlo (lo usa el laboratorio infestado, LabService)
+-- Un zombi científico para clonarlo (lo usa el laboratorio infestado, LabService)
+local SCIENTIST = { key = "Cientifico", shirt = Color3.fromRGB(220, 220, 215), scale = 1 }
 function WaveService.ZombieTemplate(): Model?
-	return getTemplate(nil)
+	return getTemplate(SCIENTIST)
 end
 
 function WaveService.Start()
