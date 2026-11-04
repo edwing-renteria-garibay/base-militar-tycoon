@@ -23,6 +23,7 @@ local HALF_SIZE = {
 	GasStation = Vector2.new(8.5, 5.5),
 	Infirmary = Vector2.new(8, 6),
 	Workshop = Vector2.new(6.5, 5.5),
+	Pipeline = Vector2.new(1.5, 25),
 	Radar = Vector2.new(3, 3),
 	Lab = Vector2.new(7.5, 6.5),
 	SniperTower = Vector2.new(3.3, 4.5),

@@ -253,5 +253,9 @@ end
 -- luego en la gasolinera enciendes las zanjas llenas (se vacían al apagarse). Si la gasolinera
 -- está rota no se enciende nada ni se genera; si el depósito está roto no hay bidones
 Waves.fuel = { perSecond = 0.5, capacity = 100, cost = 20 }
+-- Con la tubería (Buildings "Tuberia") las zanjas encendidas gastan burnPerSecond de combustible
+-- del depósito cada segundo y se apagan cuando se acaba (o si se rompe la tubería, la
+-- gasolinera o el depósito). Para volver a encender hace falta al menos minFuel
+Waves.pipe = { burnPerSecond = 1.5, minFuel = 10 }
 
 return Waves

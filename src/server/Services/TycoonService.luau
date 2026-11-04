@@ -74,6 +74,7 @@ type State = {
 	firePrompt: ProximityPrompt?,
 	fuelPrompt: ProximityPrompt?,
 	fireUntil: number, -- os.clock() hasta el que arden las zanjas
+	pipeOn: boolean, -- con la tubería: las zanjas arden mientras haya combustible
 	fuel: number, -- combustible guardado en el depósito (Waves.fuel)
 	models: { [string]: Model }, -- lo construido, por id
 	items: { [string]: any }, -- y qué es cada cosa (de Config/Buildings o Config/Premium)
@@ -152,6 +153,11 @@ local function hasEffect(state: State, profile: DataService.Profile, effect: str
 		end
 	end
 	return false
+end
+
+-- ¿Tiene la tubería funcionando, con la gasolinera y el depósito? (zanjas sin bidón)
+local function hasPipe(state: State, profile: DataService.Profile): boolean
+	return hasEffect(state, profile, "pipe") and working(state.models.Gasolinera) and working(state.models.Taller)
 end
 
 -- Un letrero que se activa manteniendo E (o tocándolo en celular). Solo lo puede usar el dueño.
@@ -742,6 +748,10 @@ fillTrench = function(state: State, trench: Model)
 	local player = state.owner
 	local can = canOf(player)
 	local profile = DataService.Get(player)
+	if profile and hasPipe(state, profile) then
+		notice:FireClient(player, "La tubería ya llena las zanjas: enciéndelas en la gasolinera", "good")
+		return
+	end
 	local trenches = { trench }
 	if fillsAll(player) and profile then
 		trenches = {}
@@ -776,7 +786,71 @@ fillTrench = function(state: State, trench: Model)
 	notice:FireClient(player, text .. ": enciéndelas en la gasolinera", "great")
 end
 
--- Enciende las zanjas llenas un rato (Waves.fire); al apagarse quedan vacías
+-- Prende el fuego de una zanja (con duration, se apaga solo a los segundos)
+local function lightTrench(model: Model, duration: number?)
+	model:SetAttribute("Burning", true)
+	local count = 0
+	for _, flame in model:GetChildren() do
+		if flame.Name == "Llama" and not flame:FindFirstChild("Fuego") then
+			count += 1
+			local fire = Instance.new("Fire")
+			fire.Name = "Fuego"
+			fire.Size = 9
+			fire.Heat = 12
+			fire.Parent = flame
+			if duration then
+				Debris:AddItem(fire, duration)
+			end
+			if count % 3 == 0 then -- luz en una de cada tres llamas (muchas luces hacen lento el juego)
+				local glow = Instance.new("PointLight")
+				glow.Name = "FuegoLuz"
+				glow.Color = Color3.fromRGB(255, 140, 50)
+				glow.Range = 18
+				glow.Parent = flame
+				if duration then
+					Debris:AddItem(glow, duration)
+				end
+			end
+		end
+	end
+end
+
+-- Apaga una zanja y la deja vacía
+local function putOut(model: Model)
+	model:SetAttribute("Filled", nil)
+	model:SetAttribute("Burning", nil)
+	for _, child in model:GetDescendants() do
+		if child.Name == "Fuego" or child.Name == "FuegoLuz" then
+			child:Destroy()
+		end
+	end
+	showFuel(model)
+end
+
+-- Las zanjas que ya compró
+local function trenchesOf(state: State, profile: DataService.Profile): { Model }
+	local list = {}
+	for _, item in Buildings.list do
+		local model = state.models[item.id]
+		if item.kind == "FireTrench" and profile.owned[item.id] and model then
+			table.insert(list, model)
+		end
+	end
+	return list
+end
+
+-- Con la tubería: las zanjas se apagan (se acabó el combustible, se rompió algo o la apagó)
+local function pipeOff(state: State, profile: DataService.Profile, why: string)
+	state.pipeOn = false
+	state.fireUntil = 0
+	for _, model in trenchesOf(state, profile) do
+		putOut(model)
+	end
+	notice:FireClient(state.owner, why, "bad")
+end
+
+-- Enciende las zanjas llenas un rato (Waves.fire); al apagarse quedan vacías. Con la tubería,
+-- prende todas y siguen ardiendo mientras haya combustible (otra vez = apagarlas)
 ignite = function(player: Player)
 	local state = states[player]
 	local profile = DataService.Get(player)
@@ -784,6 +858,10 @@ ignite = function(player: Player)
 		return
 	end
 	local now = os.clock()
+	if state.pipeOn then
+		pipeOff(state, profile, "Apagaste las zanjas")
+		return
+	end
 	if now < state.fireUntil then
 		return -- ya están ardiendo
 	end
@@ -792,17 +870,31 @@ ignite = function(player: Player)
 		return
 	end
 	local owned, trenches = 0, {}
-	for _, item in Buildings.list do
-		if item.kind == "FireTrench" and profile.owned[item.id] then
-			owned += 1
-			local model = state.models[item.id]
-			if model and model:GetAttribute("Filled") then
-				table.insert(trenches, model)
-			end
+	for _, model in trenchesOf(state, profile) do
+		owned += 1
+		if model:GetAttribute("Filled") then
+			table.insert(trenches, model)
 		end
 	end
 	if owned == 0 then
 		notice:FireClient(player, "Primero compra zanjas de gasolina (botones junto al muro)", "bad")
+		return
+	end
+	if hasPipe(state, profile) then
+		if state.fuel < Waves.pipe.minFuel then
+			local wait = math.ceil((Waves.pipe.minFuel - state.fuel) / Waves.fuel.perSecond)
+			notice:FireClient(player, string.format("Falta combustible en el depósito: espera %d s", wait), "bad")
+			return
+		end
+		state.pipeOn = true
+		state.fireUntil = math.huge
+		RankService.Count(player, "ignites")
+		for _, model in trenchesOf(state, profile) do
+			model:SetAttribute("Filled", true)
+			showFuel(model)
+			lightTrench(model, nil)
+		end
+		notice:FireClient(player, "¡Zanjas encendidas! Arden mientras haya combustible (otra vez E = apagar)", "great")
 		return
 	end
 	if #trenches == 0 then
@@ -812,32 +904,12 @@ ignite = function(player: Player)
 	state.fireUntil = now + Waves.fire.duration
 	RankService.Count(player, "ignites")
 	for _, model in trenches do
-		model:SetAttribute("Burning", true)
+		lightTrench(model, Waves.fire.duration)
 		task.delay(Waves.fire.duration, function()
-			model:SetAttribute("Filled", nil)
-			model:SetAttribute("Burning", nil)
-			showFuel(model)
-		end)
-	end
-	for _, model in trenches do
-		local count = 0
-		for _, flame in model:GetChildren() do
-			if flame.Name == "Llama" then
-				count += 1
-				local fire = Instance.new("Fire")
-				fire.Size = 9
-				fire.Heat = 12
-				fire.Parent = flame
-				Debris:AddItem(fire, Waves.fire.duration)
-				if count % 3 == 0 then -- luz en una de cada tres llamas (muchas luces hacen lento el juego)
-					local glow = Instance.new("PointLight")
-					glow.Color = Color3.fromRGB(255, 140, 50)
-					glow.Range = 18
-					glow.Parent = flame
-					Debris:AddItem(glow, Waves.fire.duration)
-				end
+			if not state.pipeOn then
+				putOut(model)
 			end
-		end
+		end)
 	end
 	notice:FireClient(player, "¡Zanjas encendidas!", "great")
 end
@@ -1035,6 +1107,7 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		vaultHealth = Waves.vaultHealth,
 		repairPrompt = repairPrompt,
 		fireUntil = 0,
+		pipeOn = false,
 		fuel = 0,
 		models = {},
 		items = {},
@@ -1377,6 +1450,25 @@ function TycoonService.Start()
 					if working(state.models.Gasolinera) and working(state.models.Taller) then
 						state.fuel = math.min(state.fuel + Waves.fuel.perSecond, Waves.fuel.capacity)
 					end
+					-- Con la tubería, las zanjas encendidas gastan combustible
+					if state.pipeOn then
+						if not hasPipe(state, profile) then
+							pipeOff(state, profile, "Se rompió la tubería: las zanjas se apagaron")
+						else
+							state.fuel = math.max(state.fuel - Waves.pipe.burnPerSecond, 0)
+							if state.fuel <= 0 then
+								pipeOff(state, profile, "Se acabó el combustible: las zanjas se apagaron")
+							else
+								for _, model in trenchesOf(state, profile) do
+									if not model:GetAttribute("Burning") then -- una zanja recién comprada
+										model:SetAttribute("Filled", true)
+										showFuel(model)
+										lightTrench(model, nil)
+									end
+								end
+							end
+						end
+					end
 					player:SetAttribute("WallHealth", math.floor(WallService.WallShare(player) * 100))
 					local missing = WallService.Missing(player)
 					state.repairPrompt.ObjectText = if missing >= 1
@@ -1400,6 +1492,10 @@ function TycoonService.Start()
 							end
 						end
 						state.firePrompt.ObjectText = string.format("Zanjas llenas: %d de %d", filled, total)
+						if hasPipe(state, profile) then
+							state.firePrompt.ObjectText = string.format("Tubería · combustible %d", state.fuel)
+						end
+						state.firePrompt.ActionText = if state.pipeOn then "Apagar zanjas" else "Encender zanjas"
 					end
 				end
 			end

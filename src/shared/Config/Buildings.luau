@@ -17,7 +17,7 @@
 --   defense  si dispara sola a los zombis: { damage, range, cooldown, sound } (opcional)
 --   oneUse   se gasta al usarse (las minas): al explotar, su botón vuelve a salir
 --   effect   para qué sirve (lo leen los servicios): "vault", "wall", "armory", "heal",
---            "lab", "repair", "radar", "fire", "wire", "mine", "barricade"
+--            "lab", "repair", "radar", "fire", "wire", "mine", "barricade", "pipe"
 
 local Buildings = {}
 
@@ -81,6 +81,17 @@ add({
 	at = { -38, 30 },
 	requires = "Gasolinera",
 	effect = "fuel",
+})
+-- Tubería: une el depósito, la gasolinera y las zanjas. Con ella ya no hace falta el bidón y,
+-- encendidas una vez, las zanjas siguen ardiendo mientras haya combustible (Waves.pipe)
+add({
+	id = "Tuberia",
+	name = "Tubería de combustible",
+	price = 12000,
+	kind = "Pipeline",
+	at = { -38, 0 }, -- entre la gasolinera (z -30) y el depósito (z 30)
+	requires = "Taller",
+	effect = "pipe",
 })
 add({ id = "Radar", name = "Radar (ves a los zombis)", price = 6000, kind = "Radar", at = { 38, 30 }, effect = "radar" })
 

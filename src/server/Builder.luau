@@ -287,6 +287,23 @@ function Builder.kinds.GasStation(m: Model, o: CFrame)
 	end
 end
 
+-- La tubería: un tubo por el piso de la gasolinera al depósito (a lo largo, en Z) y una rama
+-- hasta el muro de la izquierda, donde están las zanjas. No estorba: se puede pasar por encima
+function Builder.kinds.Pipeline(m: Model, o: CFrame)
+	local pipe = Color3.fromRGB(150, 60, 40)
+	local function tube(length: number, offset: CFrame)
+		local p = part(m, o, Vector3.new(length, 1, 1), offset, pipe, Enum.Material.Metal, Enum.PartType.Cylinder)
+		p.CanCollide = false
+	end
+	tube(49, at(0, 0.6, 0) * FACING) -- de la gasolinera al depósito
+	tube(31, at(-15, 0.6, 10)) -- al muro (va a 70 del centro: 32 de aquí)
+	-- Válvulas
+	for _, z in { -12, 0, 12 } do
+		part(m, o, Vector3.new(1.6, 1.6, 1.6), at(0, 0.8, z), DARK_METAL, Enum.Material.DiamondPlate)
+		part(m, o, Vector3.new(0.3, 1.6, 0.3), at(0, 2, z), YELLOW, Enum.Material.Metal)
+	end
+end
+
 function Builder.kinds.Workshop(m: Model, o: CFrame)
 	part(m, o, Vector3.new(12, 0.4, 10), at(0, 0.2, 0), CONCRETE, Enum.Material.Concrete)
 	for _, x in { -5.5, 5.5 } do
