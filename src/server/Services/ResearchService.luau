@@ -125,6 +125,7 @@ local function tick(player: Player)
 			local level = math.min((profile.research[line.key] or 0) + 1, #line.levels)
 			profile.research[line.key] = level
 			notice:FireClient(player, string.format("¡Investigación lista: %s %d!", line.name, level), "great")
+			TycoonService.ResearchDone(player)
 		end
 		publish(player)
 	end

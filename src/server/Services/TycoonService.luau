@@ -239,6 +239,7 @@ local ignite: (Player) -> ()
 local takeCan: (State) -> ()
 local fillTrench: (State, Model) -> ()
 local premiumItem: (any) -> any
+local drawRange: (State, any, Model) -> ()
 local publishPremium: (Player, DataService.Profile) -> ()
 
 -- El francotirador: un soldado parado arriba de su torre. Es quien dispara (WaveService)
@@ -267,13 +268,59 @@ local function getSniperTemplate(): Model?
 	return model
 end
 
-local function spawnSniper(state: State, item)
+-- Los lugares para francotirador de una torre: uno (item.id), o dos con la investigación
+-- "Más espacio" (el segundo se guarda como item.id .. "_2")
+local function slotsOf(profile: DataService.Profile, item): { string }
+	if (profile.research.Espacio or 0) >= 1 then
+		return { item.id, item.id .. "_2" }
+	end
+	return { item.id }
+end
+
+-- El letrero de contratar se ve solo si a la torre le cabe otro francotirador
+local function updateHire(state: State, item)
+	local hire = state.hirePrompts[item.id]
+	local profile = DataService.Get(state.owner)
+	if not hire or not profile then
+		return
+	end
+	local free = false
+	for _, slot in slotsOf(profile, item) do
+		free = free or state.snipers[slot] == nil
+	end
+	hire.Enabled = free
+end
+
+-- Las torretas marcan en el piso hasta dónde disparan (las torres alcanzan todo el terreno).
+-- Las de las puertas solo disparan hacia el frente, hasta investigar "Torretas giratorias"
+drawRange = function(state: State, item, model: Model)
+	if not item.defense or item.kind == "SniperTower" then
+		return
+	end
+	local old = state.plot.contents:FindFirstChild("Alcance_" .. item.id)
+	if old then
+		old:Destroy()
+	end
+	local profile = DataService.Get(state.owner)
+	local turns = profile ~= nil and (profile.research.Giratorias or 0) >= 1
+	local arc = if item.kind == "Turret" and not turns then Waves.turretArc else 360
+	local o = placeOf(state.plot, item.at, item.rot)
+	local marks = Builder.RangeMarks(state.plot.cframe, o, item.defense.range, arc)
+	marks.Name = "Alcance_" .. item.id
+	marks.Parent = state.plot.contents
+	model.Destroying:Connect(function()
+		marks:Destroy()
+	end)
+end
+
+local function spawnSniper(state: State, item, slot: string)
 	local base = getSniperTemplate()
-	if not base or state.snipers[item.id] then
+	if not base or state.snipers[slot] then
 		return
 	end
 	local model = base:Clone()
-	model.Name = "Francotirador_" .. item.id
+	model.Name = "Francotirador_" .. slot
+	model:SetAttribute("Tower", item.id)
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart
 	humanoid.MaxHealth = Waves.sniper.health
@@ -282,7 +329,9 @@ local function spawnSniper(state: State, item)
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOn
 	CollectionService:AddTag(model, "Ally") -- tus balas también le pegan (WeaponService)
 	-- Arriba de la torre, mirando hacia afuera del terreno
-	local top = (placeOf(state.plot, item.at) * CFrame.new(0, 27.5, 0)).Position
+	-- (el segundo, a un lado del primero)
+	local spot = if slot == item.id then CFrame.new(0, 27.5, 0) else CFrame.new(-1.8, 27.5, 1.8)
+	local top = (placeOf(state.plot, item.at) * spot).Position
 	local outward = Vector3.new(top.X - state.plot.cframe.X, 0, top.Z - state.plot.cframe.Z)
 	model:PivotTo(CFrame.lookAt(top, top + outward))
 	root.Anchored = true -- no se cae de la torre
@@ -290,23 +339,18 @@ local function spawnSniper(state: State, item)
 	-- Con su rifle de francotirador en las manos (el mismo que venden en la Armería)
 	TwoHands.Setup(model)
 	humanoid:EquipTool(WeaponModels.MakeTool(Weapons.byId.Francotirador))
-	state.snipers[item.id] = model
-	local hire = state.hirePrompts[item.id]
-	if hire then
-		hire.Enabled = false
-	end
+	state.snipers[slot] = model
+	updateHire(state, item)
 	humanoid.Died:Connect(function()
-		if state.snipers[item.id] ~= model then
+		if state.snipers[slot] ~= model then
 			return
 		end
-		state.snipers[item.id] = nil
+		state.snipers[slot] = nil
 		local profile = DataService.Get(state.owner)
 		if profile then
-			profile.snipers[item.id] = nil
+			profile.snipers[slot] = nil
 		end
-		if hire and hire.Parent then
-			hire.Enabled = true
-		end
+		updateHire(state, item)
 		root.Anchored = false
 		Debris:AddItem(model, 3)
 		notice:FireClient(state.owner, "¡Mataron a tu francotirador! Contrata otro en su torre", "bad")
@@ -323,8 +367,17 @@ end
 local function hireSniper(state: State, item)
 	local player = state.owner
 	local profile = DataService.Get(player)
-	if not profile or state.snipers[item.id] then
+	if not profile then
 		return
+	end
+	local slot = nil
+	for _, candidate in slotsOf(profile, item) do
+		if not slot and state.snipers[candidate] == nil then
+			slot = candidate
+		end
+	end
+	if not slot then
+		return -- ya no caben más
 	end
 	if not working(state.models[item.id]) then
 		notice:FireClient(player, "Primero repara la torre", "bad")
@@ -338,8 +391,8 @@ local function hireSniper(state: State, item)
 	end
 	profile.freeSniper = true
 	priceSnipers(state)
-	profile.snipers[item.id] = true
-	spawnSniper(state, item)
+	profile.snipers[slot] = true
+	spawnSniper(state, item, slot)
 	notice:FireClient(player, if free then "¡Tu primer francotirador es gratis!" else "Contrataste un francotirador", "great")
 end
 
@@ -375,16 +428,7 @@ local function build(state: State, item, animate: boolean)
 	model.Name = item.id
 	state.models[item.id] = model
 	state.items[item.id] = item
-	-- Las torretas marcan en el piso hasta dónde disparan (las torres alcanzan todo el terreno)
-	if item.defense and item.kind ~= "SniperTower" then
-		local arc = if item.kind == "Turret" then Waves.turretArc else 360
-		local marks = Builder.RangeMarks(state.plot.cframe, o, item.defense.range, arc)
-		marks.Name = "Alcance_" .. item.id
-		marks.Parent = state.plot.contents
-		model.Destroying:Connect(function()
-			marks:Destroy()
-		end)
-	end
+	drawRange(state, item, model)
 	if isBreakable(item) then
 		-- La pone en la carpeta "Rompibles", con su vida
 		WallService.Add(player, model, Waves.buildingHealth[item.kind] or Waves.buildingHealth.default)
@@ -421,8 +465,13 @@ local function build(state: State, item, animate: boolean)
 		hire.ObjectText = if owner and not owner.freeSniper then "¡GRATIS!" else Format.Money(Waves.sniper.price)
 		state.hirePrompts[item.id] = hire
 		local profile = DataService.Get(player)
-		if profile and profile.snipers[item.id] then
-			spawnSniper(state, item) -- ya lo tenía contratado
+		if profile then
+			for _, slot in slotsOf(profile, item) do
+				if profile.snipers[slot] then
+					spawnSniper(state, item, slot) -- ya lo tenía contratado
+				end
+			end
+			updateHire(state, item)
 		end
 	elseif item.effect == "fuel" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -6))
@@ -1186,12 +1235,46 @@ function TycoonService.IsWorking(player: Player, id: string): boolean
 	return working(TycoonService.ModelOf(player, id))
 end
 
--- El francotirador vivo de una torre (nil si no tiene)
+-- El francotirador vivo de una torre (nil si no tiene). slot: id de la torre, o id .. "_2"
+-- para el segundo (investigación "Más espacio")
 function TycoonService.SniperOf(player: Player, id: string): Model?
 	local state = states[player]
-	local sniper = state and state.snipers[id]
-	local humanoid = sniper and sniper:FindFirstChildOfClass("Humanoid")
-	return if humanoid and humanoid.Health > 0 then sniper else nil
+	local function alive(slot: string): Model?
+		local sniper = state and state.snipers[slot]
+		local humanoid = sniper and sniper:FindFirstChildOfClass("Humanoid")
+		return if humanoid and humanoid.Health > 0 then sniper else nil
+	end
+	return alive(id) or alive(id .. "_2")
+end
+
+-- Los francotiradores vivos de una torre: { { slot, model } }
+function TycoonService.SnipersOf(player: Player, id: string): { { slot: string, model: Model } }
+	local state = states[player]
+	local list = {}
+	for _, slot in { id, id .. "_2" } do
+		local sniper = state and state.snipers[slot]
+		local humanoid = sniper and sniper:FindFirstChildOfClass("Humanoid")
+		if sniper and humanoid and humanoid.Health > 0 then
+			table.insert(list, { slot = slot, model = sniper })
+		end
+	end
+	return list
+end
+
+-- Terminó una investigación (ResearchService): con "Más espacio" vuelve a salir el letrero de
+-- contratar en las torres
+function TycoonService.ResearchDone(player: Player)
+	local state = states[player]
+	if not state then
+		return
+	end
+	for _, item in Buildings.list do
+		if item.kind == "SniperTower" then
+			updateHire(state, item)
+		elseif item.kind == "Turret" and state.models[item.id] then
+			drawRange(state, item, state.models[item.id]) -- con "Torretas giratorias", el círculo completo
+		end
+	end
 end
 
 -- Lo que buscan los zombis especiales (que no esté roto):
@@ -1281,9 +1364,9 @@ function TycoonService.Start()
 						heal(state)
 					end
 					-- Si rompen una torre, su francotirador se cae
-					for id, sniper in state.snipers do
+					for _, sniper in state.snipers do
 						local humanoid = sniper:FindFirstChildOfClass("Humanoid")
-						if humanoid and not working(state.models[id]) then
+						if humanoid and not working(state.models[sniper:GetAttribute("Tower")]) then
 							humanoid.Health = 0
 						end
 					end

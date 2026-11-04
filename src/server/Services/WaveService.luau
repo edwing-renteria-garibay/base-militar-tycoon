@@ -886,59 +886,68 @@ local function defend(player: Player, state: State, now: number, bonus: number)
 	if not plot or not profile then
 		return
 	end
+	local turretsTurn = (profile.research.Giratorias or 0) >= 1 -- investigación: giran completas
+	-- Un disparo de una defensa (shotKey: con qué se cuenta su recarga; sniper: quién dispara)
+	local function shoot(id: string, item, building: Model, shotKey: string, sniper: Model?)
+		local stats = item.defense
+		if not TycoonService.IsWorking(player, id) or now - (state.lastShot[shotKey] or 0) < stats.cooldown then
+			return
+		end
+		local box, size = building:GetBoundingBox()
+		local from = box.Position + Vector3.new(0, size.Y / 2 - 1.5, 0) -- desde arriba
+		local sniperHead = sniper and sniper:FindFirstChild("Head") :: BasePart?
+		if sniperHead then
+			from = sniperHead.Position
+		end
+		local facing = if item.kind == "Turret" and not turretsTurn
+			then (TycoonService.PlaceOf(player, item) :: CFrame).LookVector
+			else nil
+		local best: Zombie? = nil
+		local bestDistance = stats.range
+		for _, zombie in state.zombies do
+			if isAlive(zombie) and not zombie.shield and (not facing or inSight(facing, from, zombie.root.Position)) then
+				local distance = (zombie.root.Position - from).Magnitude
+				if distance < bestDistance then
+					best = zombie
+					bestDistance = distance
+				end
+			end
+		end
+		if not best then
+			return
+		end
+		state.lastShot[shotKey] = now
+		local target = best.root.Position
+		if sniper then
+			-- El francotirador voltea hacia el zombi
+			local pivot = sniper:GetPivot().Position
+			sniper:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
+			-- y la bala sale de la boca de su rifle
+			local tip = sniper:FindFirstChild("Muzzle", true) :: Attachment?
+			if tip then
+				from = tip.WorldPosition
+			end
+		end
+		-- La torreta gira su cabeza hacia el zombi
+		local head = building:FindFirstChild("Cabeza")
+		if head and head:IsA("Model") then
+			local pivot = head:GetPivot().Position
+			head:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
+			local muzzle = head:GetPivot() * CFrame.new(0, 0.2, -8)
+			from = muzzle.Position
+		end
+		Effects.Shot(from, target, stats.sound, "flesh")
+		best.humanoid:TakeDamage(stats.damage * bonus)
+	end
 	for _, defender in TycoonService.Defenders(player) do
 		local id, item, building = defender.id, defender.item, defender.model
-		local stats = item.defense
-		-- Las torres solo disparan con francotirador, y nada roto dispara
-		local sniper = if item.kind == "SniperTower" then TycoonService.SniperOf(player, id) else nil
-		local manned = item.kind ~= "SniperTower" or sniper ~= nil
-		if
-			manned
-			and TycoonService.IsWorking(player, id)
-			and now - (state.lastShot[id] or 0) >= stats.cooldown
-		then
-			local box, size = building:GetBoundingBox()
-			local from = box.Position + Vector3.new(0, size.Y / 2 - 1.5, 0) -- desde arriba
-			local sniperHead = sniper and sniper:FindFirstChild("Head") :: BasePart?
-			if sniperHead then
-				from = sniperHead.Position
+		if item.kind == "SniperTower" then
+			-- Las torres solo disparan con francotirador (uno o dos, cada uno a su ritmo)
+			for _, sniper in TycoonService.SnipersOf(player, id) do
+				shoot(id, item, building, sniper.slot, sniper.model)
 			end
-			local facing = if item.kind == "Turret" then (TycoonService.PlaceOf(player, item) :: CFrame).LookVector else nil
-			local best: Zombie? = nil
-			local bestDistance = stats.range
-			for _, zombie in state.zombies do
-				if isAlive(zombie) and not zombie.shield and (not facing or inSight(facing, from, zombie.root.Position)) then
-					local distance = (zombie.root.Position - from).Magnitude
-					if distance < bestDistance then
-						best = zombie
-						bestDistance = distance
-					end
-				end
-			end
-			if best then
-				state.lastShot[id] = now
-				local target = best.root.Position
-				-- La torreta gira su cabeza hacia el zombi
-				if sniper then
-					-- El francotirador voltea hacia el zombi
-					local pivot = sniper:GetPivot().Position
-					sniper:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
-					-- y la bala sale de la boca de su rifle
-					local tip = sniper:FindFirstChild("Muzzle", true) :: Attachment?
-					if tip then
-						from = tip.WorldPosition
-					end
-				end
-				local head = building:FindFirstChild("Cabeza")
-				if head and head:IsA("Model") then
-					local pivot = head:GetPivot().Position
-					head:PivotTo(CFrame.lookAt(pivot, Vector3.new(target.X, pivot.Y, target.Z)))
-					local muzzle = head:GetPivot() * CFrame.new(0, 0.2, -8)
-					from = muzzle.Position
-				end
-				Effects.Shot(from, target, stats.sound, "flesh")
-				best.humanoid:TakeDamage(stats.damage * bonus)
-			end
+		else
+			shoot(id, item, building, id, nil)
 		end
 	end
 end
