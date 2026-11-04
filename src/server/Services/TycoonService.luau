@@ -461,6 +461,12 @@ local function build(state: State, item, animate: boolean)
 			buyItem(player, "antidotes", "Antidotes", Waves.antidote, "un antídoto")
 		end)
 		cure.ObjectText = Format.Money(Waves.antidote.price)
+		-- Roblox solo enseña un letrero por tecla: el antídoto va con la F y los dos se ven siempre
+		cure.KeyboardKeyCode = Enum.KeyCode.F
+		cure.GamepadKeyCode = Enum.KeyCode.ButtonY
+		for _, both in { buy, cure } do
+			both.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
+		end
 	elseif item.effect == "lab" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -7.5))
 		prompt(spot, "Investigar", player, 0, function()
