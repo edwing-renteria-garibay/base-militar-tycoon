@@ -96,7 +96,7 @@ Waves.calmFrom = 25
 
 -- Solo en Studio: pone en tu base una fila con un zombi de cada tipo, quietos y con su nombre,
 -- para ver cómo se ven (src/server/ZombieLooks.luau). Ponlo en false para quitarla
-Waves.showcase = true
+Waves.showcase = false
 Waves.calmLevel = 10
 
 -- El muro: vida de cada pedazo según su nivel (1 = madera, 2 = concreto, 3 = reforzado)
