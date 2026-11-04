@@ -17,6 +17,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Placement = require(ReplicatedStorage.Shared.Placement)
+local Layout = require(script.Parent.Parent.Layout)
 local Menus = require(script.Parent.Parent.Menus)
 local ReservedMarks = require(script.Parent.Parent.ReservedMarks)
 
@@ -254,15 +255,13 @@ function PlacementUI.Start()
 
 	-- Junto al botón de la tienda
 	openButton = Instance.new("TextButton")
-	openButton.AnchorPoint = Vector2.new(0, 1)
-	openButton.Position = UDim2.new(0, 152, 1, -12)
 	openButton.Size = UDim2.fromOffset(190, 44)
 	openButton.BackgroundColor3 = OK_COLOR
 	openButton.Font = Enum.Font.GothamBlack
 	openButton.TextSize = 18
 	openButton.TextColor3 = Color3.fromRGB(20, 30, 20)
 	openButton.Visible = false
-	openButton.Parent = gui
+	Layout.Dock(openButton, 2)
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = openButton
@@ -374,12 +373,15 @@ function PlacementUI.Start()
 	end
 	openButton.Activated:Connect(toggleMenu)
 	-- Con la tecla G también (en primera persona el mouse está fijo y no llega al botón)
-	ContextActionService:BindAction("PlacementMenu", function(_, state)
+	-- Con control: flecha derecha abre el menú, y mientras colocas, gira la defensa
+	ContextActionService:BindAction("PlacementMenu", function(_, state, input)
 		if state == Enum.UserInputState.Begin and not current then
 			toggleMenu()
+		elseif state == Enum.UserInputState.Begin and input.KeyCode == Enum.KeyCode.DPadRight then
+			rotation = (rotation + 90) % 360
 		end
 		return Enum.ContextActionResult.Sink
-	end, false, Enum.KeyCode.G)
+	end, false, Enum.KeyCode.G, Enum.KeyCode.DPadRight)
 	change.Activated:Connect(function()
 		local item = nextItem(current)
 		if item and item ~= current then
@@ -397,8 +399,10 @@ function PlacementUI.Start()
 		end
 		if input.KeyCode == Enum.KeyCode.R then
 			rotation = (rotation + 90) % 360
-		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-			confirm() -- con mouse, el clic la pone; en celular se usa el botón "Colocar"
+		elseif input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2 then
+			confirm() -- con mouse el clic la pone (con control, R2 / RT); en celular el botón "Colocar"
+		elseif input.KeyCode == Enum.KeyCode.ButtonB then
+			stop()
 		end
 	end)
 	RunService.RenderStepped:Connect(update)

@@ -16,12 +16,13 @@ local PowersUI = {}
 
 -- Cada botón: qué manda al servidor, su atributo (cuántas tiene), su texto, tecla y color
 local POWERS = {
-	{ what = "nuke", attribute = "Nukes", text = "BOMBA", key = Enum.KeyCode.N, color = Color3.fromRGB(190, 50, 40) },
+	{ what = "nuke", attribute = "Nukes", text = "BOMBA", key = Enum.KeyCode.N, pad = Enum.KeyCode.DPadUp, color = Color3.fromRGB(190, 50, 40) },
 	{
 		what = "strike",
 		attribute = "Strikes",
 		text = "ATAQUE AÉREO",
 		key = Enum.KeyCode.J,
+		pad = Enum.KeyCode.ButtonR3, -- (con control: presionar el stick derecho)
 		color = Color3.fromRGB(200, 120, 40),
 	},
 }
@@ -70,7 +71,7 @@ function PowersUI.Start()
 			end
 			use()
 			return Enum.ContextActionResult.Sink
-		end, false, power.key)
+		end, false, power.key, power.pad)
 		buttons[power] = button
 	end
 

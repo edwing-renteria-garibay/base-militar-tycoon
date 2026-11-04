@@ -14,8 +14,10 @@ local Weapon = require(script.Weapon)
 local ArmoryUI = require(script.UI.Armory)
 local BarricadesUI = require(script.UI.Barricades)
 local BossBar = require(script.UI.BossBar)
+local ControlsUI = require(script.UI.Controls)
 local HUD = require(script.UI.HUD)
 local InviteUI = require(script.UI.Invite)
+local Layout = require(script.Layout)
 local LabUI = require(script.UI.Lab)
 local MedalsUI = require(script.UI.Medals)
 local MissionsUI = require(script.UI.Missions)
@@ -26,6 +28,7 @@ local StoreUI = require(script.UI.Store)
 
 -- Cada parte arranca por separado: si una falla (sale en rojo en Output), las demás siguen
 local parts = {
+	Layout,
 	Camera,
 	Sprint,
 	ViewModel,
@@ -46,6 +49,7 @@ local parts = {
 	Fx,
 	Spinner,
 	Ambience,
+	ControlsUI,
 }
 for _, part in parts do
 	task.spawn(function()

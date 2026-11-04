@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
+local Layout = require(script.Parent.Parent.Layout)
 local Menus = require(script.Parent.Parent.Menus)
 
 local powerRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Power") :: RemoteEvent
@@ -129,15 +130,13 @@ function StoreUI.Start()
 
 	-- Abajo a la izquierda (arriba a la izquierda están los botones de Roblox)
 	local open = Instance.new("TextButton")
-	open.AnchorPoint = Vector2.new(0, 1)
-	open.Position = UDim2.new(0, 12, 1, -12)
 	open.Size = UDim2.fromOffset(130, 44)
 	open.BackgroundColor3 = GOLD
 	open.Font = Enum.Font.GothamBlack
 	open.Text = "TIENDA (B)"
 	open.TextSize = 20
 	open.TextColor3 = Color3.fromRGB(30, 30, 30)
-	open.Parent = gui
+	Layout.Dock(open, 1)
 	corner(open, 10)
 
 	panel = Instance.new("Frame")

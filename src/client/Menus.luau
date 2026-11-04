@@ -33,6 +33,17 @@ function Menus.SetOpen(name: string, open: boolean)
 	others[name] = if open then true else nil
 end
 
+-- El botón (la X) del primer menú abierto, o nil: con control, se selecciona para moverse
+-- por el menú con el stick
+function Menus.FirstOpen(): GuiButton?
+	for _, button in buttons do
+		if shown(button) then
+			return button
+		end
+	end
+	return nil
+end
+
 function Menus.AnyOpen(): boolean
 	if next(others) then
 		return true

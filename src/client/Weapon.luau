@@ -169,7 +169,8 @@ function Weapon.Start()
 		end
 	end)
 	ContextActionService:SetTitle("Recargar", "R")
-	ContextActionService:SetPosition("Recargar", UDim2.new(1, -170, 1, -150))
+	-- A la izquierda del botón de saltar (Correr va arriba de él): que no se encimen
+	ContextActionService:SetPosition("Recargar", UDim2.new(1, -180, 1, -95))
 	local function onCharacter(character: Model)
 		watch(character)
 		watch(player:WaitForChild("Backpack"))

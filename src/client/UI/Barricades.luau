@@ -16,6 +16,7 @@ local Barricades = require(ReplicatedStorage.Shared.Config.Barricades)
 local Premium = require(ReplicatedStorage.Shared.Config.Premium)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Placement = require(ReplicatedStorage.Shared.Placement)
+local Layout = require(script.Parent.Parent.Layout)
 local Menus = require(script.Parent.Parent.Menus)
 local ReservedMarks = require(script.Parent.Parent.ReservedMarks)
 
@@ -217,15 +218,13 @@ function BarricadesUI.Start()
 
 	-- Junto al botón de colocar
 	local open = Instance.new("TextButton")
-	open.AnchorPoint = Vector2.new(0, 1)
-	open.Position = UDim2.new(0, 352, 1, -12)
 	open.Size = UDim2.fromOffset(190, 44)
 	open.BackgroundColor3 = Color3.fromRGB(150, 150, 145)
 	open.Font = Enum.Font.GothamBlack
 	open.Text = "BARRICADAS · H"
 	open.TextSize = 18
 	open.TextColor3 = Color3.fromRGB(25, 25, 25)
-	open.Parent = gui
+	Layout.Dock(open, 3)
 	local openCorner = Instance.new("UICorner")
 	openCorner.CornerRadius = UDim.new(0, 10)
 	openCorner.Parent = open
@@ -266,12 +265,15 @@ function BarricadesUI.Start()
 		end
 	end
 	open.Activated:Connect(toggle)
-	ContextActionService:BindAction("Barricades", function(_, state)
-		if state == Enum.UserInputState.Begin then
+	-- Con control: flecha izquierda empieza, y mientras pones barricadas empieza otra hilera
+	ContextActionService:BindAction("Barricades", function(_, state, input)
+		if state == Enum.UserInputState.Begin and active and input.KeyCode == Enum.KeyCode.DPadLeft then
+			start = nil
+		elseif state == Enum.UserInputState.Begin then
 			toggle()
 		end
 		return Enum.ContextActionResult.Sink
-	end, false, Enum.KeyCode.H)
+	end, false, Enum.KeyCode.H, Enum.KeyCode.DPadLeft)
 	-- En celular: toca el piso para marcar y "Poner" para ponerla
 	put.Activated:Connect(confirm)
 	cut.Activated:Connect(function()
@@ -282,8 +284,10 @@ function BarricadesUI.Start()
 		if processed or not active then
 			return
 		end
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2 then
 			confirm()
+		elseif input.KeyCode == Enum.KeyCode.ButtonB then
+			stop()
 		elseif input.UserInputType == Enum.UserInputType.Touch and not start then
 			confirm()
 		end

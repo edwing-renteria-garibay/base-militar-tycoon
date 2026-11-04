@@ -6,6 +6,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local SocialService = game:GetService("SocialService")
 
+local Layout = require(script.Parent.Parent.Layout)
 local Menus = require(script.Parent.Parent.Menus)
 
 local player = Players.LocalPlayer
@@ -19,15 +20,13 @@ function InviteUI.Start()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local button = Instance.new("TextButton")
-	button.AnchorPoint = Vector2.new(0, 1)
-	button.Position = UDim2.new(0, 552, 1, -12)
 	button.Size = UDim2.fromOffset(140, 44)
 	button.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
 	button.Font = Enum.Font.GothamBlack
 	button.Text = "INVITAR · I"
 	button.TextSize = 18
 	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Parent = gui
+	Layout.Dock(button, 4)
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = button

@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local Layout = require(script.Parent.Parent.Layout)
 
 local notice = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notice") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -242,6 +243,11 @@ function HUD.Start()
 	ammoLabel = newLabel(gui, UDim2.fromOffset(440, 36), 28)
 	ammoLabel.AnchorPoint = Vector2.new(1, 1)
 	ammoLabel.Position = UDim2.new(1, -16, 1, -16)
+	if Layout.touch then
+		-- En celular abajo a la derecha está el botón de saltar: arriba a la derecha, bajo el MENÚ
+		ammoLabel.AnchorPoint = Vector2.new(1, 0)
+		ammoLabel.Position = UDim2.new(1, -16, 0, 54)
+	end
 	ammoLabel.TextXAlignment = Enum.TextXAlignment.Right
 	ammoLabel.Visible = false
 	task.spawn(function()

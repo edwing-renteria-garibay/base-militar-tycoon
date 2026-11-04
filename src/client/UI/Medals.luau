@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Ranks = require(ReplicatedStorage.Shared.Config.Ranks)
+local Layout = require(script.Parent.Parent.Layout)
 local Menus = require(script.Parent.Parent.Menus)
 
 local player = Players.LocalPlayer
@@ -45,15 +46,13 @@ function MedalsUI.Start()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local open = Instance.new("TextButton")
-	open.AnchorPoint = Vector2.new(0, 1)
-	open.Position = UDim2.new(0, 702, 1, -12)
 	open.Size = UDim2.fromOffset(160, 44)
 	open.BackgroundColor3 = GOLD
 	open.Font = Enum.Font.GothamBlack
 	open.Text = "MEDALLAS · M"
 	open.TextSize = 18
 	open.TextColor3 = Color3.fromRGB(30, 30, 30)
-	open.Parent = gui
+	Layout.Dock(open, 5)
 	corner(open, 10)
 
 	local panel = Instance.new("Frame")

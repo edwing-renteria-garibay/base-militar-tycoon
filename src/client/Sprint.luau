@@ -30,7 +30,7 @@ end
 function Sprint.Start()
 	ContextActionService:BindAction("Sprint", onToggle, true, Enum.KeyCode.ButtonL3)
 	ContextActionService:SetTitle("Sprint", "Correr")
-	ContextActionService:SetPosition("Sprint", UDim2.new(1, -160, 1, -150))
+	ContextActionService:SetPosition("Sprint", UDim2.new(1, -95, 1, -175)) -- arriba del botón de saltar
 	RunService.Heartbeat:Connect(function()
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
