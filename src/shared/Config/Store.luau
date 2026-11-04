@@ -139,7 +139,9 @@ Store.squad = { count = 3, damage = 30, range = 110, cooldown = 0.35, sound = "A
 
 -- El ataque aéreo: explosiones a lo largo del lado, afuera del muro. Mata a los zombis que
 -- alcanza
-Store.airstrike = { bombs = 8, radius = 22 }
+-- El ataque aéreo: un avión pasa por encima del lado con más zombis y suelta "bombs" bombas.
+-- sound: lo que se oye mientras pasa; height: a qué altura vuela; speed: studs por segundo
+Store.airstrike = { bombs = 8, radius = 22, sound = "rbxassetid://109413833516530", height = 55, speed = 60 }
 
 -- El paquete inicial
 Store.starter = { money = 25000, defense = "TorretaPesada", medkits = 3 }

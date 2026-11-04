@@ -921,6 +921,32 @@ function Builder.RangeMarks(plot: CFrame, o: CFrame, range: number, arc: number)
 end
 
 -- Arma una construcción y la devuelve (sin ponerla en el mundo)
+-- El avión del ataque aéreo (Store.airstrike): un caza gris que vuela hacia -Z (su frente).
+-- No choca con nada; WaveService lo mueve con PivotTo
+function Builder.kinds.Jet(m: Model, o: CFrame)
+	local GRAY = Color3.fromRGB(110, 116, 124)
+	local DARKER = Color3.fromRGB(70, 74, 80)
+	local pieces = {
+		part(m, o, Vector3.new(3.2, 3, 22), at(0, 0, 0), GRAY, Enum.Material.Metal), -- cuerpo
+		part(m, o, Vector3.new(3.2, 3, 5), at(0, 0, -13.5), GRAY, Enum.Material.Metal, Enum.PartType.Wedge), -- nariz
+		part(m, o, Vector3.new(26, 0.6, 7), at(0, -0.4, 1), DARKER, Enum.Material.Metal), -- alas
+		part(m, o, Vector3.new(10, 0.5, 3.5), at(0, 0.6, 10), DARKER, Enum.Material.Metal), -- alas de atrás
+		part(m, o, Vector3.new(0.5, 5, 4), at(0, 3.5, 9.5), DARKER, Enum.Material.Metal), -- cola
+		part(m, o, Vector3.new(2.2, 1.4, 5), at(0, 1.9, -6), Color3.fromRGB(30, 40, 55), Enum.Material.Glass), -- cabina
+		part(m, o, Vector3.new(3, 1.2, 1.2), at(-9, -1.2, 1) * CFrame.Angles(0, math.rad(90), 0), DARKER, Enum.Material.Metal, Enum.PartType.Cylinder), -- bomba izq.
+		part(m, o, Vector3.new(3, 1.2, 1.2), at(9, -1.2, 1) * CFrame.Angles(0, math.rad(90), 0), DARKER, Enum.Material.Metal, Enum.PartType.Cylinder), -- bomba der.
+		glow(m, o, Vector3.new(2.4, 2.4, 0.6), at(0, 0, 11.2), Color3.fromRGB(255, 140, 50), 18), -- turbina
+		glow(m, o, Vector3.new(0.6, 0.6, 0.6), at(-13, -0.4, 1), Color3.fromRGB(255, 40, 40), 6), -- luz roja
+		glow(m, o, Vector3.new(0.6, 0.6, 0.6), at(13, -0.4, 1), Color3.fromRGB(40, 255, 80), 6), -- luz verde
+	}
+	for _, piece in pieces do
+		piece.CanCollide = false
+		piece.CanQuery = false
+		piece.CastShadow = false
+	end
+	m.WorldPivot = o
+end
+
 function Builder.Build(kind: string, o: CFrame): Model
 	local m = Instance.new("Model")
 	local draw = Builder.kinds[kind]

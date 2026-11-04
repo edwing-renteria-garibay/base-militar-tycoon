@@ -31,6 +31,7 @@ local Settings = require(ReplicatedStorage.Shared.Config.Settings)
 local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local Builder = require(script.Parent.Parent.Builder)
 local Effects = require(script.Parent.Parent.Effects)
 local Pickups = require(script.Parent.Parent.Pickups)
 local ZombieLooks = require(script.Parent.Parent.ZombieLooks)
@@ -1242,9 +1243,44 @@ local function airstrike(player: Player, state: State): boolean
 	local depth = (Waves.wallInset + Waves.spawnDistance) / 2 -- a medio camino entre el muro y donde salen
 	local where = (("la " .. side.name):gsub("la frente", "el frente"):gsub("la atrás", "atrás"))
 	notice:FireClient(player, "¡Ataque aéreo por " .. where .. "!", "great")
+	-- El avión entra desde lejos, pasa por encima del lado y se va; suelta las bombas al pasar
+	local lead = 160 -- de qué tan lejos viene
+	local from = frame * CFrame.new(-Waves.spawnSpread - lead, config.height, -depth)
+	local to = frame * CFrame.new(Waves.spawnSpread + lead, config.height, -depth)
+	local jet = Builder.Build("Jet", CFrame.lookAt(from.Position, to.Position))
+	jet.Name = "AtaqueAereo"
+	local engine = jet:FindFirstChildWhichIsA("BasePart")
+	if engine and config.sound ~= "" then
+		local sound = Instance.new("Sound")
+		sound.SoundId = config.sound
+		sound.Volume = 1.5
+		sound.Looped = true
+		sound.RollOffMinDistance = 40
+		sound.RollOffMaxDistance = 600
+		sound.Parent = engine
+		sound:Play()
+	end
+	jet.Parent = workspace
+	local length = (to.Position - from.Position).Magnitude
+	local flight = length / config.speed
 	task.spawn(function()
+		local started = os.clock()
+		while true do
+			local t = (os.clock() - started) / flight
+			if t >= 1 then
+				break
+			end
+			jet:PivotTo(from:Lerp(to, t))
+			task.wait()
+		end
+		jet:Destroy()
+	end)
+	-- Las bombas caen cuando el avión va pasando por encima de cada punto
+	local step = (2 * Waves.spawnSpread) / (config.bombs - 1)
+	task.spawn(function()
+		task.wait(lead / config.speed)
 		for i = 1, config.bombs do
-			local x = -Waves.spawnSpread + (i - 1) * (2 * Waves.spawnSpread) / (config.bombs - 1)
+			local x = -Waves.spawnSpread + (i - 1) * step
 			local position = (frame * CFrame.new(x, 2, -depth)).Position
 			Effects.Explosion(position, config.radius, "mine")
 			for _, zombie in state.zombies do
@@ -1252,7 +1288,7 @@ local function airstrike(player: Player, state: State): boolean
 					zombie.humanoid.Health = 0
 				end
 			end
-			task.wait(0.2)
+			task.wait(step / config.speed)
 		end
 	end)
 	return true
