@@ -561,6 +561,17 @@ function Builder.kinds.Infirmary(m: Model, o: CFrame)
 	for _, x in { -4.5, 4.5 } do
 		part(m, o, Vector3.new(2.4, 0.8, 5), at(x, 1.4, 1), WHITE, Enum.Material.Fabric) -- camillas
 	end
+	-- Los dos puestos de enfrente: a la izquierda el botiquín y a la derecha el antídoto
+	for _, x in { -5, 5 } do
+		part(m, o, Vector3.new(2, 2.6, 2), at(x, 1.3, -8), Color3.fromRGB(200, 200, 195), Enum.Material.SmoothPlastic)
+	end
+	part(m, o, Vector3.new(1.6, 1.2, 0.8), at(-5, 3.2, -8), WHITE, Enum.Material.SmoothPlastic) -- el botiquín
+	for _, size in { Vector3.new(0.3, 0.9, 0.85), Vector3.new(0.9, 0.3, 0.85) } do
+		part(m, o, size, at(-5, 3.2, -8), RED, Enum.Material.Neon).CanCollide = false
+	end
+	glow(m, o, Vector3.new(0.2, 0.2, 0.2), at(-5, 4.2, -8), RED, 8)
+	glow(m, o, Vector3.new(0.8, 1.2, 0.8), at(5, 3.2, -8), Color3.fromRGB(110, 255, 90), 10) -- el frasco
+	part(m, o, Vector3.new(0.5, 0.4, 0.5), at(5, 4, -8), DARK_METAL, Enum.Material.SmoothPlastic)
 end
 
 -- Laboratorio: edificio con ventanales y tubos verdes

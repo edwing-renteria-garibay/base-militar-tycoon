@@ -452,20 +452,18 @@ local function build(state: State, item, animate: boolean)
 			armoryRemote:FireClient(player, "open")
 		end)
 	elseif item.effect == "heal" then
-		local spot = promptSpot(model, o * CFrame.new(0, 3, -6.5))
-		local buy = prompt(spot, "Comprar botiquín", player, 0, function()
+		-- Dos puestos separados enfrente (Builder.Infirmary): el botiquín a la izquierda y el
+		-- antídoto a la derecha; cada letrero sale solo junto a su puesto
+		local buy = prompt(promptSpot(model, o * CFrame.new(-5, 3, -8)), "Comprar botiquín", player, 0, function()
 			buyItem(player, "medkits", "Medkits", Waves.medkit, "un botiquín")
 		end)
 		buy.ObjectText = Format.Money(Waves.medkit.price)
-		local cure = prompt(promptSpot(model, o * CFrame.new(4, 3, -6.5)), "Comprar antídoto", player, 0, function()
+		local cure = prompt(promptSpot(model, o * CFrame.new(5, 3, -8)), "Comprar antídoto", player, 0, function()
 			buyItem(player, "antidotes", "Antidotes", Waves.antidote, "un antídoto")
 		end)
 		cure.ObjectText = Format.Money(Waves.antidote.price)
-		-- Roblox solo enseña un letrero por tecla: el antídoto va con la F y los dos se ven siempre
-		cure.KeyboardKeyCode = Enum.KeyCode.F
-		cure.GamepadKeyCode = Enum.KeyCode.ButtonY
-		for _, both in { buy, cure } do
-			both.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
+		for _, stand in { buy, cure } do
+			stand.MaxActivationDistance = 6 -- hay que pararse junto al puesto
 		end
 	elseif item.effect == "lab" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -7.5))
