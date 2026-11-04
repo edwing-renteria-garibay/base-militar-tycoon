@@ -86,7 +86,7 @@ type State = {
 	waveId: number, -- cambia en cada ola, para que el que va saliendo sepa si ya acabó
 	lastShot: { [string]: number }, -- última vez que disparó cada torre o torreta
 	squad: { Soldier }, -- los refuerzos (Store.squad)
-	final: { endsAt: number, onDone: (boolean) -> () }?, -- la ola final (WaveService.FinalWave)
+	final: { endsAt: number, onDone: (boolean) -> (), spawning: boolean, warned: boolean }?, -- la ola final (WaveService.FinalWave)
 }
 -- Un soldado de refuerzo: se va al terminar la ola forWave (el waveId de esa ola)
 type Soldier = { model: Model, forWave: number, lastShot: number }
@@ -1035,14 +1035,19 @@ local function tick(player: Player, state: State)
 	defend(player, state, now, Research.Bonus(profile.research, "Torretas"))
 	squadFire(state, now)
 
-	-- La ola final: si aguantaste hasta el final, se transmitió la cura
+	-- La ola final: se transmite la cura cuando ya pasó el tiempo Y mataste a todos los zombis
 	local final = state.final
-	if final and now >= final.endsAt then
-		state.final = nil
-		final.onDone(true)
-		return
-	end
 	local alive = aliveCount(state)
+	if final and now >= final.endsAt then
+		if alive == 0 and not state.spawning and not final.spawning then
+			state.final = nil
+			final.onDone(true)
+			return
+		elseif not final.warned then
+			final.warned = true
+			notice:FireClient(player, string.format("¡La señal está lista! Mata a los %d zombis que quedan para transmitir la cura", alive), "bad")
+		end
+	end
 	player:SetAttribute("WaveEnemies", if state.spawning or final then math.max(alive, 1) else alive)
 	if not state.spawning and not final and alive == 0 then
 		finishWave(player, state, n)
@@ -1183,7 +1188,7 @@ function WaveService.FinalWave(player: Player, config, onDone: (boolean) -> ())
 	if not state.active then
 		startWave(player, state, profile.wave)
 	end
-	state.final = { endsAt = os.clock() + config.duration, onDone = onDone }
+	state.final = { endsAt = os.clock() + config.duration, onDone = onDone, spawning = true, warned = false }
 	local final = state.final
 	notice:FireClient(player, "¡OLA FINAL! Vienen por todos lados: aguanta mientras se transmite la cura", "bad")
 	for b = 1, config.bosses do
@@ -1198,6 +1203,7 @@ function WaveService.FinalWave(player: Player, config, onDone: (boolean) -> ())
 			spawnZombie(player, state, side, config.level, specialOf(i, config.level))
 			task.wait(config.spawnEvery)
 		end
+		final.spawning = false
 	end)
 end
 

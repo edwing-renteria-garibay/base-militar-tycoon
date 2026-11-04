@@ -67,7 +67,7 @@ local function transmit(player: Player)
 		while transmitting[player] and left > 15 do
 			task.wait(15)
 			left -= 15
-			if transmitting[player] then
+			if transmitting[player] and left > 0 then
 				notice:FireClient(player, string.format("Transmitiendo... faltan %d s", left), "good")
 			end
 		end
