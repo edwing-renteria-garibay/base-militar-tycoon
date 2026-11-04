@@ -97,6 +97,41 @@ local states: { [Player]: State } = {}
 local templates: { [string]: Model } = {} -- un zombi de cada tipo, para clonarlo
 
 -- El zombi de cada tipo: piel verde, y la camisa y el tamaño de su tipo
+-- Tu propio zombi: si en Studio pones un modelo (con Humanoid y HumanoidRootPart, por ejemplo
+-- uno de la Caja de herramientas) en ServerStorage > ZombisPersonalizados, con el nombre del
+-- tipo (Normal, Trepador, Jefe...) o "Todos", se usa ese en lugar del que armamos aquí. Se le
+-- quitan los scripts que traiga (pueden ser peligrosos)
+local function customTemplate(key: string, special): Model?
+	local folder = game:GetService("ServerStorage"):FindFirstChild("ZombisPersonalizados")
+	local source = folder and (folder:FindFirstChild(key) or folder:FindFirstChild("Todos"))
+	if not source or not source:IsA("Model") then
+		return nil
+	end
+	if not source:FindFirstChildOfClass("Humanoid") or not source:FindFirstChild("HumanoidRootPart") then
+		warn("[Olas] Tu zombi", source.Name, "necesita Humanoid y HumanoidRootPart")
+		return nil
+	end
+	local model = source:Clone()
+	model.Name = "Zombi"
+	for _, child in model:GetDescendants() do
+		if child:IsA("BaseScript") or child:IsA("ModuleScript") then
+			child:Destroy()
+		end
+	end
+	for _, piece in model:GetDescendants() do
+		if piece:IsA("BasePart") then
+			piece.Anchored = false
+		end
+	end
+	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	humanoid.BreakJointsOnDeath = false
+	local scale = if special then special.scale or 1 else 1
+	if scale ~= 1 then
+		model:ScaleTo(scale)
+	end
+	return model
+end
+
 -- El zombi científico del laboratorio infestado (WaveService.ZombieTemplate)
 local SCIENTIST = { key = "Cientifico", shirt = Color3.fromRGB(220, 220, 215), scale = 1 }
 
@@ -104,6 +139,12 @@ local function getTemplate(special): Model?
 	local key = if special then special.key else "Normal"
 	if templates[key] then
 		return templates[key]
+	end
+	-- ¿Pusiste tu propio modelo en Studio? (ServerStorage > ZombisPersonalizados > <key> o "Todos")
+	local custom = customTemplate(key, special)
+	if custom then
+		templates[key] = custom
+		return custom
 	end
 	local description = Instance.new("HumanoidDescription")
 	local skin = Color3.fromRGB(110, 150, 90)
@@ -119,7 +160,10 @@ local function getTemplate(special): Model?
 	description.HeightScale = scale
 	description.WidthScale = scale
 	description.DepthScale = scale
-	description.HeadScale = scale
+	description.HeadScale = scale * 0.92
+	-- Proporciones más de persona (más alto y delgado, cabeza más chica) que el muñeco de Roblox
+	description.BodyTypeScale = 0.6
+	description.ProportionScale = 0.6
 	local ok, model = pcall(function()
 		return Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
 	end)
@@ -151,6 +195,11 @@ local function getTemplate(special): Model?
 		glow.Parent = bomb
 	end
 	ZombieLooks.Dress(model, key) -- su ropa y sus detalles (src/server/ZombieLooks.luau)
+	ZombieLooks.Pose(model) -- encorvado y con el brazo estirado
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.BreakJointsOnDeath = false -- al morir cae como muñeco de trapo (ZombieLooks.Ragdoll)
+	end
 	if special and special.boss then
 		model:ScaleTo(special.scale) -- la descripción no deja hacerlo tan grande
 	end
@@ -372,6 +421,7 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 		end)
 	end
 	humanoid.Died:Connect(function()
+		ZombieLooks.Ragdoll(model)
 		-- El cuerpo ya no tapa las balas: le pegas al que viene atrás
 		for _, piece in model:GetDescendants() do
 			if piece:IsA("BasePart") then

@@ -218,6 +218,57 @@ LOOKS.Cientifico = function(model: Model)
 	eyes(model, Color3.fromRGB(150, 255, 120))
 end
 
+-- La postura de zombi: un brazo estirado hacia ti, el otro con su arma, encorvado y con la
+-- cabeza de lado (girando las articulaciones, Motor6D)
+function ZombieLooks.Pose(model: Model)
+	local function bend(partName: string, jointName: string, rotation: CFrame)
+		local part = model:FindFirstChild(partName)
+		local joint = part and part:FindFirstChild(jointName)
+		if joint and joint:IsA("Motor6D") then
+			joint.C0 *= rotation
+		end
+	end
+	bend("LeftUpperArm", "LeftShoulder", CFrame.Angles(math.rad(80), 0, math.rad(-8)))
+	bend("RightUpperArm", "RightShoulder", CFrame.Angles(math.rad(35), 0, math.rad(10)))
+	bend("LeftLowerArm", "LeftElbow", CFrame.Angles(math.rad(15), 0, 0))
+	bend("UpperTorso", "Waist", CFrame.Angles(math.rad(-14), math.rad(6), 0))
+	bend("Head", "Neck", CFrame.Angles(math.rad(-8), 0, math.rad(16)))
+end
+
+-- Al morir cae como muñeco de trapo en vez de deshacerse en piezas: cada articulación se
+-- vuelve una rótula floja
+function ZombieLooks.Ragdoll(model: Model)
+	for _, joint in model:GetDescendants() do
+		if joint:IsA("Motor6D") and joint.Part0 and joint.Part1 and joint.Name ~= "Root" then
+			local a0 = Instance.new("Attachment")
+			a0.CFrame = joint.C0
+			a0.Parent = joint.Part0
+			local a1 = Instance.new("Attachment")
+			a1.CFrame = joint.C1
+			a1.Parent = joint.Part1
+			local socket = Instance.new("BallSocketConstraint")
+			socket.Attachment0 = a0
+			socket.Attachment1 = a1
+			socket.LimitsEnabled = true
+			socket.TwistLimitsEnabled = true
+			socket.UpperAngle = 60
+			socket.TwistLowerAngle = -30
+			socket.TwistUpperAngle = 30
+			socket.Parent = joint.Part1
+			joint:Destroy()
+		end
+	end
+	for _, piece in model:GetDescendants() do
+		if piece:IsA("BasePart") and piece.Name ~= "HumanoidRootPart" and piece.Name ~= "Detalle" and piece.Name ~= "ArmaZombi" then
+			piece.CanCollide = true -- para que caiga al piso y no lo atraviese
+		end
+	end
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		root.CanCollide = false
+	end
+end
+
 -- Viste a un zombi según su tipo (key: Normal, Trepador, Jefe...)
 function ZombieLooks.Dress(model: Model, key: string)
 	local look = LOOKS[key] or LOOKS.Normal

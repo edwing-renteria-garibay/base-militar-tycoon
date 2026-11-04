@@ -26,6 +26,7 @@ local DataService = require(script.Parent.DataService)
 local PlotService = require(script.Parent.PlotService)
 local RankService = require(script.Parent.RankService)
 local WaveService = require(script.Parent.WaveService)
+local ZombieLooks = require(script.Parent.Parent.ZombieLooks)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
@@ -513,6 +514,7 @@ local function spawnZombie()
 	local zombie = { model = model, humanoid = humanoid, root = root, home = spot, lastHit = 0, infects = infects }
 	table.insert(zombies, zombie)
 	humanoid.Died:Connect(function()
+		ZombieLooks.Ragdoll(model)
 		Debris:AddItem(model, 2)
 	end)
 end
