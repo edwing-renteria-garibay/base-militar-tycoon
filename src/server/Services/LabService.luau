@@ -218,7 +218,7 @@ local function build()
 		profile.frequency = true
 		player:SetAttribute("Frequency", true)
 		RankService.Count(player, "frequencies")
-		notice:FireClient(player, "¡Tienes la frecuencia de la cura! Vuelve a tu base y transmítela desde la antena", "great")
+		notice:FireClient(player, "¡Tienes la frecuencia de la cura! Vuelve a tu base y mantén F junto a la antena", "great")
 	end)
 end
 

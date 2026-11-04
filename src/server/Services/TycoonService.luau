@@ -1098,6 +1098,12 @@ function TycoonService.Setup(player: Player, plot: PlotService.Plot)
 		end)
 		transmit.ObjectText = "Antena · tu base vuelve a empezar con +50% de dinero"
 		transmit.UIOffset = Vector2.new(0, 80)
+		-- Está en la misma pieza que "Reparar defensas": Roblox solo enseña un letrero por tecla,
+		-- así que este va con la F (botón Y en control) y siempre se ve
+		transmit.KeyboardKeyCode = Enum.KeyCode.F
+		transmit.GamepadKeyCode = Enum.KeyCode.ButtonY
+		transmit.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
+		notice:FireClient(player, "¡Tu caja fuerte ya es antena! Mantén F junto a ella para transmitir la cura", "great")
 	end
 	player:SetAttribute("Frequency", profile.frequency or nil)
 	player:GetAttributeChangedSignal("Frequency"):Connect(showAntenna)
