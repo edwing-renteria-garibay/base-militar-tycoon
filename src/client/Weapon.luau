@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Camera = require(script.Parent.Camera)
 local Menus = require(script.Parent.Menus)
@@ -78,7 +79,9 @@ local function hook(tool: Instance)
 		firing = true
 		while firing and tool.Parent == player.Character and stillHolding() do
 			local now = os.clock()
-			if now - lastShot >= weapon.cooldown then
+			-- Con el consumible de ataque rápido, dispara más seguido
+			local rate = if Waves.Buff(player, "Rapido") then Waves.pickups.byKey.Rapido.fireRate else 1
+			if now - lastShot >= weapon.cooldown / rate then
 				lastShot = now
 				local clip = player:GetAttribute("Clip_" .. weapon.id) or 1
 				if player:GetAttribute("Reloading") then

@@ -1,10 +1,13 @@
 -- Lo comprado con Robux que se usa durante la ola (Config/Store): la bomba (tecla N) y el ataque
 -- aéreo (tecla J). Sus botones salen a la derecha solo si tienes y hay zombis. Abajo dice
--- cuántas vidas extra tienes. El servidor revisa todo otra vez (WaveService).
+-- cuántas vidas extra tienes y los consumibles que te duran (Waves.pickups). El servidor revisa
+-- todo otra vez (WaveService).
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 
 local powerRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Power") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -32,7 +35,7 @@ function PowersUI.Start()
 	local column = Instance.new("Frame")
 	column.AnchorPoint = Vector2.new(1, 0.5)
 	column.Position = UDim2.new(1, -12, 0.5, 0)
-	column.Size = UDim2.fromOffset(190, 160)
+	column.Size = UDim2.fromOffset(190, 240)
 	column.BackgroundTransparency = 1
 	column.Parent = gui
 	local layout = Instance.new("UIListLayout")
@@ -81,6 +84,33 @@ function PowersUI.Start()
 	lives.TextStrokeTransparency = 0.5
 	lives.TextXAlignment = Enum.TextXAlignment.Right
 	lives.Parent = column
+
+	-- Los consumibles que te duran, con los segundos que les quedan
+	local buffs = {}
+	for i, kind in Waves.pickups.kinds do
+		local label = Instance.new("TextLabel")
+		label.LayoutOrder = 20 + i
+		label.Size = UDim2.fromOffset(190, 24)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.GothamBlack
+		label.TextSize = 16
+		label.TextColor3 = kind.color
+		label.TextStrokeTransparency = 0.4
+		label.TextXAlignment = Enum.TextXAlignment.Right
+		label.Visible = false
+		label.Parent = column
+		buffs[kind] = label
+	end
+	task.spawn(function()
+		while true do
+			for kind, label in buffs do
+				local left = (player:GetAttribute("Buff_" .. kind.key) or 0) - workspace:GetServerTimeNow()
+				label.Visible = left > 0
+				label.Text = string.format("%s · %ds", kind.name, math.ceil(left))
+			end
+			task.wait(0.2)
+		end
+	end)
 
 	local function redraw()
 		local fighting = (player:GetAttribute("WaveEnemies") or 0) > 0

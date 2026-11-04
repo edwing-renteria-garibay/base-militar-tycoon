@@ -32,6 +32,7 @@ local Store = require(ReplicatedStorage.Shared.Config.Store)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Effects = require(script.Parent.Parent.Effects)
+local Pickups = require(script.Parent.Parent.Pickups)
 local DataService = require(script.Parent.DataService)
 local RankService = require(script.Parent.RankService)
 local TycoonService = require(script.Parent.TycoonService)
@@ -374,6 +375,8 @@ local function spawnZombie(player: Player, state: State, side, n: number, specia
 			Debris:AddItem(model, 0.5)
 			return
 		end
+		-- A veces suelta un consumible (el jefe, siempre)
+		Pickups.Drop(zombie.root.Position, special ~= nil and special.boss == true)
 		local reward = Waves.KillReward(n) * (if special and special.reward then special.reward else 1)
 		DataService.AddMoney(player, reward)
 		local what = if special and special.boss then "¡Mataste al JEFE!" else "Zombi eliminado:"

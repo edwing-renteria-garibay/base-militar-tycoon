@@ -324,7 +324,9 @@ local function onShoot(player: Player, target: any)
 		return -- está recargando
 	end
 	local now = os.clock()
-	if now - (lastShot[player] or 0) < weapon.cooldown * 0.8 then
+	local fast = Waves.Buff(player, "Rapido") -- consumible: dispara más rápido
+	local cooldown = weapon.cooldown / (if fast then Waves.pickups.byKey.Rapido.fireRate else 1)
+	if now - (lastShot[player] or 0) < cooldown * 0.8 then
 		return -- dispara más rápido de lo permitido
 	end
 	if weapon.ammo and (profile.ammo[weapon.id] or 0) <= 0 then
@@ -362,6 +364,9 @@ local function onShoot(player: Player, target: any)
 	local tip = handle and handle:FindFirstChild("Muzzle") :: Attachment?
 	local muzzle = if tip then tip.WorldPosition else origin
 	local damage = weapon.damage * WeaponService.DamageBonus(player)
+	if Waves.Buff(player, "Dano") then
+		damage *= Waves.pickups.byKey.Dano.damage -- consumible: más daño
+	end
 	local has = hasMod(profile, weapon)
 	local headshotTimes = Weapons.Stat(weapon, "headshot", has)
 	for i = 1, weapon.pellets or 1 do

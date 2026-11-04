@@ -221,6 +221,33 @@ Waves.repairCost = 0.2
 Waves.wire = { slow = 0.4, dps = 8 } -- el alambre frena (40% de su velocidad) y lastima
 Waves.mine = { damage = 200, radius = 12, trigger = 5 } -- explota al pisarla; se gasta
 Waves.fire = { dps = 40, duration = 10 } -- las zanjas de gasolina encendidas
+
+-- Consumibles: a veces un zombi suelta uno al morir (chance; el jefe siempre). Quien pase encima
+-- lo agarra y le dura "duration" segundos. Si nadie lo agarra, desaparece a los "life" segundos.
+--   Rapido    dispara fireRate veces más rápido
+--   Dano      sus balas hacen damage veces el daño
+--   Curacion  cura heal de vida por segundo
+Waves.pickups = {
+	chance = 0.08,
+	duration = 10,
+	life = 25,
+	kinds = {
+		{ key = "Rapido", name = "Ataque rápido", color = Color3.fromRGB(255, 220, 60), fireRate = 2 },
+		{ key = "Dano", name = "Más daño", color = Color3.fromRGB(230, 60, 50), damage = 1.5 },
+		{ key = "Curacion", name = "Curación", color = Color3.fromRGB(70, 230, 110), heal = 8 },
+	},
+}
+
+Waves.pickups.byKey = {}
+for _, kind in Waves.pickups.kinds do
+	Waves.pickups.byKey[kind.key] = kind
+end
+
+-- ¿Le dura todavía ese consumible? (el atributo "Buff_<key>" dice hasta cuándo, en hora del servidor)
+function Waves.Buff(player: Player, key: string): boolean
+	local untilTime = player:GetAttribute("Buff_" .. key)
+	return untilTime ~= nil and workspace:GetServerTimeNow() < untilTime
+end
 -- El combustible: la gasolinera lo genera cada segundo y el depósito lo guarda (hasta
 -- capacity). En el depósito tomas un bidón (gasta cost), lo llevas a una zanja y la llenas;
 -- luego en la gasolinera enciendes las zanjas llenas (se vacían al apagarse). Si la gasolinera
