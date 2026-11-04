@@ -22,6 +22,7 @@
 --   freeSniper = ya le dieron su primer francotirador gratis (TycoonService)
 --   mods     = mejoras de armas compradas en la Armería: { Rifle = { Cargador = true }, ... }
 --   stats    = lo que se cuenta para rangos y medallas: { kills, headshots, bosses, ignites }
+--   missions = las misiones que cumplió: { [key] = true } (Config/Missions)
 --   medals   = las medallas que ganó: { [key] = true } (Config/Ranks)
 --   frequency = trae la frecuencia de la cura (laboratorio infestado, Config/Lab)
 --   victories = cuántas veces transmitió la cura (cada una da más dinero para siempre)
@@ -65,6 +66,7 @@ export type Profile = {
 	mods: { [string]: { [string]: boolean } },
 	stats: { [string]: number },
 	medals: { [string]: boolean },
+	missions: { [string]: boolean },
 	frequency: boolean,
 	victories: number,
 	daily: { last: number, streak: number },
@@ -156,6 +158,7 @@ function DataService.Load(player: Player): Profile
 		mods = {},
 		stats = {},
 		medals = {},
+		missions = {},
 		frequency = false,
 		victories = 0,
 	}
@@ -188,6 +191,7 @@ function DataService.Load(player: Player): Profile
 			profile.mods = if type(data.mods) == "table" then data.mods else {}
 			profile.stats = if type(data.stats) == "table" then data.stats else {}
 			profile.medals = if type(data.medals) == "table" then data.medals else {}
+			profile.missions = if type(data.missions) == "table" then data.missions else {}
 			profile.frequency = data.frequency == true
 			profile.victories = tonumber(data.victories) or 0
 			if type(data.daily) == "table" then

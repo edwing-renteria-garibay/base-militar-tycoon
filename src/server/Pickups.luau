@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local RankService = require(script.Parent.Services.RankService)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
@@ -18,6 +19,7 @@ local function give(player: Player, humanoid: Humanoid, kind)
 	local finish = workspace:GetServerTimeNow() + config.duration
 	player:SetAttribute("Buff_" .. kind.key, finish)
 	notice:FireClient(player, string.format("¡%s por %d segundos!", kind.name, config.duration), "great")
+	RankService.Count(player, "pickups") -- misiones
 	if kind.heal then
 		task.spawn(function()
 			while humanoid.Parent and humanoid.Health > 0 and workspace:GetServerTimeNow() < finish do

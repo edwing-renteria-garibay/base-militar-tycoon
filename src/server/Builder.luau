@@ -695,6 +695,25 @@ function Builder.Vault(o: CFrame): (Model, BasePart, TextLabel)
 	part(m, o, Vector3.new(0.6, 0.4, 2.6), at(0, 3.5, -2.9) * CFrame.Angles(0, 0, math.rad(45)), YELLOW, Enum.Material.Metal)
 	local pad = part(m, o, Vector3.new(6, 0.4, 4), at(0, 0.2, -5.5), Color3.fromRGB(60, 200, 90), Enum.Material.Neon)
 	pad.Name = "Cobrar"
+	-- Reflectores detrás de la caja: de noche es lo más iluminado de la base
+	for _, x in { -4, 4 } do
+		part(m, o, Vector3.new(0.5, 14, 0.5), at(x, 7, 3.2), DARK_METAL, Enum.Material.Metal)
+		local lamp = part(m, o, Vector3.new(1.6, 0.8, 1.6), at(x, 14.2, 3.2), Color3.fromRGB(255, 240, 200), Enum.Material.Neon)
+		local spot = Instance.new("SpotLight")
+		spot.Face = Enum.NormalId.Bottom
+		spot.Angle = 110
+		spot.Range = 40
+		spot.Brightness = 4
+		spot.Color = Color3.fromRGB(255, 235, 200)
+		spot.Shadows = true
+		spot.Parent = lamp
+	end
+	local glow = part(m, o, Vector3.new(0.5, 0.5, 0.5), at(0, 10, -4), DARK_METAL, Enum.Material.Metal)
+	glow.Transparency = 1
+	glow.CanCollide = false
+	light(glow, Color3.fromRGB(255, 235, 200), 36)
+	local around = glow:FindFirstChildOfClass("PointLight") :: PointLight
+	around.Brightness = 2
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromOffset(220, 80)
 	gui.StudsOffset = Vector3.new(0, 6, 0)

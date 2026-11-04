@@ -2,11 +2,15 @@
 -- profile.medals). Se publica en atributos para la pantalla de medallas (UI/Medals):
 -- "Kills", "Rank" y "Medals" (las que tienes, en JSON). El rango también sale en la tabla de
 -- jugadores (leaderstats).
+-- También las misiones (Config/Missions): las que siguen se publican en el atributo "Missions"
+-- (JSON: { { text, have, goal, reward } }) y al cumplir una se paga su premio.
 
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Buildings = require(ReplicatedStorage.Shared.Config.Buildings)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Missions = require(ReplicatedStorage.Shared.Config.Missions)
 local Ranks = require(ReplicatedStorage.Shared.Config.Ranks)
 local DataService = require(script.Parent.DataService)
 
@@ -26,6 +30,12 @@ local function statOf(profile: DataService.Profile, stat: string): number
 		return count
 	elseif stat == "wall" then
 		return Buildings.LevelOf(profile.owned, "wall")
+	elseif stat == "research" then
+		local count = 0
+		for _, level in profile.research do
+			count += level
+		end
+		return count
 	end
 	return profile.stats[stat] or 0
 end
@@ -36,6 +46,15 @@ local function publish(player: Player, profile: DataService.Profile)
 	player:SetAttribute("Kills", kills)
 	player:SetAttribute("Rank", rank.name)
 	player:SetAttribute("Medals", HttpService:JSONEncode(profile.medals))
+	-- Las misiones que siguen
+	local upcoming = {}
+	for _, mission in Missions.list do
+		if #upcoming < Missions.shown and not profile.missions[mission.key] then
+			local have = math.min(statOf(profile, mission.stat), mission.goal)
+			table.insert(upcoming, { text = mission.text, have = have, goal = mission.goal, reward = mission.reward })
+		end
+	end
+	player:SetAttribute("Missions", HttpService:JSONEncode(upcoming))
 	local stats = player:FindFirstChild("leaderstats")
 	local value = stats and stats:FindFirstChild("Rango") :: StringValue?
 	if stats and not value then
@@ -58,6 +77,20 @@ function RankService.Check(player: Player)
 		if not profile.medals[medal.key] and statOf(profile, medal.stat) >= medal.goal then
 			profile.medals[medal.key] = true
 			notice:FireClient(player, string.format("¡Medalla: %s! (%s)", medal.name, medal.description), "great")
+		end
+	end
+	-- Misiones cumplidas: en orden, solo las que se ven en la pantalla
+	local shown = 0
+	for _, mission in Missions.list do
+		if not profile.missions[mission.key] and shown < Missions.shown then
+			shown += 1
+			if statOf(profile, mission.stat) >= mission.goal then
+				profile.missions[mission.key] = true
+				shown -= 1 -- deja lugar para la que sigue
+				DataService.AddMoney(player, mission.reward)
+				local text = string.format("¡Misión cumplida: %s! +%s", mission.text, Format.Money(mission.reward))
+				notice:FireClient(player, text, "great")
+			end
 		end
 	end
 	publish(player, profile)

@@ -16,6 +16,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Research = require(ReplicatedStorage.Shared.Config.Research)
 local Settings = require(ReplicatedStorage.Shared.Config.Settings)
 local DataService = require(script.Parent.DataService)
+local RankService = require(script.Parent.RankService)
 local TycoonService = require(script.Parent.TycoonService)
 local WallService = require(script.Parent.WallService)
 
@@ -126,6 +127,7 @@ local function tick(player: Player)
 			profile.research[line.key] = level
 			notice:FireClient(player, string.format("¡Investigación lista: %s %d!", line.name, level), "great")
 			TycoonService.ResearchDone(player)
+			RankService.Check(player) -- misiones de investigar
 		end
 		publish(player)
 	end

@@ -393,6 +393,7 @@ local function hireSniper(state: State, item)
 	priceSnipers(state)
 	profile.snipers[slot] = true
 	spawnSniper(state, item, slot)
+	RankService.Count(player, "snipers") -- misiones
 	notice:FireClient(player, if free then "¡Tu primer francotirador es gratis!" else "Contrataste un francotirador", "great")
 end
 
@@ -554,6 +555,7 @@ local function buy(player: Player, item)
 		profile.freeSniper = true
 		priceSnipers(state)
 		profile.snipers[item.id] = true
+		profile.stats.snipers = (profile.stats.snipers or 0) + 1 -- misiones (se revisa abajo)
 		notice:FireClient(player, "¡Tu primera torre trae un francotirador gratis!", "great")
 	end
 	local button = state.buttons[item.id]
@@ -769,6 +771,7 @@ fillTrench = function(state: State, trench: Model)
 		model:SetAttribute("Filled", true)
 		showFuel(model)
 	end
+	RankService.Count(player, "fills") -- misiones
 	local text = if #trenches > 1 then "¡Llenaste todas las zanjas!" else "Zanja llena"
 	notice:FireClient(player, text .. ": enciéndelas en la gasolinera", "great")
 end
