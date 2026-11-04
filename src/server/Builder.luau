@@ -54,12 +54,25 @@ local function part(
 	return p
 end
 
+-- Un detalle que brilla (para reconocer cada edificio de noche): una pieza Neon con su luz
+local function glow(m: Model, o: CFrame, size: Vector3, offset: CFrame, color: Color3, range: number)
+	local p = part(m, o, size, offset, color, Enum.Material.Neon)
+	p.CanCollide = false
+	local l = Instance.new("PointLight")
+	l.Color = color
+	l.Range = range
+	l.Brightness = 1.5
+	l.Parent = p
+	return p
+end
+
 -- Un letrero con texto en la cara de enfrente de una pieza
 local function label(target: BasePart, text: string, color: Color3?)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0 -- el letrero brilla: se lee de noche
 	gui.Parent = target
 	local textLabel = Instance.new("TextLabel")
 	textLabel.Size = UDim2.fromScale(1, 1)
@@ -224,6 +237,11 @@ function Builder.kinds.Armory(m: Model, o: CFrame)
 	part(m, o, Vector3.new(8, 6, 0.3), at(0, 3.6, -6.1), METAL, Enum.Material.DiamondPlate)
 	local sign = part(m, o, Vector3.new(10, 1.6, 0.2), at(0, 8, -6.15), DARK_METAL)
 	label(sign, "ARMERÍA", YELLOW)
+	-- Dos focos ámbar a los lados de la puerta y una franja en el techo
+	for _, x in { -5, 5 } do
+		glow(m, o, Vector3.new(0.8, 0.8, 0.4), at(x, 6.8, -6.3), Color3.fromRGB(255, 170, 40), 14)
+	end
+	part(m, o, Vector3.new(15, 0.2, 0.2), at(0, 9.5, -6.55), Color3.fromRGB(255, 170, 40), Enum.Material.Neon).CanCollide = false
 	part(m, o, Vector3.new(3, 3, 3), at(-5.5, 2.1, -8), OLIVE, Enum.Material.Metal)
 	part(m, o, Vector3.new(3, 2, 3), at(5.5, 1.6, -8), OLIVE, Enum.Material.Metal)
 end
@@ -280,6 +298,9 @@ function Builder.kinds.GasStation(m: Model, o: CFrame)
 	end
 	local roof = part(m, o, Vector3.new(17, 1, 11), at(0, 8.5, 0), RED, Enum.Material.Metal)
 	label(roof, "GASOLINERA")
+	-- Las luces blancas bajo el techo, como las gasolineras de verdad
+	glow(m, o, Vector3.new(14, 0.2, 1), at(0, 7.9, -3), Color3.fromRGB(240, 245, 255), 20)
+	glow(m, o, Vector3.new(14, 0.2, 1), at(0, 7.9, 3), Color3.fromRGB(240, 245, 255), 20)
 	for _, x in { -3, 3 } do
 		part(m, o, Vector3.new(1.4, 3, 1), at(x, 1.9, 0), RED, Enum.Material.Metal)
 		local screen = part(m, o, Vector3.new(1, 0.6, 0.1), at(x, 2.8, -0.55), Color3.fromRGB(80, 255, 100), Enum.Material.Neon)
@@ -301,6 +322,7 @@ function Builder.kinds.Pipeline(m: Model, o: CFrame)
 	for _, z in { -12, 0, 12 } do
 		part(m, o, Vector3.new(1.6, 1.6, 1.6), at(0, 0.8, z), DARK_METAL, Enum.Material.DiamondPlate)
 		part(m, o, Vector3.new(0.3, 1.6, 0.3), at(0, 2, z), YELLOW, Enum.Material.Metal)
+		glow(m, o, Vector3.new(0.5, 0.5, 0.5), at(0, 3, z), Color3.fromRGB(255, 120, 30), 8)
 	end
 end
 
@@ -317,6 +339,12 @@ function Builder.kinds.Workshop(m: Model, o: CFrame)
 		part(m, o, Vector3.new(0.9, 2.6, 2.6), at(-4, 0.85 + i * 0.9, -2) * UPRIGHT, Color3.fromRGB(25, 25, 25), Enum.Material.Rubber, Enum.PartType.Cylinder)
 	end
 	part(m, o, Vector3.new(2, 2.4, 1.4), at(3.5, 1.6, -2), RED, Enum.Material.Metal)
+	-- Tanque de combustible con franjas naranjas que brillan y un foco bajo el techo
+	part(m, o, Vector3.new(3.6, 2.6, 2.6), at(0, 5.2, 4) * UPRIGHT, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
+	for _, y in { 4.3, 6.1 } do
+		part(m, o, Vector3.new(0.3, 2.7, 2.7), at(0, y, 4) * UPRIGHT, Color3.fromRGB(255, 120, 30), Enum.Material.Neon, Enum.PartType.Cylinder).CanCollide = false
+	end
+	glow(m, o, Vector3.new(1.2, 0.3, 1.2), at(0, 7.2, -2), Color3.fromRGB(255, 150, 60), 18)
 end
 
 function Builder.kinds.Factory(m: Model, o: CFrame)
@@ -377,6 +405,8 @@ function Builder.kinds.Turret(m: Model, o: CFrame)
 		part(head, o, Vector3.new(6, 0.5, 0.5), at(x, 5, -5) * FACING, DARK_METAL, Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
 	head.WorldPivot = o * at(0, 4.8, 0)
+	-- Un foco ámbar en la base
+	glow(m, o, Vector3.new(7.1, 0.2, 7.1), at(0, 0.65, 0), Color3.fromRGB(255, 150, 40), 10)
 end
 
 function Builder.kinds.Radar(m: Model, o: CFrame)
@@ -387,7 +417,8 @@ function Builder.kinds.Radar(m: Model, o: CFrame)
 	part(dish, o, Vector3.new(0.3, 0.3, 3), at(0, 10, -2.2), DARK_METAL, Enum.Material.Metal)
 	dish.WorldPivot = o * at(0, 10, 0)
 	local beacon = part(m, o, Vector3.new(0.6, 0.6, 0.6), at(2.5, 3.3, -2.5), Color3.fromRGB(80, 255, 100), Enum.Material.Neon)
-	light(beacon, Color3.fromRGB(80, 255, 100), 8)
+	light(beacon, Color3.fromRGB(80, 255, 100), 16)
+	glow(m, o, Vector3.new(6.1, 0.3, 6.1), at(0, 3, 0), Color3.fromRGB(80, 255, 100), 10) -- franja verde
 end
 
 function Builder.kinds.AmmoDepot(m: Model, o: CFrame)
@@ -415,6 +446,8 @@ function Builder.kinds.SniperTower(m: Model, o: CFrame)
 		part(m, o, Vector3.new(1.8, 0.9, 1.2), at(-2 + i * 2, 24.9, -2.6), SAND, Enum.Material.Fabric)
 	end
 	part(m, o, Vector3.new(6.6, 0.4, 6.6), at(0, 28, 0), DARK_OLIVE, Enum.Material.Fabric)
+	glow(m, o, Vector3.new(0.8, 0.8, 0.8), at(0, 28.6, 0), RED, 16) -- luz roja de torre, como las de verdad
+	glow(m, o, Vector3.new(0.6, 0.3, 0.6), at(0, 27.6, 0), Color3.fromRGB(255, 220, 170), 14) -- y una que alumbra al francotirador
 	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
 		part(m, o, Vector3.new(0.3, 3.4, 0.3), at(corner[1] * 2.8, 26.2, corner[2] * 2.8), DARK_WOOD, Enum.Material.Wood)
 	end
@@ -522,6 +555,8 @@ function Builder.kinds.Infirmary(m: Model, o: CFrame)
 		local cross = part(m, o, size, at(0, 9.8, -4.1), RED, Enum.Material.Neon)
 		cross.CanCollide = false
 	end
+	glow(m, o, Vector3.new(0.4, 0.4, 0.2), at(0, 9.8, -4.25), RED, 18) -- la cruz alumbra
+	glow(m, o, Vector3.new(3, 0.2, 0.6), at(0, 6.2, -4.4), Color3.fromRGB(230, 245, 255), 12) -- sobre la puerta
 	part(m, o, Vector3.new(0.4, 2.6, 0.4), at(0, 9, -4), DARK_METAL, Enum.Material.Metal)
 	for _, x in { -4.5, 4.5 } do
 		part(m, o, Vector3.new(2.4, 0.8, 5), at(x, 1.4, 1), WHITE, Enum.Material.Fabric) -- camillas
@@ -545,6 +580,7 @@ function Builder.kinds.Lab(m: Model, o: CFrame)
 		local liquid = part(m, o, Vector3.new(2.6, 0.9, 0.9), at(x, 11, 3) * UPRIGHT, Color3.fromRGB(90, 255, 120), Enum.Material.Neon, Enum.PartType.Cylinder)
 		liquid.CanCollide = false
 	end
+	glow(m, o, Vector3.new(0.3, 0.3, 0.3), at(-4, 12.5, 3), Color3.fromRGB(90, 255, 120), 16)
 	part(m, o, Vector3.new(0.4, 5, 0.4), at(5, 11.5, 3), METAL, Enum.Material.Metal)
 	part(m, o, Vector3.new(3, 0.3, 3), at(5, 14, 3), METAL, Enum.Material.Metal)
 end
