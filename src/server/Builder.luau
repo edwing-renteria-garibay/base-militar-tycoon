@@ -626,6 +626,7 @@ function Builder.kinds.FireTrench(m: Model, o: CFrame)
 	local trench = part(m, o, Vector3.new(length, 0.2, 4), at(0, 0.1, 0), Color3.fromRGB(35, 30, 25), Enum.Material.Ground)
 	trench.CanCollide = false
 	local fuel = part(m, o, Vector3.new(length - 2, 0.1, 2.6), at(0, 0.22, 0), Color3.fromRGB(70, 50, 90), Enum.Material.Glass)
+	fuel.Name = "Gasolina" -- vacía: oscura; llena: TycoonService la pinta
 	fuel.Transparency = 0.3
 	fuel.CanCollide = false
 	for x = -length / 2 + 3, length / 2 - 3, 6 do

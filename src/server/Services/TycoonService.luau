@@ -9,7 +9,8 @@
 --      vault, wall          mejoran la caja fuerte o el muro (WallService)
 --      barricade            se rompe y se repara como el muro
 --      mine                 se gasta al explotar (WaveService) y su botón vuelve a salir
---      fire                 la gasolinera tiene un letrero para encender las zanjas
+--      fire                 la gasolinera tiene un letrero para encender las zanjas llenas
+--                           (se llenan con el bidón que das en el depósito, ver Waves.fuel)
 --      armory               la armería tiene un letrero que abre su tienda (WeaponService)
 --      heal                 la enfermería te cura si estás cerca
 --      lab                  el laboratorio tiene un letrero que abre lo que se investiga
@@ -69,6 +70,7 @@ type State = {
 	vaultHealth: number,
 	repairPrompt: ProximityPrompt,
 	firePrompt: ProximityPrompt?,
+	fuelPrompt: ProximityPrompt?,
 	fireUntil: number, -- os.clock() hasta el que arden las zanjas
 	fuel: number, -- combustible guardado en el depósito (Waves.fuel)
 	models: { [string]: Model }, -- lo construido, por id
@@ -230,6 +232,8 @@ local function moveOutOfTheWay(player: Player, model: Model)
 end
 
 local ignite: (Player) -> ()
+local takeCan: (State) -> ()
+local fillTrench: (State, Model) -> ()
 local premiumItem: (any) -> any
 local publishPremium: (Player, DataService.Profile) -> ()
 
@@ -404,6 +408,19 @@ local function build(state: State, item, animate: boolean)
 		if profile and profile.snipers[item.id] then
 			spawnSniper(state, item) -- ya lo tenía contratado
 		end
+	elseif item.effect == "fuel" then
+		local spot = promptSpot(model, o * CFrame.new(0, 3, -6))
+		state.fuelPrompt = prompt(spot, "Tomar bidón", player, 0.3, function()
+			takeCan(state)
+		end)
+	elseif item.kind == "FireTrench" then
+		-- En cualquier parte de la zanja: tres letreros a lo largo
+		for _, x in { -50, 0, 50 } do
+			local spot = promptSpot(model, o * CFrame.new(x, 2, 0))
+			prompt(spot, "Llenar zanja", player, 0.8, function()
+				fillTrench(state, model)
+			end)
+		end
 	elseif item.kind == "GasStation" then
 		local spot = promptSpot(model, o * CFrame.new(0, 3, -3))
 		state.firePrompt = prompt(spot, "Encender zanjas", player, 0.5, function()
@@ -565,7 +582,97 @@ local function vaultHealthChanged(state: State)
 	state.owner:SetAttribute("VaultMax", Waves.vaultHealth)
 end
 
--- Enciende todas las zanjas de gasolina un rato (Waves.fire)
+-- El bidón de gasolina que se lleva en la mano (de un rojo que se ve en la noche)
+local function makeCan(): Tool
+	local tool = Instance.new("Tool")
+	tool.Name = "Bidon"
+	tool.ToolTip = "Llévalo a una zanja y mantén E para llenarla"
+	tool.CanBeDropped = false
+	tool.Grip = CFrame.new(0, -0.4, 0)
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Size = Vector3.new(1.6, 2, 0.8)
+	handle.Color = Color3.fromRGB(190, 30, 25)
+	handle.Material = Enum.Material.Metal
+	handle.CanCollide = false
+	handle.Massless = true
+	handle.Parent = tool
+	local cap = Instance.new("Part")
+	cap.Size = Vector3.new(0.4, 0.4, 0.4)
+	cap.Color = Color3.fromRGB(230, 190, 40)
+	cap.CanCollide = false
+	cap.Massless = true
+	cap.CFrame = handle.CFrame * CFrame.new(0.5, 1.15, 0)
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = handle
+	weld.Part1 = cap
+	weld.Parent = cap
+	cap.Parent = tool
+	return tool
+end
+
+-- ¿Trae un bidón (en la mano o en la mochila)?
+local function canOf(player: Player): Tool?
+	local character = player.Character
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	local found = character and character:FindFirstChild("Bidon")
+	if not found and backpack then
+		found = backpack:FindFirstChild("Bidon")
+	end
+	return if found and found:IsA("Tool") then found else nil
+end
+
+-- En el depósito: un bidón lleno (gasta combustible)
+takeCan = function(state: State)
+	local player = state.owner
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
+	if canOf(player) then
+		notice:FireClient(player, "Ya traes un bidón: llévalo a una zanja", "bad")
+		return
+	end
+	if state.fuel < Waves.fuel.cost then
+		local wait = math.ceil((Waves.fuel.cost - state.fuel) / Waves.fuel.perSecond)
+		notice:FireClient(player, string.format("Falta combustible: espera %d s", wait), "bad")
+		return
+	end
+	state.fuel -= Waves.fuel.cost
+	humanoid:EquipTool(makeCan())
+	notice:FireClient(player, "Lleva el bidón a una zanja y mantén E para llenarla", "good")
+end
+
+-- Pinta la gasolina de la zanja: llena (brilla) o vacía
+local function showFuel(trench: Model)
+	local fuel = trench:FindFirstChild("Gasolina") :: BasePart?
+	if fuel then
+		local filled = trench:GetAttribute("Filled") == true
+		fuel.Color = if filled then Color3.fromRGB(230, 150, 40) else Color3.fromRGB(70, 50, 90)
+		fuel.Material = if filled then Enum.Material.Neon else Enum.Material.Glass
+		fuel.Transparency = if filled then 0.45 else 0.3
+	end
+end
+
+-- Vacía el bidón en la zanja
+fillTrench = function(state: State, trench: Model)
+	local player = state.owner
+	local can = canOf(player)
+	if trench:GetAttribute("Filled") then
+		notice:FireClient(player, "Esta zanja ya está llena", "good")
+		return
+	end
+	if not can then
+		notice:FireClient(player, "Trae un bidón del depósito de combustible", "bad")
+		return
+	end
+	can:Destroy()
+	trench:SetAttribute("Filled", true)
+	showFuel(trench)
+	notice:FireClient(player, "Zanja llena: enciéndela en la gasolinera", "great")
+end
+
+-- Enciende las zanjas llenas un rato (Waves.fire); al apagarse quedan vacías
 ignite = function(player: Player)
 	local state = states[player]
 	local profile = DataService.Get(player)
@@ -580,33 +687,33 @@ ignite = function(player: Player)
 		notice:FireClient(player, "La gasolinera está destruida: repárala", "bad")
 		return
 	end
-	if not working(state.models.Taller) then
-		local text = if profile.owned.Taller
-			then "El depósito de combustible está destruido: repáralo"
-			else "Compra el depósito de combustible para guardar gasolina"
-		notice:FireClient(player, text, "bad")
-		return
-	end
-	if state.fuel < Waves.fuel.cost then
-		local wait = math.ceil((Waves.fuel.cost - state.fuel) / Waves.fuel.perSecond)
-		notice:FireClient(player, string.format("Falta combustible: espera %d s", wait), "bad")
-		return
-	end
-	local trenches = {}
+	local owned, trenches = 0, {}
 	for _, item in Buildings.list do
 		if item.kind == "FireTrench" and profile.owned[item.id] then
+			owned += 1
 			local model = state.models[item.id]
-			if model then
+			if model and model:GetAttribute("Filled") then
 				table.insert(trenches, model)
 			end
 		end
 	end
-	if #trenches == 0 then
+	if owned == 0 then
 		notice:FireClient(player, "Primero compra zanjas de gasolina (botones junto al muro)", "bad")
 		return
 	end
+	if #trenches == 0 then
+		notice:FireClient(player, "Las zanjas están vacías: llénalas con un bidón del depósito", "bad")
+		return
+	end
 	state.fireUntil = now + Waves.fire.duration
-	state.fuel -= Waves.fuel.cost
+	for _, model in trenches do
+		model:SetAttribute("Burning", true)
+		task.delay(Waves.fire.duration, function()
+			model:SetAttribute("Filled", nil)
+			model:SetAttribute("Burning", nil)
+			showFuel(model)
+		end)
+	end
 	for _, model in trenches do
 		local count = 0
 		for _, flame in model:GetChildren() do
@@ -1101,13 +1208,24 @@ function TycoonService.Start()
 					state.repairPrompt.ObjectText = if missing >= 1
 						then "Cuesta " .. Format.Money(math.ceil(missing * Waves.repairCost))
 						else "Todo en buen estado"
-					if state.firePrompt then
-						state.firePrompt.ObjectText = string.format(
-							"Combustible %d / %d (gasta %d)",
+					if state.fuelPrompt then
+						state.fuelPrompt.ObjectText = string.format(
+							"Combustible %d / %d (un bidón gasta %d)",
 							state.fuel,
 							Waves.fuel.capacity,
 							Waves.fuel.cost
 						)
+					end
+					if state.firePrompt then
+						local filled, total = 0, 0
+						for _, item in Buildings.list do
+							local trench = item.kind == "FireTrench" and state.models[item.id]
+							if trench then
+								total += 1
+								filled += if trench:GetAttribute("Filled") then 1 else 0
+							end
+						end
+						state.firePrompt.ObjectText = string.format("Zanjas llenas: %d de %d", filled, total)
 					end
 				end
 			end

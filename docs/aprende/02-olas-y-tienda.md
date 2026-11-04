@@ -40,10 +40,13 @@ se pierde.
   transparentes, y no funcionan hasta que los reparas.
 - **Alambre:** frena a los zombis y los lastima mientras lo cruzan.
 - **Minas:** explotan cuando un zombi pasa cerca y se gastan; su botón vuelve a salir.
-- **Zanjas de gasolina:** mantén **E** en la gasolinera para encenderlas 10 segundos. Gasta 20
-  de combustible: la gasolinera genera 0.5 por segundo y el depósito de combustible lo guarda
-  (hasta 100). Si uno de los dos está roto, no se encienden (`Waves.fuel`).
-- **Reparar:** mantén **E** junto a la caja fuerte. Cuesta $0.50 por punto de vida.
+- **Zanjas de gasolina** (pegadas al muro por fuera): la gasolinera genera 0.5 de combustible
+  por segundo y el depósito lo guarda (hasta 100). En el depósito mantén **E** para tomar un
+  bidón (gasta 20), llévalo a cualquier parte de una zanja y mantén **E** para llenarla. Luego
+  mantén **E** en la gasolinera: se encienden las zanjas llenas 10 segundos y quedan vacías
+  (`Waves.fuel`). Si la gasolinera está rota no se encienden; si el depósito está roto no hay bidones.
+- **Reparar:** mantén **E** junto a la caja fuerte. Cuesta $0.20 por punto de vida, y al pasar
+  la ola todo se repara solo.
 - **Premios:** cada zombi da $5 más 2 por el número de la ola, y pasar la ola n da $150 x n.
   Además la caja fuerte junta 10% más por cada ola a la que llegas (`Waves.incomePerWave`).
   Y todo lo que compras para tu base suma: cada cosa da 0.5% de su precio por segundo (una

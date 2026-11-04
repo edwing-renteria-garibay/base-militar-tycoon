@@ -222,8 +222,9 @@ Waves.wire = { slow = 0.4, dps = 8 } -- el alambre frena (40% de su velocidad) y
 Waves.mine = { damage = 200, radius = 12, trigger = 5 } -- explota al pisarla; se gasta
 Waves.fire = { dps = 40, duration = 10 } -- las zanjas de gasolina encendidas
 -- El combustible: la gasolinera lo genera cada segundo y el depósito lo guarda (hasta
--- capacity). Encender las zanjas gasta cost. Si la gasolinera o el depósito están rotos, no
--- se puede encender nada (y la gasolinera rota no genera)
+-- capacity). En el depósito tomas un bidón (gasta cost), lo llevas a una zanja y la llenas;
+-- luego en la gasolinera enciendes las zanjas llenas (se vacían al apagarse). Si la gasolinera
+-- está rota no se enciende nada ni se genera; si el depósito está roto no hay bidones
 Waves.fuel = { perSecond = 0.5, capacity = 100, cost = 20 }
 
 return Waves

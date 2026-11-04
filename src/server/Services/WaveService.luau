@@ -514,7 +514,11 @@ local function trapsOf(player: Player): Traps
 			if item.effect == "wire" then
 				table.insert(traps.wires, place)
 			elseif item.kind == "FireTrench" then
-				table.insert(traps.trenches, place)
+				-- Solo quema la que está encendida (la que llenaste con el bidón)
+				local trench = TycoonService.ModelOf(player, id)
+				if trench and trench:GetAttribute("Burning") then
+					table.insert(traps.trenches, place)
+				end
 			elseif item.effect == "mine" then
 				table.insert(traps.mines, { id = id, position = place.Position })
 			end
