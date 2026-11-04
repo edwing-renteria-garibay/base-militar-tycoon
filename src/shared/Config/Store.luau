@@ -43,7 +43,7 @@ Store.products = {
 	{
 		key = "Bolsa",
 		kind = "money",
-		id = 0,
+		id = 3728335625,
 		name = "Bolsa de dinero",
 		robux = 49,
 		seconds = 600, -- da lo que genera tu base en 10 minutos...
