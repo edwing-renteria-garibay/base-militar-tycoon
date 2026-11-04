@@ -415,6 +415,12 @@ local function build(state: State, item, animate: boolean)
 		-- Solo si su botón estaba en el mismo lugar (lo de afuera del muro lo tiene aparte)
 		if item.button == nil then
 			moveOutOfTheWay(player, model)
+			-- Otra vez al terminar de bajar: mientras baja no choca, y si te metiste te atrapaba
+			task.delay(BUILD_TIME + 0.1, function()
+				if model.Parent then
+					moveOutOfTheWay(player, model)
+				end
+			end)
 		end
 		for _, piece in model:GetDescendants() do
 			if piece:IsA("BasePart") and piece.Name ~= "Letrero" and piece.Name ~= "Llama" then
