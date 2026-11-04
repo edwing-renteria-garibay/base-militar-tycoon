@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Builder = require(script.Parent.Parent.Builder)
+local Effects = require(script.Parent.Parent.Effects)
 
 local SEGMENT = 10 -- ancho de cada pedazo del muro
 local DOOR_X = -5 -- el pedazo de en medio que es puerta (su x en el lado)
@@ -111,8 +112,17 @@ end
 
 local function setHealth(target: Instance, health: number)
 	local max = target:GetAttribute("MaxHealth") or 1
+	local before = target:GetAttribute("Health") or 0
 	target:SetAttribute("Health", math.clamp(health, 0, max))
 	show(target)
+	-- Se acaba de derrumbar: suena (los edificios y torres traen "CollapseSound", Config/Sounds events)
+	local sound = target:GetAttribute("CollapseSound")
+	if sound and before > 0 and health <= 0 then
+		local parts = partsOf(target)
+		if #parts > 0 then
+			Effects.Sound(sound, parts[1].Position, 1.5)
+		end
+	end
 end
 
 -- La vida máxima de algo: la suya (base) por el blindaje investigado

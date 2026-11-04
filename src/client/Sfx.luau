@@ -23,7 +23,7 @@ function Sfx.PlayAt(soundId: string?, position: Vector3, volume: number?)
 	sound.PlaybackSpeed = 0.95 + math.random() * 0.1
 	sound.Parent = anchor
 	sound:Play()
-	Debris:AddItem(anchor, 3)
+	Debris:AddItem(anchor, 10) -- (los derrumbes duran varios segundos)
 end
 
 -- Sonido que solo oye este jugador, sin posición (por ejemplo, el clic sin balas)

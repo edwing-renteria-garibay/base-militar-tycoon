@@ -440,7 +440,8 @@ local function build(state: State, item, animate: boolean)
 	state.items[item.id] = item
 	drawRange(state, item, model)
 	if isBreakable(item) then
-		-- La pone en la carpeta "Rompibles", con su vida
+		-- La pone en la carpeta "Rompibles", con su vida (y con qué suena al derrumbarse)
+		model:SetAttribute("CollapseSound", if item.kind == "SniperTower" then "tower" else "building")
 		WallService.Add(player, model, Waves.buildingHealth[item.kind] or Waves.buildingHealth.default)
 	else
 		model.Parent = state.plot.contents

@@ -27,6 +27,7 @@ local PlotService = require(script.Parent.PlotService)
 local RankService = require(script.Parent.RankService)
 local WaveService = require(script.Parent.WaveService)
 local ZombieLooks = require(script.Parent.Parent.ZombieLooks)
+local Effects = require(script.Parent.Parent.Effects)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
@@ -383,6 +384,7 @@ local function build()
 		player:SetAttribute("LabCards", 0)
 		alarmUntil = os.clock() + Lab.alarm.duration
 		alarmTarget = player
+		player:SetAttribute("LabAlarm", true) -- su pantalla oye la alarma hasta que sale (Sounds.alarm)
 		notice:FireClient(player, "¡ALARMA! Todos los zombis del laboratorio te huelen: ¡corre a tu base!", "bad")
 		player:SetAttribute("Frequency", true)
 		RankService.Count(player, "frequencies") -- (y la marca de objetivo pasa a tu caja)
@@ -405,6 +407,38 @@ end
 local function insideBuilding(position: Vector3): boolean
 	local here = origin:PointToObjectSpace(position)
 	return here.X > half + 0.5 and here.X < half + 40 and math.abs(here.Z) < 16
+end
+
+-- El charco verde que deja un infeccioso al morir: si lo pisas, te infectas (Lab.zombies.puddle)
+local function leavePuddle(model: Model, position: Vector3, scale: number)
+	Effects.Sound("infectedDeath", position)
+	local config = Lab.zombies.puddle
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { model }
+	local floor = workspace:Raycast(position, Vector3.new(0, -12 * scale, 0), params)
+	local y = if floor then floor.Position.Y else position.Y - 3
+	local puddle = Instance.new("Part")
+	puddle.Name = "CharcoInfeccioso"
+	puddle.Shape = Enum.PartType.Cylinder
+	puddle.Size = Vector3.new(0.15, config.size * scale, config.size * scale)
+	puddle.CFrame = CFrame.new(position.X, y + 0.08, position.Z) * CFrame.Angles(0, 0, math.rad(90))
+	puddle.Anchored = true
+	puddle.CanCollide = false
+	puddle.CanQuery = false
+	puddle.Material = Enum.Material.Neon
+	puddle.Color = Lab.zombies.infectColor
+	puddle.Transparency = 0.35
+	puddle.Parent = folder
+	puddle.Touched:Connect(function(hit)
+		local player = Players:GetPlayerFromCharacter(hit.Parent)
+		local humanoid = hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid")
+		if player and humanoid and humanoid.Health > 0 and not player:GetAttribute("Infected") then
+			player:SetAttribute("Infected", true) -- InfectionService le quita vida
+			notice:FireClient(player, "¡Pisaste un charco infeccioso! Usa un antídoto", "bad")
+		end
+	end)
+	Debris:AddItem(puddle, config.life)
 end
 
 -- El guardián: un zombi enorme junto a la terminal
@@ -446,6 +480,7 @@ local function spawnGuardian()
 	guardian = zombie
 	humanoid.Died:Connect(function()
 		guardianDiedAt = os.clock()
+		leavePuddle(model, root.Position, 2)
 		Debris:AddItem(model, 3)
 		-- Premio para los que estaban adentro peleando
 		for _, player in Players:GetPlayers() do
@@ -514,6 +549,9 @@ local function spawnZombie()
 	local zombie = { model = model, humanoid = humanoid, root = root, home = spot, lastHit = 0, infects = infects }
 	table.insert(zombies, zombie)
 	humanoid.Died:Connect(function()
+		if infects then
+			leavePuddle(model, root.Position, 1)
+		end
 		ZombieLooks.Ragdoll(model)
 		Debris:AddItem(model, 2)
 	end)
@@ -581,6 +619,10 @@ function LabService.Start()
 			task.wait(0.5)
 			for _, player in Players:GetPlayers() do
 				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+				-- La alarma se deja de oír al salir del laboratorio (o cuando se acaba)
+				if player:GetAttribute("LabAlarm") and (not root or not insideLab(root.Position) or os.clock() >= alarmUntil) then
+					player:SetAttribute("LabAlarm", nil)
+				end
 				if root and insideLab(root.Position) and not canEnter(player) then
 					player.Character:PivotTo(origin * CFrame.new(-half - 12, 4, 0) * CFrame.Angles(0, math.rad(-90), 0))
 					notice:FireClient(player, string.format("Solo entra quien ya pasó la ola %d", Lab.minRecord), "bad")

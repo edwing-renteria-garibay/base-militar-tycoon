@@ -1,8 +1,9 @@
 -- Punto de entrada del cliente: la cámara (primera persona, V para tercera), correr (Shift), el arma en primera
 -- persona y la mira, la pantalla con tu dinero, los avisos y la próxima ola, la tienda, la
--- armería, el laboratorio, colocar defensas premium, poner barricadas, la bomba y el ataque aéreo, invitar amigos, las armas, los efectos de los disparos y lo
--- que gira.
+-- armería, el laboratorio, colocar defensas premium, poner barricadas, la bomba y el ataque aéreo, invitar amigos, las armas, los efectos de los disparos, lo
+-- que gira y los sonidos de fondo (poca vida, alarma, música de la ola).
 
+local Ambience = require(script.Ambience)
 local Camera = require(script.Camera)
 local Crosshair = require(script.Crosshair)
 local Fx = require(script.Fx)
@@ -44,6 +45,7 @@ local parts = {
 	Weapon,
 	Fx,
 	Spinner,
+	Ambience,
 }
 for _, part in parts do
 	task.spawn(function()

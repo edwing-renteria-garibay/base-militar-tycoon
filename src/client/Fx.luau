@@ -107,6 +107,9 @@ function Fx.Start()
 		elseif kind == "explosion" then
 			local position, sound = ...
 			Sfx.PlayAt(Sounds.explosion[sound] or Sounds.explosion.mine, position, 1)
+		elseif kind == "sound" then
+			local name, position, volume = ...
+			Sfx.PlayAt(Sounds.events[name], position, volume or 1)
 		end
 	end)
 end

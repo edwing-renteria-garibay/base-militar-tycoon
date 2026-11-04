@@ -24,6 +24,8 @@ Lab.zombies = {
 	-- antídoto, Waves.infection). ¡Lleva antídotos!
 	infectShare = 0.5,
 	infectColor = Color3.fromRGB(90, 200, 60),
+	-- Al morir, un infeccioso deja un charco verde: si lo pisas te infectas. Dura "life" segundos
+	puddle = { size = 5, life = 30 },
 }
 
 -- Las tarjetas: están escondidas en callejones sin salida del laberinto. Sin las "count" no

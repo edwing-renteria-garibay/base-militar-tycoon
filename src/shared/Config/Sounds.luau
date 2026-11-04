@@ -30,4 +30,19 @@ return {
 		Francotirador = "rbxassetid://122836641692660",
 	},
 	buy = "rbxasset://sounds/electronicpingshort.wav", -- al comprar en la armería
+
+	-- Sonidos del juego que manda el servidor (Effects.Sound): se oyen desde donde pasa
+	events = {
+		cure = "rbxassetid://112789925350056", -- al empezar a transmitir la cura desde la antena
+		antidote = "rbxassetid://115042232223165", -- al usar un antídoto
+		infectedDeath = "rbxassetid://18816874251", -- muere un zombi infeccioso (deja un charco)
+		building = "rbxassetid://139316396351592", -- derrumban un edificio
+		tower = "rbxassetid://2674547670", -- derrumban una torre de francotirador
+	},
+	-- Sonidos que se repiten mientras pasa algo (los pone el cliente)
+	lowHealth = "rbxassetid://95277435744284", -- con poca vida (menos de lowHealthShare)
+	lowHealthShare = 0.3,
+	alarm = "rbxassetid://109480418196084", -- la alarma del laboratorio, hasta que sales de él
+	waveMusic = "rbxassetid://1835893953", -- música de fondo mientras hay zombis en la ola
+	waveMusicVolume = 0.35,
 }

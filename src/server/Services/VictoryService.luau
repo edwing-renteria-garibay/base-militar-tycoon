@@ -13,6 +13,7 @@ local DataService = require(script.Parent.DataService)
 local RankService = require(script.Parent.RankService)
 local TycoonService = require(script.Parent.TycoonService)
 local WaveService = require(script.Parent.WaveService)
+local Effects = require(script.Parent.Parent.Effects)
 
 local notice = ReplicatedStorage.Remotes.Notice :: RemoteEvent
 
@@ -60,6 +61,10 @@ local function transmit(player: Player)
 	transmitting[player] = true
 	local config = Lab.final
 	player:SetAttribute("Transmitting", workspace:GetServerTimeNow() + config.duration)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		Effects.Sound("cure", root.Position, 1.5)
+	end
 	notice:FireClient(player, string.format("Transmitiendo la cura: tu caja fuerte debe aguantar %d segundos", config.duration), "great")
 	-- Cuánto falta, cada 15 segundos
 	task.spawn(function()

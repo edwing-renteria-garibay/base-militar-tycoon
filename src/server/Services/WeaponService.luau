@@ -175,6 +175,10 @@ local function useItem(player: Player, item, humanoid: Humanoid): (boolean, stri
 		return false, "No estás infectado"
 	end
 	player:SetAttribute("Infected", nil)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		Effects.Sound("antidote", root.Position)
+	end
 	return true, "Ya no estás infectado"
 end
 

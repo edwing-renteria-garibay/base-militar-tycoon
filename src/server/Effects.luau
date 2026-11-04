@@ -55,4 +55,10 @@ function Effects.Explosion(position: Vector3, radius: number, sound: string)
 	fx:FireAllClients("explosion", position, sound)
 end
 
+-- Un sonido de Config/Sounds events (por ejemplo "building" o "antidote") en un punto: lo oyen
+-- todos los que estén cerca
+function Effects.Sound(name: string, position: Vector3, volume: number?)
+	fx:FireAllClients("sound", name, position, volume)
+end
+
 return Effects
