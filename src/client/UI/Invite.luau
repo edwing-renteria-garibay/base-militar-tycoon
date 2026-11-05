@@ -47,12 +47,13 @@ function InviteUI.Start()
 		end
 	end
 	button.Activated:Connect(invite)
-	ContextActionService:BindAction("Invite", function(_, state)
+	-- La I también acerca la cámara en Roblox: con prioridad alta, la toma primero la invitación
+	ContextActionService:BindActionAtPriority("Invite", function(_, state)
 		if state == Enum.UserInputState.Begin then
 			task.spawn(invite)
 		end
 		return Enum.ContextActionResult.Sink
-	end, false, Enum.KeyCode.I)
+	end, false, Enum.ContextActionPriority.High.Value + 100, Enum.KeyCode.I)
 	SocialService.GameInvitePromptClosed:Connect(function()
 		Menus.SetOpen("Invitar", false)
 	end)
