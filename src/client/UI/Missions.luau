@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Format = require(ReplicatedStorage.Shared.Format)
+local Layout = require(script.Parent.Parent.Layout)
 
 local player = Players.LocalPlayer
 
@@ -21,7 +22,12 @@ function MissionsUI.Start()
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	local panel = Instance.new("Frame")
+	-- (en celular es un botón que se toca para ver u ocultar las misiones)
+	local panel: GuiObject = if Layout.touch then Instance.new("TextButton") else Instance.new("Frame")
+	if panel:IsA("TextButton") then
+		panel.Text = ""
+		panel.AutoButtonColor = false
+	end
 	panel.Position = UDim2.fromOffset(12, 178)
 	panel.Size = UDim2.fromOffset(260, 0)
 	panel.AutomaticSize = Enum.AutomaticSize.Y
@@ -59,6 +65,7 @@ function MissionsUI.Start()
 		return l
 	end
 
+	local expanded = false
 	local function redraw()
 		for _, child in panel:GetChildren() do
 			if child:IsA("TextLabel") then
@@ -83,11 +90,23 @@ function MissionsUI.Start()
 		if #list == 0 then
 			return
 		end
+		if Layout.touch and not expanded then
+			-- En celular, las misiones se esconden para no tapar: tócalo para verlas
+			label(0, string.format("MISIONES (%d) · toca para ver", #list), 14, GOLD).Font = Enum.Font.GothamBlack
+			return
+		end
 		label(0, "MISIONES", 16, GOLD).Font = Enum.Font.GothamBlack
 		for i, mission in list do
 			local text = string.format("• %s (%d/%d) · %s", mission.text, mission.have, mission.goal, Format.Money(mission.reward))
 			label(i, text, 14, Color3.new(1, 1, 1))
 		end
+	end
+	if Layout.touch then
+		-- El panel es un botón: al tocarlo se muestran o esconden las misiones
+		(panel :: TextButton).Activated:Connect(function()
+			expanded = not expanded
+			redraw()
+		end)
 	end
 	player:GetAttributeChangedSignal("Missions"):Connect(redraw)
 	player:GetAttributeChangedSignal("MainObjective"):Connect(redraw)

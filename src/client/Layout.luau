@@ -20,7 +20,7 @@ local Layout = {}
 Layout.touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 -- Qué tan chico se ve todo en celular (1 = normal)
-local SMALL_SCALE = 0.75
+local SMALL_SCALE = 0.7
 
 -- Las pantallas de Roblox que no tocamos
 local ROBLOX_GUIS = { TouchGui = true, Chat = true, BubbleChat = true, Freecam = true }
@@ -117,14 +117,14 @@ function Layout.Dock(button: GuiButton, order: number)
 	button.Parent = frame
 end
 
--- ¿Pantalla de celular chica? (la parte corta mide menos de 500)
+-- ¿Pantalla de celular? (una tableta grande, de lado, sí tiene espacio)
 local function small(): boolean
 	local camera = workspace.CurrentCamera
 	if not Layout.touch or not camera then
 		return false
 	end
 	local size = camera.ViewportSize
-	return math.min(size.X, size.Y) < 500
+	return math.min(size.X, size.Y) < 900
 end
 
 local function fit(gui: Instance)
