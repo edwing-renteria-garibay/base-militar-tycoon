@@ -19,12 +19,12 @@ local SPRINT_SPEED = 24
 
 local Sprint = {}
 
+local toggled = false -- con el botón de celular o L3: corre hasta que lo vuelvas a tocar
+
 -- ¿Está corriendo con el botón? (para pintar el botón de celular)
 function Sprint.IsToggled(): boolean
 	return toggled
 end
-
-local toggled = false -- con el botón de celular o L3: corre hasta que lo vuelvas a tocar
 
 local function onToggle(_name: string, state: Enum.UserInputState)
 	if state == Enum.UserInputState.Begin then
