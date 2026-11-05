@@ -22,6 +22,15 @@ local Camera = {}
 local firstPerson = true
 local recoil = 0 -- grados que la mira debe estar levantada por el retroceso; baja sola
 local recoilApplied = 0 -- grados que ya se le sumaron a la cámara
+local lookYaw = 0 -- giro pedido por el stick de Disparar del celular (se aplica y se borra)
+local lookPitch = 0
+local MAX_PITCH = 80 -- lo más que se puede mirar arriba o abajo
+
+-- Gira la mira unos grados (el stick de Disparar del celular, UI/TouchButtons)
+function Camera.Look(yaw: number, pitch: number)
+	lookYaw += yaw
+	lookPitch += pitch
+end
 
 -- Retroceso: levanta la mira unos grados (Weapon lo llama al disparar)
 function Camera.Kick(degrees: number)
@@ -88,6 +97,21 @@ function Camera.Start()
 			local camera = workspace.CurrentCamera
 			camera.CFrame *= CFrame.Angles(math.rad(delta), 0, 0)
 			recoilApplied = recoil
+		end
+		-- Giro pedido con Camera.Look: a los lados alrededor del eje vertical, y arriba o abajo
+		-- sin pasarse de MAX_PITCH
+		if lookYaw ~= 0 or lookPitch ~= 0 then
+			local camera = workspace.CurrentCamera
+			local current = math.deg(math.asin(math.clamp(camera.CFrame.LookVector.Y, -1, 1)))
+			local pitch = math.clamp(current + lookPitch, -MAX_PITCH, MAX_PITCH) - current
+			local position = camera.CFrame.Position
+			local rotation = camera.CFrame - position
+			camera.CFrame = CFrame.new(position)
+				* CFrame.Angles(0, math.rad(-lookYaw), 0)
+				* rotation
+				* CFrame.Angles(math.rad(pitch), 0, 0)
+			lookYaw = 0
+			lookPitch = 0
 		end
 		if firstPerson then
 			return -- en primera persona Roblox ya fija el mouse y gira al personaje

@@ -6,15 +6,18 @@
 --          Apuntar
 --            DISPARAR   (Saltar)
 --
--- Disparar hace lo mismo que el clic izquierdo: dispara el arma que traes, a la mira del centro
--- de la pantalla (mientras lo mantienes, sigue disparando). Así puedes mirar arrastrando el
--- dedo sin disparar. Apuntar solo sale con armas con zoom (francotirador). Correr se toca una
+-- Disparar es un stick, como en Escuadrón Cero (y como en los juegos de disparos de celular):
+-- al tocarlo dispara a la mira del centro y, mientras mueves el dedo, la mira se mueve lo mismo
+-- (más lento sobre un zombi, para no pasarte). Al soltarlo la bolita regresa al centro. Con la
+-- escopeta y el francotirador el tiro sale al soltar, así acomodas la mira sin gastar la bala. Apuntar solo sale con armas con zoom (francotirador). Correr se toca una
 -- vez para correr y otra para parar. Llaman a las mismas funciones que las teclas (Actions).
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local Actions = require(script.Parent.Parent.Actions)
+local Camera = require(script.Parent.Parent.Camera)
 local Crosshair = require(script.Parent.Parent.Crosshair)
 local Layout = require(script.Parent.Parent.Layout)
 local Menus = require(script.Parent.Parent.Menus)
@@ -27,10 +30,18 @@ local BUTTON = Color3.fromRGB(20, 20, 20)
 local FIRE = Color3.fromRGB(170, 40, 40)
 local ACTIVE = Color3.fromRGB(230, 170, 50) -- Correr prendido / zoom puesto
 local TEXT = Color3.new(1, 1, 1)
+local STICK_BASE = Color3.fromRGB(40, 40, 40) -- como el fondo del stick de caminar
+
+-- Stick de Disparar: grados que gira la mira por cada punto que mueves el dedo
+local LOOK_SPEED = 0.3
+local VERTICAL = 0.6 -- arriba y abajo giran más lento: el pulgar se va hacia arriba sin querer
+local AIM_FRICTION = 0.45 -- con la mira sobre un zombi gira más lento
+local KNOB_SIZE = 38
+local SINGLE_SHOT = 0.5 -- armas que tardan esto o más entre tiros disparan al soltar
 
 -- Dónde va cada botón: el centro, medido desde el centro del botón de saltar, y su tamaño
 local LAYOUT = {
-	Fire = { x = -105, y = -15, size = 84 },
+	Fire = { x = -100, y = -15, size = 72 },
 	Reload = { x = -15, y = -90, size = 56 },
 	Aim = { x = -95, y = -100, size = 56 },
 	Sprint = { x = -165, y = -140, size = 52 },
@@ -76,25 +87,59 @@ end
 
 -- Llama a onPress cuando el dedo toca el botón y a onRelease cuando lo suelta (aunque lo
 -- suelte fuera del botón)
-local function onTouch(button: TextButton, onPress: (InputObject) -> (), onRelease: ((InputObject) -> ())?)
+-- onMove, si se da, recibe dónde está el dedo en la pantalla mientras se mueve
+local function onTouch(
+	button: GuiButton,
+	onPress: (InputObject) -> (),
+	onRelease: ((InputObject) -> ())?,
+	onMove: ((Vector2) -> ())?
+)
 	button.InputBegan:Connect(function(input)
 		if input.UserInputType ~= Enum.UserInputType.Touch then
 			return
 		end
-		button.BackgroundTransparency = 0.1 -- se ve apretado
+		local normal = button.BackgroundTransparency
+		button.BackgroundTransparency = normal - 0.25 -- se ve apretado
 		onPress(input)
+		local moved
+		if onMove then
+			onMove(Vector2.new(input.Position.X, input.Position.Y))
+			moved = input:GetPropertyChangedSignal("Position"):Connect(function()
+				onMove(Vector2.new(input.Position.X, input.Position.Y))
+			end)
+		end
 		local connection
 		connection = input:GetPropertyChangedSignal("UserInputState"):Connect(function()
 			local state = input.UserInputState
 			if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 				connection:Disconnect()
-				button.BackgroundTransparency = 0.35
+				if moved then
+					moved:Disconnect()
+				end
+				button.BackgroundTransparency = normal
 				if onRelease then
 					onRelease(input)
 				end
 			end
 		end)
 	end)
+end
+
+-- ¿Hay un zombi justo en la mira (el centro de la pantalla)?
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+local function enemyInSight(): boolean
+	local camera = workspace.CurrentCamera
+	rayParams.FilterDescendantsInstances = { camera, player.Character :: Instance }
+	local result = workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * 400, rayParams)
+	local model = result and result.Instance:FindFirstAncestorOfClass("Model")
+	while model do
+		if CollectionService:HasTag(model, "Enemy") then
+			return true
+		end
+		model = model:FindFirstAncestorOfClass("Model")
+	end
+	return false
 end
 
 local function humanoid(): Humanoid?
@@ -130,14 +175,77 @@ function TouchButtons.Start()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	place()
 
-	local fire = makeButton(cluster, "Fire", "Disparar", FIRE)
-	local firing = false
+	-- El stick: el círculo de fondo (fire) y la bolita que sigue al dedo (knob)
+	local fire = makeButton(cluster, "Fire", "", STICK_BASE)
+	fire.BackgroundTransparency = 0.5
+	local knob = Instance.new("TextLabel")
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.Position = UDim2.fromScale(0.5, 0.5)
+	knob.Size = UDim2.fromOffset(KNOB_SIZE, KNOB_SIZE)
+	knob.BackgroundColor3 = FIRE
+	knob.BackgroundTransparency = 0.25
+	knob.Font = Enum.Font.GothamBold
+	knob.Text = "Disparar"
+	knob.TextColor3 = TEXT
+	knob.TextScaled = true
+	knob.Parent = fire
+	local knobCorner = Instance.new("UICorner")
+	knobCorner.CornerRadius = UDim.new(0.5, 0)
+	knobCorner.Parent = knob
+	local knobPadding = Instance.new("UIPadding")
+	knobPadding.PaddingLeft = UDim.new(0, 4)
+	knobPadding.PaddingRight = UDim.new(0, 4)
+	knobPadding.Parent = knob
+	local knobText = Instance.new("UITextSizeConstraint")
+	knobText.MaxTextSize = 11
+	knobText.Parent = knob
+	-- Donde pusiste el dedo (la bolita se mueve desde ahí) y dónde estaba en el último
+	-- movimiento (la mira gira lo que se movió desde entonces)
+	local origin: Vector2? = nil
+	local last: Vector2? = nil
+	local firing: string? = nil
+	local function resetKnob()
+		origin = nil
+		last = nil
+		knob.Position = UDim2.fromScale(0.5, 0.5)
+	end
 	onTouch(fire, function()
-		firing = true
-		Weapon.SetTrigger(true)
-	end, function()
-		firing = false
-		Weapon.SetTrigger(false)
+		local weapon = Weapon.Equipped()
+		if weapon and weapon.cooldown >= SINGLE_SHOT then
+			firing = "release" -- tiro por tiro: sale al soltar
+		else
+			firing = "hold"
+			Weapon.SetTrigger(true)
+		end
+	end, function(input)
+		if firing == "hold" then
+			Weapon.SetTrigger(false)
+		elseif firing == "release" and input.UserInputState == Enum.UserInputState.End then
+			Weapon.SetTrigger(true) -- un solo tiro
+			Weapon.SetTrigger(false)
+		end
+		firing = nil
+		resetKnob()
+	end, function(position)
+		-- La mira gira lo que se movió el dedo (más lento con zoom o sobre un zombi)
+		if last then
+			local delta = position - last
+			local speed = LOOK_SPEED * workspace.CurrentCamera.FieldOfView / 70
+			if enemyInSight() then
+				speed *= AIM_FRICTION
+			end
+			Camera.Look(delta.X * speed, -delta.Y * speed * VERTICAL)
+		end
+		last = position
+		-- La bolita sigue al dedo sin salirse del círculo
+		local radius = fire.AbsoluteSize.X / 2
+		origin = origin or position
+		local offset = position - (origin :: Vector2)
+		if offset.Magnitude > radius then
+			offset = offset.Unit * radius
+		end
+		local knobOffset = offset / scale.Scale -- (AbsoluteSize ya trae el UIScale)
+		knob.Position = UDim2.new(0.5, knobOffset.X, 0.5, knobOffset.Y)
 	end)
 
 	local reload = makeButton(cluster, "Reload", "Recargar", BUTTON)
@@ -167,8 +275,9 @@ function TouchButtons.Start()
 		if not cluster.Visible then
 			if firing then
 				Weapon.SetTrigger(false) -- se abrió un menú con el dedo en el gatillo: se suelta
-				firing = false
+				firing = nil
 			end
+			resetKnob()
 			return
 		end
 		local weapon = Weapon.Equipped()
