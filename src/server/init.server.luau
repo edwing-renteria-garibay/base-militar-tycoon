@@ -13,6 +13,7 @@ local LabService = require(Services.LabService)
 local PlotService = require(Services.PlotService)
 local RankService = require(Services.RankService)
 local ResearchService = require(Services.ResearchService)
+local RoomService = require(Services.RoomService)
 local StoreService = require(Services.StoreService)
 local TycoonService = require(Services.TycoonService)
 local VictoryService = require(Services.VictoryService)
@@ -34,6 +35,7 @@ InfectionService.Start() -- la infección del zombi corrosivo
 Lamps.Start() -- los faroles parpadean
 LabService.Start() -- el laboratorio infestado al final de la calle (después de PlotService)
 VictoryService.Start() -- transmitir la cura desde la antena
+RoomService.Start() -- salas privadas con amigos
 
 local function onPlayerAdded(player: Player)
 	DataService.Load(player)

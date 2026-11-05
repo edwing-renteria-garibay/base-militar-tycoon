@@ -52,7 +52,7 @@ function MedalsUI.Start()
 	open.Text = "MEDALLAS · M"
 	open.TextSize = 18
 	open.TextColor3 = Color3.fromRGB(30, 30, 30)
-	Layout.Dock(open, 5)
+	Layout.Dock(open, 6)
 	corner(open, 10)
 
 	local panel = Instance.new("Frame")

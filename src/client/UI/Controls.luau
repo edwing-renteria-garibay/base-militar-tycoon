@@ -37,6 +37,7 @@ local ROWS = {
 	{ "Ataque aéreo (si tienes)", "J", "R3 (presiona el stick)", "RS (presiona el stick)", "Botón a la derecha" },
 	{ "Medallas", "M", "Select y elige", "View y elige", "MENÚ > Medallas" },
 	{ "Invitar amigos", "I", "", "", "MENÚ > Invitar" },
+	{ "Salas privadas con amigos", "Botón SALAS", "Select y elige SALAS", "View y elige SALAS", "MENÚ > Salas" },
 	{ "Ver controles", "C", "Select y elige", "View y elige", "MENÚ > Controles" },
 	{ "Moverte en un menú", "Mouse", "Stick y Equis (Círculo sale)", "Stick y A (B sale)", "Toca" },
 }
@@ -94,7 +95,7 @@ function ControlsUI.Start()
 	open.TextSize = 18
 	open.TextColor3 = Color3.new(1, 1, 1)
 	corner(open, 10)
-	Layout.Dock(open, 6)
+	Layout.Dock(open, 7)
 
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)

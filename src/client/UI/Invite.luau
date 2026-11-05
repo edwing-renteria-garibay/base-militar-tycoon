@@ -42,6 +42,11 @@ function InviteUI.Start()
 			Menus.SetOpen("Invitar", true) -- suelta el mouse para usar la ventana
 			local options = Instance.new("ExperienceInviteOptions")
 			options.PromptMessage = "¡Ayúdame a defender mi base en Frecuencia Cero!"
+			-- En una sala privada, la invitación lleva su código para que tu amigo llegue aquí
+			local access = game:GetService("ReplicatedStorage"):GetAttribute("InviteCode")
+			if type(access) == "string" then
+				options.LaunchData = game:GetService("HttpService"):JSONEncode({ join = access })
+			end
 			SocialService:PromptGameInvite(player, options)
 		else
 			button.Text = "No disponible"
@@ -74,7 +79,7 @@ function InviteUI.Start()
 	local joinCorner = Instance.new("UICorner")
 	joinCorner.CornerRadius = UDim.new(0, 10)
 	joinCorner.Parent = join
-	Layout.Dock(join, 7)
+	Layout.Dock(join, 8)
 	local target = nil
 	join.Activated:Connect(function()
 		if not target then

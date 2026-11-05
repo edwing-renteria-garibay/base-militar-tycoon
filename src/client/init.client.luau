@@ -24,6 +24,7 @@ local MissionsUI = require(script.UI.Missions)
 local ObjectiveMarker = require(script.ObjectiveMarker)
 local PlacementUI = require(script.UI.Placement)
 local PowersUI = require(script.UI.Powers)
+local RoomsUI = require(script.UI.Rooms)
 local StoreUI = require(script.UI.Store)
 
 -- Cada parte arranca por separado: si una falla (sale en rojo en Output), las demás siguen
@@ -50,6 +51,7 @@ local parts = {
 	Spinner,
 	Ambience,
 	ControlsUI,
+	RoomsUI,
 }
 for _, part in parts do
 	task.spawn(function()
