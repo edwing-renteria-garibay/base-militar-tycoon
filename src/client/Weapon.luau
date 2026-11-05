@@ -4,7 +4,6 @@
 -- Aquí también se mueve el arma y sube la mira al disparar (retroceso), como en Escuadrón Cero.
 -- Con R (o el botón en celular) recargas; al vaciar el cargador recarga sola.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,7 +12,9 @@ local SoundService = game:GetService("SoundService")
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local Actions = require(script.Parent.Actions)
 local Camera = require(script.Parent.Camera)
+local Layout = require(script.Parent.Layout)
 local Menus = require(script.Parent.Menus)
 local Sfx = require(script.Parent.Sfx)
 local ViewModel = require(script.Parent.ViewModel)
@@ -27,6 +28,11 @@ local Weapon = {}
 -- A dónde apuntas: lo que está bajo la mira (o bajo el dedo en celular), sin contar tu cuerpo
 local function aim(): Vector3
 	local ray = mouse.UnitRay
+	if Layout.touch then
+		-- En celular se dispara con el botón: apunta a la mira, en el centro de la pantalla
+		local camera = workspace.CurrentCamera
+		ray = camera:ViewportPointToRay(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { player.Character :: Instance }
@@ -63,6 +69,7 @@ local function hasMod(weapon): (string) -> boolean
 end
 
 local connected: { [Tool]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local triggers: { [Tool]: (boolean) -> () } = setmetatable({}, { __mode = "k" }) :: any
 local lastShot = 0
 
 local function hook(tool: Instance)
@@ -71,9 +78,14 @@ local function hook(tool: Instance)
 		return
 	end
 	connected[tool] = true
-	-- Mientras mantienes el clic (o el dedo), sigue disparando a la velocidad de tu arma
+	if Layout.touch then
+		-- En celular se dispara solo con el botón Disparar (UI/TouchButtons), no al tocar
+		-- cualquier parte de la pantalla (así puedes mirar con el dedo sin disparar)
+		tool.ManualActivationOnly = true
+	end
+	-- Mientras mantienes el clic (o el botón), sigue disparando a la velocidad de tu arma
 	local firing = false
-	tool.Activated:Connect(function()
+	local function pull()
 		if firing then
 			return
 		end
@@ -102,13 +114,36 @@ local function hook(tool: Instance)
 			task.wait()
 		end
 		firing = false
-	end)
+	end
+	tool.Activated:Connect(pull)
 	tool.Deactivated:Connect(function()
 		firing = false
 	end)
 	tool.Unequipped:Connect(function()
 		firing = false
 	end)
+	triggers[tool] = function(on: boolean)
+		if on then
+			task.spawn(pull)
+		else
+			firing = false
+		end
+	end
+end
+
+-- El botón Disparar del celular: aprieta (true) o suelta (false) el gatillo del arma en la mano
+function Weapon.SetTrigger(on: boolean)
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	local trigger = tool and triggers[tool]
+	if trigger then
+		trigger(on)
+	end
+end
+
+-- ¿Trae un arma en la mano? (y cuál, de Config/Weapons)
+function Weapon.Equipped(): any
+	local tool = player.Character and player.Character:FindFirstChildOfClass("Tool")
+	return tool and Weapons.byId[tool.Name]
 end
 
 local function watch(container: Instance)
@@ -161,16 +196,14 @@ end
 
 function Weapon.Start()
 	player:GetAttributeChangedSignal("Reloading"):Connect(onReloading)
-	-- Control y botón en celular; la R va aparte porque al colocar defensas la R gira la defensa
-	ContextActionService:BindAction("Recargar", reload, true, Enum.KeyCode.ButtonX)
+	-- Control (el botón de celular está en UI/TouchButtons); la R va aparte porque al colocar
+	-- defensas la R gira la defensa
+	Actions.Bind("Recargar", reload, false, Enum.KeyCode.ButtonX)
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and input.KeyCode == Enum.KeyCode.R then
 			reload(nil, Enum.UserInputState.Begin)
 		end
 	end)
-	ContextActionService:SetTitle("Recargar", "R")
-	-- A la izquierda del botón de saltar (Correr va arriba de él): que no se encimen
-	ContextActionService:SetPosition("Recargar", UDim2.new(1, -180, 1, -95))
 	local function onCharacter(character: Model)
 		watch(character)
 		watch(player:WaitForChild("Backpack"))

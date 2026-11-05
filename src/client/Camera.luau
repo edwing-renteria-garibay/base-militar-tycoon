@@ -5,11 +5,11 @@
 -- con un menú abierto, ver Menus). En tercera persona el personaje gira para mirar hacia donde
 -- mira la cámara.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Actions = require(script.Parent.Actions)
 local Menus = require(script.Parent.Menus)
 
 local player = Players.LocalPlayer
@@ -69,7 +69,7 @@ local function onToggle(_name: string, state: Enum.UserInputState)
 end
 
 function Camera.Start()
-	ContextActionService:BindAction("ToggleCamera", onToggle, false, Enum.KeyCode.V, Enum.KeyCode.ButtonY)
+	Actions.Bind("ToggleCamera", onToggle, false, Enum.KeyCode.V, Enum.KeyCode.ButtonY)
 
 	-- Al reaparecer, el personaje es nuevo: se vuelve a aplicar la vista elegida
 	player.CharacterAdded:Connect(function(character)

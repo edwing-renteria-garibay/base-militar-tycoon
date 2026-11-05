@@ -2,7 +2,6 @@
 -- Se pone roja un instante (y suena un aviso) cuando el servidor confirma que le diste a un
 -- zombi. También la mira del francotirador: clic derecho (o L2 en mando) para hacer zoom.
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -11,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Camera = require(script.Parent.Camera)
+local Actions = require(script.Parent.Actions)
 local Menus = require(script.Parent.Menus)
 local Sfx = require(script.Parent.Sfx)
 local ViewModel = require(script.Parent.ViewModel)
@@ -39,6 +39,11 @@ local function equipped(): (Tool?, any)
 		return nil, nil
 	end
 	return tool, Weapons.byId[tool.Name]
+end
+
+-- ¿Está con el zoom puesto? (para pintar el botón Apuntar del celular)
+function Crosshair.IsScoped(): boolean
+	return scoped
 end
 
 local function setScoped(value: boolean)
@@ -139,7 +144,7 @@ function Crosshair.Start()
 		line.Parent = scopeFrame
 	end
 
-	ContextActionService:BindAction("Scope", onScope, false, Enum.UserInputType.MouseButton2, Enum.KeyCode.ButtonL2)
+	Actions.Bind("Scope", onScope, false, Enum.UserInputType.MouseButton2, Enum.KeyCode.ButtonL2)
 
 	local lastHit = -math.huge
 	hitRemote.OnClientEvent:Connect(function()

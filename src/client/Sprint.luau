@@ -6,10 +6,11 @@
 -- WalkSpeed aquí. Se revisa cada fotograma si tienes Shift apretado (así no importa si otra
 -- cosa de Roblox, como el "shift lock", se queda con la tecla).
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+
+local Actions = require(script.Parent.Actions)
 
 local player = Players.LocalPlayer
 
@@ -17,6 +18,11 @@ local WALK_SPEED = 16 -- lo normal en Roblox
 local SPRINT_SPEED = 24
 
 local Sprint = {}
+
+-- ¿Está corriendo con el botón? (para pintar el botón de celular)
+function Sprint.IsToggled(): boolean
+	return toggled
+end
 
 local toggled = false -- con el botón de celular o L3: corre hasta que lo vuelvas a tocar
 
@@ -28,9 +34,7 @@ local function onToggle(_name: string, state: Enum.UserInputState)
 end
 
 function Sprint.Start()
-	ContextActionService:BindAction("Sprint", onToggle, true, Enum.KeyCode.ButtonL3)
-	ContextActionService:SetTitle("Sprint", "Correr")
-	ContextActionService:SetPosition("Sprint", UDim2.new(1, -95, 1, -175)) -- arriba del botón de saltar
+	Actions.Bind("Sprint", onToggle, false, Enum.KeyCode.ButtonL3) -- (en celular: UI/TouchButtons)
 	RunService.Heartbeat:Connect(function()
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")

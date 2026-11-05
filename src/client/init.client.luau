@@ -26,6 +26,7 @@ local PlacementUI = require(script.UI.Placement)
 local PowersUI = require(script.UI.Powers)
 local RoomsUI = require(script.UI.Rooms)
 local StoreUI = require(script.UI.Store)
+local TouchButtons = require(script.UI.TouchButtons)
 
 -- Cada parte arranca por separado: si una falla (sale en rojo en Output), las demás siguen
 local parts = {
@@ -52,6 +53,7 @@ local parts = {
 	Ambience,
 	ControlsUI,
 	RoomsUI,
+	TouchButtons,
 }
 for _, part in parts do
 	task.spawn(function()

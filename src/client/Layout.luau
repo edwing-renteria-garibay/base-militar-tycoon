@@ -23,7 +23,8 @@ Layout.touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEn
 local SMALL_SCALE = 0.7
 
 -- Las pantallas de Roblox que no tocamos
-local ROBLOX_GUIS = { TouchGui = true, Chat = true, BubbleChat = true, Freecam = true }
+-- (y las nuestras que se dibujan en puntos exactos de la pantalla: la mira y los botones táctiles)
+local ROBLOX_GUIS = { TouchGui = true, Chat = true, BubbleChat = true, Freecam = true, Crosshair = true, TouchButtons = true }
 
 local dock: Frame? = nil
 local menuButton: TextButton? = nil

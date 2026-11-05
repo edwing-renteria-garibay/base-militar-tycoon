@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Waves = require(ReplicatedStorage.Shared.Config.Waves)
+local Layout = require(script.Parent.Parent.Layout)
 
 local powerRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Power") :: RemoteEvent
 local player = Players.LocalPlayer
@@ -36,6 +37,11 @@ function PowersUI.Start()
 	local column = Instance.new("Frame")
 	column.AnchorPoint = Vector2.new(1, 0.5)
 	column.Position = UDim2.new(1, -12, 0.5, 0)
+	if Layout.touch then
+		-- En celular a la derecha están los botones de disparar: arriba, junto al MENÚ
+		column.AnchorPoint = Vector2.new(1, 0)
+		column.Position = UDim2.new(1, -140, 0, 8)
+	end
 	column.Size = UDim2.fromOffset(190, 240)
 	column.BackgroundTransparency = 1
 	column.Parent = gui
